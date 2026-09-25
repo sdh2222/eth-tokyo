@@ -1,4 +1,4 @@
-> **상태: 현재.** 구현은 `ens` 브랜치의 `ens/`에 있고 Sepolia에 배포됐다. 인터페이스의 기준은 `docs/code/desk-system.md` §6이며, 이 문서와 다르면 그쪽이 이긴다.
+> **상태: 현재.** 구현은 `ens/setup` 브랜치의 `ens/`에 있고 Sepolia에 배포됐다. 인터페이스의 기준은 `docs/code/desk-system.md` §6이며, 이 문서와 다르면 그쪽이 이긴다.
 
 # ENS 파트 설계 — 지갑 안의 OTC 데스크
 
