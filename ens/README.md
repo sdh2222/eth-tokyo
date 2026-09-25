@@ -1,0 +1,97 @@
+# ens — ENS lane
+
+지갑 안의 OTC 데스크의 ENS 파트. 트레저리가 소유한 이름 계층을 만들고, MM별 거래 조건을 레코드로 기록하고, 리스크 에이전트에게 스프레드 키 하나만 위임한다. 라우터가 읽는 계약은 `docs/code/desk-system.md` §6(브랜치 `claude/sleepy-ritchie-5lp65m`)이 기준이다.
+
+> **정리 필요: 팀 설계(§6.2)와 레코드 형식이 다르다.** 이 브랜치는 ENS 파트가 제안한 비대칭 스프레드 형식을 쓴다. 라우터(T3)는 §6.2의 96바이트 대칭 형식을 검사하므로, 둘 중 하나로 맞추기 전에는 통합하면 체결이 `DeskPriceNoTerms`로 막힌다.
+>
+> | 항목 | 이 브랜치 | 팀 설계 §6.2 / D5 |
+> | --- | --- | --- |
+> | `desk.terms` | `abi.encode(uint8 1, uint16 askBps, uint16 bidBps, uint128 capPerFill)` 128바이트 | `abi.encode(uint8 1, uint16 tierBps, uint128 capPerFill)` 96바이트 |
+> | `desk.spread` | `abi.encode(uint8 1, uint16 askBps, uint16 bidBps, uint64 validUntil)` | `abi.encode(uint8 1, uint16 spreadBps, uint64 validUntil)` |
+> | `capPerFill` 단위 | WETH 18자리 (시드 5 WETH) | USDC 6자리, 체결의 USDC 쪽 (예 `100_000e6`) |
+> | 주소 전달 | `ens/deployments/sepolia.json` | `config/sepolia.json`의 `ens`, `mms` |
+> | 트레저리 | 테스트넷 EOA (임시) | Safe |
+
+```
+desk.eth                      트레저리 소유, 트레저리 resolver
+├─ clients.desk.eth           MM 명단 (UserRegistry)
+│   ├─ mm-a / mm-b / mm-c     addr + desk.terms
+└─ agents.desk.eth
+    └─ risk                   리스크 에이전트 신원
+```
+
+## 실행
+
+```bash
+npm install
+npm run keys       # .env에 테스트넷 키 생성 (이미 있으면 유지), 주소 출력
+npm run check      # 읽기 전용 점검 — 가스 불필요
+npx tsx scripts/00-probe.ts   # 인코딩을 배포된 컨트랙트의 pure 함수로 검증 + 배포 시뮬레이션 — 가스 불필요
+# TREASURY 주소에 Sepolia ETH ~0.05 입금 후
+npm run register   # desk.eth 등록 (commit → 60초 → register). 중단돼도 재실행하면 이어서 진행
+npm run setup      # resolver + 서브레지스트리 3개 배포, desk.eth 연결
+npm run clients    # mm-a/b/c 발급 + addr, desk.terms
+npm run agent      # 에이전트 위임 + 경계 확인 (--send-revert: 거부되는 쓰기를 실제로 채굴해 해시 확보)
+npm run verify     # 수용 기준 자동 검사
+```
+
+모든 스크립트는 멱등이다. 체인 상태나 `deployments/sepolia.json`을 먼저 보고 이미 된 단계는 건너뛴다. 데모 직전에 `npm run clients`를 다시 돌리면 mm-c의 만료 시계가 새로 시작된다(`MM_C_TTL_SECONDS`, 기본 900초).
+
+## 배포본 기준 사실 (저장소 main과 다르다)
+
+아래는 Sepolia에 **배포된** 컨트랙트의 Blockscout 검증 소스에서 읽었고, `scripts/00-probe.ts`가 배포된 `decodeSetter`로 재확인한다. `ensdomains/contracts-v2@main`과 다르니 저장소를 보고 고치지 말 것.
+
+| 항목 | 배포본 | main (쓰지 말 것) |
+| --- | --- | --- |
+| `ROLE_SET_DATA` | `1<<24` | `1<<36` |
+| `ROLE_SET_ABI` / `ROLE_SET_INTERFACE` / `ROLE_SET_NAME` | `1<<12` / `1<<16` / `1<<20` | `1<<16` / `1<<20` / `1<<24` |
+| `ROLE_LINK` | `1<<28` | 없음 |
+| setter 첫 인자 | DNS 인코딩 이름 `bytes` | `bytes32 node` |
+| 주소 setter | `setAddress(bytes,uint256,bytes)` | `setAddr(...)` |
+| 키 단위 위임 | `grantSetterRoles(bytes setter, address)` | `authorizeDataRoles(...)` |
+| `grantRoles` | **항상 revert** (`EACCannotGrantRoles`) | 동작 |
+| resolver 초기화 | `initialize((address,uint256)[] grants, bytes[] calls)` | `initialize(address,uint256,bytes[])` |
+
+- resolver 인스턴스는 `VerifiableFactory.deployProxy(PermissionedResolverImpl, salt, initData)`로 만든다. 주소는 `keccak(msg.sender, salt)` 기반 CREATE2라 미리 계산된다.
+- `initialize`의 `calls`는 권한 검사 없이 실행된다. 기본 레코드를 여기서 넣는다.
+- **기본 레코드 = 루트 이름(`0x00`)의 레코드.** 자기 레코드가 없는 이름은 이걸 통째로 쓴다. 대체는 **레코드 단위**다 — mm-a가 레코드를 하나라도 가지면 `desk.spread`가 비어도 기본값으로 가지 않고 빈 값이 온다. 스프레드 폴백은 라우터가 해야 한다.
+- 위임할 때 `setter`는 `setData(<아무 이름>, "desk.spread", "")`를 ABI 인코딩한 바이트다. resolver가 키에서 리소스(`keccak256("desk.spread")`)와 역할(`ROLE_SET_DATA`)을 스스로 뽑는다. 이름과 값은 무시된다.
+- 키 단위 권한은 resolver 인스턴스 전체에 걸린다. 에이전트는 모든 MM의 `desk.spread`를 쓸 수 있다(의도된 설계).
+
+## 참고: 체결 안에서 ENS 읽는 법
+
+라우터의 기준은 팀 설계 §5.3·§6.4다(만료는 `getExpiry(labelhash)`로 읽는다). 아래는 배포된 컨트랙트로 확인한 읽기 경로를 요약한 참고용이다. `findExpiry(string label)`도 같은 값을 준다.
+
+**게이트 (#34)** — 이름 `mm-a.clients.desk.eth`, taker = `msg.sender`
+
+```solidity
+// 1~2. 만료 3단계. 해석 실패를 기대하지 말고 레지스트리에서 직접 읽는다.
+require(ETHRegistry.findExpiry("desk")      > block.timestamp);
+require(deskRegistry.findExpiry("clients")  > block.timestamp);
+require(clientsRegistry.findExpiry("mm-a")  > block.timestamp);   // NameExpired
+// 3. resolver 동일성
+require(clientsRegistry.getResolver("mm-a") == treasuryResolver);  // WrongResolver
+// 4. addr == taker
+bytes memory r = IExtendedResolver(treasuryResolver).resolve(dnsName, abi.encodeCall(IAddrResolver.addr, (bytes32(0))));
+require(abi.decode(r, (address)) == taker);                        // TakerMismatch
+```
+
+`resolve(name, data)`는 `data`의 첫 인자(node)를 **무시하고** `name`에서 namehash를 직접 계산한다. 그래서 `bytes32(0)`을 넣어도 되고, 라우터가 namehash를 계산할 필요가 없다.
+
+**조건 읽기 (#35 앞부분)** — 한 번의 호출로 묶는다
+
+```solidity
+bytes[] memory calls = new bytes[](2);
+calls[0] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms"));
+calls[1] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.spread"));
+bytes memory out = IExtendedResolver(treasuryResolver).resolve(dnsName, abi.encodeCall(IMulticallable.multicall, (calls)));
+bytes[] memory res = abi.decode(out, (bytes[]));
+bytes memory terms  = abi.decode(res[0], (bytes));   // abi.encode(uint8 v, uint16 askBps, uint16 bidBps, uint128 capPerFill)
+bytes memory spread = abi.decode(res[1], (bytes));   // abi.encode(uint8 v, uint16 askBps, uint16 bidBps, uint64 validUntil) 또는 빈 값
+```
+
+- `terms`가 빈 값이면 체결 불가. 기본 레코드의 `capPerFill`이 0이라 레코드 없는 이름도 여기서 걸린다.
+- `spread`가 빈 값이거나 `validUntil <= block.timestamp`면 `terms`의 ask/bid로 폴백하고, 최종값을 전략의 `[minBps, maxBps]`로 clamp한다.
+- `version != 1`이면 revert.
+
+`takerData`는 팀 설계 §5.3에 따라 `uint8 len ‖ dnsName`이다. `dnsEncode()`는 그중 `dnsName` 부분만 만든다. `npm run verify`가 mm-a의 `dnsName`을 출력한다.
