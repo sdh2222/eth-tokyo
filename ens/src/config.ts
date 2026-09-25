@@ -18,7 +18,8 @@ export const ADDR = {
   mockUSDC: '0x16f95d91dba7da3aca778ec053df0ff6c6a8aa8e',
 } as const satisfies Record<string, Address>
 
-export const DESK_LABEL = process.env.DESK_LABEL ?? 'desk'
+// The desk lives under the DAO's own name (desk-system §6.1). dao-treasury-a.eth is the demo DAO.
+export const DESK_LABEL = process.env.DESK_LABEL ?? 'dao-treasury-a'
 export const DESK_NAME = `${DESK_LABEL}.eth`
 export const CLIENTS_NAME = `clients.${DESK_NAME}`
 export const AGENTS_NAME = `agents.${DESK_NAME}`

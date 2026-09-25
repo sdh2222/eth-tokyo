@@ -6,34 +6,34 @@
 
 ## 현재 배포 (Sepolia, 2026-09-25)
 
-`npm run verify`의 모든 필수 검사가 실제 체인에서 통과했다. 다른 파트로 넘길 값은 `npm run export`가 `deployments/config.ens.json`에 `config/sepolia.json`(§8.0) 형식으로 쓴다.
+데모 데스크 이름은 팀 설계대로 `dao-treasury-a.eth`다(데스크는 DAO 자신의 이름 아래 둔다, §6.1). `npm run verify`의 모든 필수 검사가 실제 체인에서 통과했고, mm-a의 `dnsName`은 §9 골든 벡터와 바이트 단위로 같다. 이름 변경 전의 `desk.eth` 배포는 `deployments/sepolia.desk.json`에 기록만 남겨 둔다. 다른 파트로 넘길 값은 `npm run export`가 `deployments/config.dao-treasury-a.json`에 `config/sepolia.json`(§8.0) 형식으로 쓴다.
 
 | 항목 | 주소 |
 | --- | --- |
-| resolver R | `0x7cD19D7E17f490Fb0B022c52BB27709118F6cAc7` |
-| desk registry D (`desk.eth`의 하위) | `0x9C006F3B239e1F5250C472D2C44E6F6353093378` |
-| clients registry C (`clients.desk.eth`의 하위) | `0x55ccE20b9bC9ec10120b8bB2E349E0401ab53Fd8` |
-| agents registry | `0xEfA696b4bc98BBe35C713EE924598bb750AD1228` |
+| resolver R | `0x228bd144dB976960E8D5AbfAe6d5CeB15346970F` |
+| desk registry D (`dao-treasury-a.eth`의 하위) | `0x72B3d4B4adCd057c904B3bB59fa201bF10F983b2` |
+| clients registry C (`clients.dao-treasury-a.eth`의 하위) | `0x8f6c1e8DE9BDAe6Be0f028e7Ce596F9e530a984e` |
+| agents registry | `0x5A6b0C2DAb9A29FA2cc949Dbc8a38f222609b5CF` |
 | mm-a / mm-b | tier 10 / 25 bps, cap 100,000 USDC, 만료 2026-10-25 |
 | mm-c | mm-a와 같은 조건, 만료 15분 (데모 3번용 — 데모 직전 `npm run clients`로 재설정) |
-| risk.agents.desk.eth | 에이전트 `0x7ab77A08283705816454C1d2916CBE607e875Ca3` |
+| risk.agents.dao-treasury-a.eth | 에이전트 `0x7ab77A08283705816454C1d2916CBE607e875Ca3` |
 
 데모용 트랜잭션:
 
-- `desk.eth` 등록 — [0x3cea…6e2d](https://sepolia.etherscan.io/tx/0x3ceab0240c34fe82be9910c9f211450c9239e436035d984cf1554d8b05b76e2d)
-- 에이전트가 `desk.spread`를 씀 (허용) — [0x010a…a8472](https://sepolia.etherscan.io/tx/0x010aace1d6dc94d0da4e1c1b3296e3212267924bbfbba85b4487a52fefba8472)
-- 에이전트가 `desk.terms`를 쓰려다 revert (거부) — [0x00f2…6bae](https://sepolia.etherscan.io/tx/0x00f2815bfd1f352629ea187c583d2730595b239db38bf79974a85c2b117a6bae)
+- `dao-treasury-a.eth` 등록 — [0x1844…1d2b](https://sepolia.etherscan.io/tx/0x18445307c7ce6b56e558448dcd7ab830d74fe848f9134fc36573d4a367b01d2b)
+- 에이전트가 `desk.spread`를 씀 (허용) — [0x3497…a6b](https://sepolia.etherscan.io/tx/0x3497b52c9ad5938ecff01f1024959f36fbaf21e09d2e1a04de0b1831c88bb1a6)
+- 에이전트가 `desk.terms`를 쓰려다 revert (거부) — [0x0b8c…835](https://sepolia.etherscan.io/tx/0x0b8cd052895b653ef4da15455a22177a89deb92fe1f98b84cabfb6f5fb390835)
 
 남은 일:
 
-- **Safe 인계.** 지금은 테스트넷 EOA(`TREASURY_PK`)가 이름과 resolver·레지스트리 루트 권한을 갖고 있다. §6.3대로 Safe가 생기면(T6a) resolver `grantRootRoles`, 세 레지스트리의 루트 권한, `desk.eth` 소유권을 Safe로 넘기고 EOA 권한을 회수한다.
+- **Safe 인계.** 지금은 테스트넷 EOA(`TREASURY_PK`)가 이름과 resolver·레지스트리 루트 권한을 갖고 있다. §6.3대로 Safe가 생기면(T6a) resolver `grantRootRoles`, 세 레지스트리의 루트 권한, `dao-treasury-a.eth` 소유권을 Safe로 넘기고 EOA 권한을 회수한다.
 - `config/sepolia.json`이 생기면(T0) `npm run export`가 `ens`, `mms`를 병합한다.
 
 ```
-desk.eth                      트레저리 소유, 트레저리 resolver
-├─ clients.desk.eth           MM 명단 (UserRegistry)
+dao-treasury-a.eth            트레저리 소유, 트레저리 resolver
+├─ clients.dao-treasury-a.eth MM 명단 (UserRegistry)
 │   ├─ mm-a / mm-b / mm-c     addr + desk.terms
-└─ agents.desk.eth
+└─ agents.dao-treasury-a.eth
     └─ risk                   리스크 에이전트 신원
 ```
 
@@ -45,8 +45,8 @@ npm run keys       # .env에 테스트넷 키 생성 (이미 있으면 유지), 
 npm run check      # 읽기 전용 점검 — 가스 불필요
 npx tsx scripts/00-probe.ts   # 인코딩을 배포된 컨트랙트의 pure 함수로 검증 + 배포 시뮬레이션 — 가스 불필요
 # TREASURY 주소에 Sepolia ETH ~0.05 입금 후
-npm run register   # desk.eth 등록 (commit → 60초 → register). 중단돼도 재실행하면 이어서 진행
-npm run setup      # resolver + 서브레지스트리 3개 배포, desk.eth 연결
+npm run register   # <DESK_LABEL>.eth 등록 (commit → 60초 → register). 중단돼도 재실행하면 이어서 진행
+npm run setup      # resolver + 서브레지스트리 3개 배포, <DESK_LABEL>.eth 연결
 npm run clients    # mm-a/b/c 발급 + addr, desk.terms
 npm run agent      # 에이전트 위임 + 경계 확인 (--send-revert: 거부되는 쓰기를 실제로 채굴해 해시 확보)
 npm run verify     # 수용 기준 자동 검사
@@ -80,11 +80,11 @@ npm run export     # config/sepolia.json 형식으로 ens, mms 내보내기
 
 라우터의 기준은 팀 설계 §5.3·§6.4다(만료는 `getExpiry(labelhash)`로 읽는다). 아래는 배포된 컨트랙트로 확인한 읽기 경로를 요약한 참고용이다. `findExpiry(string label)`도 같은 값을 준다.
 
-**게이트 (#34)** — 이름 `mm-a.clients.desk.eth`, taker = `msg.sender`
+**게이트 (#34)** — 이름 `mm-a.clients.dao-treasury-a.eth`, taker = `msg.sender`
 
 ```solidity
 // 1~2. 만료 3단계. 해석 실패를 기대하지 말고 레지스트리에서 직접 읽는다.
-require(ETHRegistry.findExpiry("desk")      > block.timestamp);
+require(ETHRegistry.findExpiry("dao-treasury-a")> block.timestamp);
 require(deskRegistry.findExpiry("clients")  > block.timestamp);
 require(clientsRegistry.findExpiry("mm-a")  > block.timestamp);   // NameExpired
 // 3. resolver 동일성
