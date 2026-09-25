@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAccount, useChainId, useConnect, useSwitchChain } from "wagmi";
+import { BannerList, bannersFrom } from "./banners";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { ToastProvider } from "../components/Toast";
 import {
+  BANNER_OWNER,
   CONNECT_WALLET,
   CONNECTED,
   CONTINUE,
@@ -13,6 +16,7 @@ import {
   ROLE_LABEL,
   SWITCH_SEPOLIA,
 } from "../copy/en";
+import { useCanAct } from "../hooks/useCanAct";
 import { formatAddr } from "../lib/format";
 import { homeFor, useRole, type Role } from "./role";
 
@@ -47,14 +51,34 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const showHeader = pathname !== "/";
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {showHeader ? <AppHeader /> : null}
-      <main className="mx-auto w-full max-w-[var(--max)] px-8 py-8 flex-1">
-        {showHeader ? <PrimaryButton>{CONTINUE}</PrimaryButton> : null}
-        {children}
-      </main>
-      <footer className="border-t border-border px-8 py-6 text-small text-muted">{FOOTER}</footer>
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen flex flex-col">
+        {showHeader ? <AppHeader /> : null}
+        <main className="mx-auto flex w-full max-w-[var(--max)] flex-1 flex-col gap-5 px-8 py-8">
+          {showHeader ? <PageNotices /> : null}
+          {showHeader ? <PrimaryButton>{CONTINUE}</PrimaryButton> : null}
+          {children}
+        </main>
+        <footer className="border-t border-border px-8 py-6 text-small text-muted">{FOOTER}</footer>
+      </div>
+    </ToastProvider>
+  );
+}
+
+function PageNotices() {
+  const { wrongNetwork, readOnlyTreasury } = useCanAct();
+  const { switchChain } = useSwitchChain();
+  const banners = bannersFrom(
+    wrongNetwork
+      ? { wrongNetwork: true, onSwitch: () => switchChain({ chainId: 11155111 }) }
+      : undefined,
+  );
+
+  return (
+    <>
+      {readOnlyTreasury ? <p className="text-body">{BANNER_OWNER}</p> : null}
+      <BannerList banners={banners} />
+    </>
   );
 }
 

@@ -23,6 +23,6 @@ export function useCanAct(): {
     isOwner,
     isMm: false,
     isDeployer: false,
-    readOnlyTreasury: role === "treasury" && status === "connected" && !isOwner,
+    readOnlyTreasury: role === "treasury" && account.status === "connected" && !isOwner,
   };
 }

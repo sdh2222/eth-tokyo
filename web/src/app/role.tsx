@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type Role = "treasury" | "mm" | "observer";
 
@@ -16,16 +16,27 @@ function readRole(): Role {
   return "treasury";
 }
 
+let currentRole = readRole();
+const roleListeners = new Set<(role: Role) => void>();
+
 export function useRole(): [Role, (r: Role) => void] {
-  const [role, setRoleState] = useState<Role>(readRole);
+  const [role, setRoleState] = useState<Role>(currentRole);
+
+  useEffect(() => {
+    roleListeners.add(setRoleState);
+    return () => {
+      roleListeners.delete(setRoleState);
+    };
+  }, []);
 
   function setRole(next: Role) {
+    currentRole = next;
     try {
       sessionStorage.setItem(KEY, next);
     } catch {
       // sessionStorage can be blocked. The in-memory role still switches.
     }
-    setRoleState(next);
+    roleListeners.forEach((listener) => listener(next));
   }
 
   return [role, setRole];
