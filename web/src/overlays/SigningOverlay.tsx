@@ -3,17 +3,21 @@ import { useToast } from "../components/Toast";
 import { CANCELLED } from "../copy/en";
 import type { Address, DeskError, Hex } from "../desk/types";
 import { reduce, type Phase } from "./signing/machine";
+import { multiSendOf } from "./signing/safe";
 import { clearSig, readSig, saveSig } from "./signing/storage";
+import type { PlannedTx } from "../desk/types";
 
 export function SigningOverlay({
   safeTxHash,
   labels,
   lines,
+  txs,
   onClose,
 }: {
   safeTxHash: Hex;
   labels: string[];
   lines: string[];
+  txs?: PlannedTx[];
   onClose: () => void;
 }) {
   const stored = readSig(safeTxHash);
@@ -82,6 +86,16 @@ export function SigningOverlay({
           <li key={line}>{line}</li>
         ))}
       </ul>
+      <button
+        type="button"
+        className="text-body"
+        onClick={() => {
+          const packed = multiSendOf(txs ?? []);
+          void navigator.clipboard.writeText(`${packed.to}\n${packed.data}\n${labels.join("\n")}`);
+        }}
+      >
+        Copy transaction for Safe{"{Wallet}"}
+      </button>
       <button type="button" className="text-body" onClick={reject}>
         Reject
       </button>
