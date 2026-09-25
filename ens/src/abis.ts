@@ -19,6 +19,7 @@ export const ethRegistrarAbi = parseAbi([
 export const registryAbi = parseAbi([
   'function initialize((address account, uint256 roleBitmap)[] grants)',
   'function register(string label, address owner, address registry, address resolver, uint256 roleBitmap, uint64 expiry) returns (uint256)',
+  'function unregister(uint256 anyId)',
   'function findExpiry(string label) view returns (uint64)',
   'function getExpiry(uint256 anyId) view returns (uint64)',
   'function getOwner(uint256 anyId) view returns (address)',
@@ -34,6 +35,8 @@ export const registryAbi = parseAbi([
   'error EACUnauthorizedAccountRoles(uint256 resource, uint256 roleBitmap, address account)',
   'error EACCannotGrantRoles(uint256 resource, uint256 roleBitmap, address account)',
   'error LabelAlreadyRegistered(string label)',
+  'error LabelAlreadyReserved(string label)',
+  'error LabelExpired(uint256 tokenId)',
   'error CannotSetPastExpiry(uint64 expiry)',
   'error TransferDisallowed(uint256 tokenId, address from)',
   'error TransferUnsafeUntilRegistryIsEmancipated()',

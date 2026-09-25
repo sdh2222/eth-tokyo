@@ -59,36 +59,52 @@ npm run handoff -- --safe <Safe>   # Safe 인계 드라이런. --execute로 전�
 
 ## Safe 인계
 
-팀 설계 §6.1·§6.3대로 이름과 권한은 트레저리 Safe가 가진다. `01`–`04`가 만든 것은 지금 설정용 EOA(`TREASURY_PK`)에 있고, `npm run handoff`가 이를 Safe로 넘긴다(requirement 014).
+팀 설계 §6.1·§6.3대로 이름과 권한은 트레저리 Safe가 가진다. `01`–`04`가 만든 것은 지금 설정용 EOA(`TREASURY_PK`)에 있고, `npm run handoff`가 이를 Safe로 넘긴다(requirement 014, 016).
 
 ```bash
-npm run handoff -- --safe <Safe>                      # 드라이런: 상태, 보낼 호출 목록, 전 호출 시뮬레이션. 아무것도 보내지 않는다
+npm run handoff -- --safe <Safe>                      # 드라이런: 상태, 보낼 호출 목록, 미리 할 수 있는 시뮬레이션. 아무것도 보내지 않는다
 npm run handoff -- --safe <Safe> --execute            # 전송. 로컬 RPC(anvil 포크)에서만 된다
 npm run handoff -- --safe <Safe> --execute --sepolia  # 로컬이 아닌 RPC(실제 Sepolia)로 전송
 npm run verify -- --safe <Safe>                       # 기존 검사 + 인계 검사
 ```
 
-- 체인을 먼저 읽고 빠진 호출만 이 순서로 보낸다. ① R·D·C·agents에 `grantRootRoles(<ROOT_ALL>, Safe)` ② ETHRegistry에서 `dao-treasury-a.eth`를 `safeTransferFrom(EOA, Safe, tokenId, 1, 0x)` ③ ①②가 체인에 반영됐는지 다시 읽어 확인한 뒤, EOA가 가진 루트 권한을 `revokeRootRoles`로 전부 회수. 끝난 뒤 다시 돌리면 아무것도 보내지 않는다.
-- 첫 전송 전에 계획한 호출을 전부 현재 상태에 시뮬레이션한다. 하나라도 revert하면 아무것도 보내지 않는다.
+- 체인을 먼저 읽고 빠진 호출만 이 순서로 보낸다.
+  1. R·D·C·agents에 `grantRootRoles(<ROOT_ALL>, Safe)`
+  2. ETHRegistry에서 `dao-treasury-a.eth`를 `safeTransferFrom(EOA, Safe, tokenId, 1, 0x)`
+  3. 살아 있는 하위 이름(`clients`, `agents`, 살아 있는 MM 이름, `risk`)마다 `unregister`, 곧바로 `register(label, Safe, 같은 subregistry·resolver·expiry, roleBitmap 0)`. 만료된 이름(지금은 mm-c)은 건너뛰고 보고한다.
+  4. 체인을 다시 읽어 Safe가 루트 권한을 모두 갖고, `dao-treasury-a.eth`와 살아 있는 하위 이름을 모두 소유하고, 재발급한 이름의 값이 그대로인지 확인한 뒤에야 EOA의 루트 권한을 `revokeRootRoles`로 전부 회수한다.
+- 끝난 뒤 다시 돌리면 아무것도 보내지 않는다.
+- 첫 전송 전에, 앞선 호출에 기대지 않는 호출(부여, 이전, `unregister`, 회수)을 모두 현재 상태에 시뮬레이션한다. `register`는 같은 이름의 `unregister`가 먼저 반영돼야 해서 미리 시뮬레이션할 수 없다(아직 `LabelAlreadyRegistered`). 그래서 조건(EOA의 `ROLE_REGISTRAR`, 미래의 만료, Safe의 ERC-1155 수신)만 미리 확인하고, `send()`가 그 `unregister`가 반영된 직후에 시뮬레이션한다. 하나라도 걸리면 아무것도 보내지 않는다.
+- 도중에 실패하면 회수 전에 멈추고, 지금 등록이 풀린 이름과 그 값(실행 전 값, 다시 등록할 기록값)을 출력한다. 같은 명령을 다시 돌리면 그 이름을 `deployments/`의 기록값으로 Safe에 다시 등록하고 나머지를 끝낸다.
 - `--execute`는 RPC가 로컬이 아니고 `--sepolia`가 없으면 키를 읽기 전에 거부한다. 드라이런은 키 없이도 된다(`deployments/`의 treasury 주소로 계획한다).
 - `tokenId`는 역할이 바뀔 때마다 새로 발행되므로 저장하지 않고 매번 `getTokenId(labelhash)`로 읽는다.
 - 인계 후 `npm run verify`를 `--safe` 없이 돌리면 첫 검사(소유자 = 설정용 EOA)가 실패한다. 의도된 동작이다.
+
+**등록이 풀리는 짧은 구간. 체결이 열리기 전에 돌린다.** 이름마다 `unregister`와 `register` 사이에 그 이름은 AVAILABLE이고, owner·resolver·subregistry가 0으로 읽힌다. 포크에서는 1블록, Sepolia에서는 보통 1–2블록이다. `clients`의 구간에는 모든 MM 이름이 게이트에서 막히고, MM 이름의 구간에는 그 MM만 막힌다. 레코드(`addr`, `desk.terms`)는 R에 이름별로 저장돼 있어 그대로다.
 
 | 대상 | 인계 후 |
 | --- | --- |
 | resolver R 루트 권한 | Safe = `RESOLVER_ROOT_ALL`(모든 역할과 admin), EOA = 0 |
 | 레지스트리 D·C·agents 루트 권한 | Safe = `REGISTRY_ROOT_ALL`, EOA = 0 |
 | ETHRegistry의 `dao-treasury-a.eth` | 소유자 = Safe. 토큰 역할(`SET_SUBREGISTRY`, `SET_RESOLVER`, 둘의 admin, `CAN_TRANSFER_ADMIN`)이 전송과 함께 Safe로 가고 EOA = 0 |
+| 하위 이름 `clients`, `agents`, `mm-a`, `mm-b`, `risk` | 소유자 = Safe(재발급). 만료·subregistry·resolver·레코드는 그대로, 토큰 역할은 이전처럼 없음(roleBitmap 0) |
+| 만료된 `mm-c` | 건너뛴다. Safe가 재설정할 때 직접 `register`한다 |
 | 에이전트의 키 단위 권한(`desk.spread`, `desk.stats`) | 그대로. 루트 권한과 별개인 grant라 EOA 회수와 무관하다 |
 | 라우터가 읽는 값(3단계 만료, resolver, addr, `desk.terms`) | 그대로 |
 
 **왜 `safeTransferFrom`인가.** ETHRegistry는 emancipated(`isEmancipated() == true`)라 safe 경로가 열려 있다. safe 경로만 "보내는 쪽이 그 토큰 역할의 유일한 보유자"(`isOnlyAssignee`)를 요구하므로, 전송 뒤 `dao-treasury-a.eth`에 역할을 가진 계정은 Safe뿐이다. `unsafeTransfer`가 건너뛰는 것은 emancipation 검사와 이 검사뿐이고, ERC-1155 수신 확인(`onERC1155Received`)은 두 경로 모두 한다. Safe 1.4.1의 기본 fallback handler(CompatibilityFallbackHandler)가 `0xf23a6e61`을 돌려주므로 Safe는 받는다. (확인: 배포본 `PermissionedRegistry._update`와 `ERC1155Singleton._updateWithAcceptanceCheck` 소스, 포크에서 수신 함수가 없는 R로 보낸 `unsafeTransfer`가 `ERC1155InvalidReceiver`로 revert)
 
-**옮기지 않는 것: 하위 이름 토큰.** `clients`, `agents`, `mm-a/b/c`, `risk`의 `ownerOf`는 EOA로 남는다.
+**하위 이름은 전송 대신 재발급한다.** 하위 이름은 roleBitmap 0으로 등록돼 EOA에 토큰 역할이 없다. 전송하려면 보내는 쪽에 그 토큰의 `ROLE_CAN_TRANSFER_ADMIN`이 있어야 하는데, 이 역할은 등록할 때만 줄 수 있고 루트 권한으로는 대신할 수 없다. 포크에서 확인한 결과(requirement 014):
 
-- 이 이름들은 roleBitmap 0으로 등록돼 EOA에 토큰 역할이 없다. 전송하려면 보내는 쪽에 그 토큰의 `ROLE_CAN_TRANSFER_ADMIN`이 있어야 하는데, 이 역할은 등록할 때만 줄 수 있고 루트 권한으로는 대신할 수 없다.
-- 포크에서 본 결과: `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`(UserRegistry는 emancipated가 아니다), `unsafeTransfer` → `TransferDisallowed`, 토큰에 `ROLE_CAN_TRANSFER_ADMIN` 부여 → `EACCannotGrantRoles`, Safe가 직접 옮기기 → `ERC1155MissingApprovalForAll`.
-- 문제는 없다. EOA는 그 토큰에 역할이 없어 아무것도 못 하고, Safe는 레지스트리 루트 권한(`REGISTRAR`, `RENEW`, `UNREGISTER`, `SET_RESOLVER`, `SET_SUBREGISTRY` 등)으로 하위 이름을 모두 관리한다. `ownerOf`까지 Safe로 바꾸려면 Safe가 unregister한 뒤 다시 등록해야 한다. 범위 밖이라 시도하지 않았다.
+- `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`(UserRegistry는 emancipated가 아니다)
+- `unsafeTransfer` → `TransferDisallowed`
+- 토큰에 `ROLE_CAN_TRANSFER_ADMIN` 부여 → `EACCannotGrantRoles`
+
+그래서 EOA가 루트 권한(`UNREGISTER`, `REGISTRAR`)을 가진 동안 지우고 다시 등록한다. 포크에서 본 동작(배포본 소스와 일치):
+
+- `unregister`는 만료를 그 블록의 시각으로 바꾼다. 이름은 바로 AVAILABLE이 되고, `getOwner`·`getResolver`·`getSubregistry`는 0을 돌려준다. 이전 토큰은 소각되고, 다음 토큰 id의 버전이 1 오른다. 저장된 subregistry·resolver는 지워지지 않고 만료 검사에 가려질 뿐이다.
+- 바로 다음 트랜잭션의 `register`가 같은 값으로 되살린다. 같은 블록 안에서 `unregister` 다음에 와도 된다(만료 검사가 `block.timestamp >= expiry`).
+- 이미 만료된 이름의 `unregister`는 `LabelExpired`로 revert한다. 그래서 mm-c는 건너뛴다.
 
 **Safe 소유자와 인계 후 운영 (팀 결정).**
 
@@ -96,25 +112,36 @@ npm run verify -- --safe <Safe>                       # 기존 검사 + 인계 �
 - 인계 후 ENS 쪽 변경은 전부 Safe 트랜잭션이고 Aqua 소유자 한 명의 공동 서명이 필요하다. 예: 데모 직전 mm-c 재설정, MM의 `addr` 변경, `desk.terms` 변경. 리스크 에이전트의 `desk.spread` 쓰기는 지금처럼 된다.
 - `src/safe.ts`는 이 흐름대로 세 단계다. `proposeSafeTx`(키 불필요, 트랜잭션과 safeTxHash를 JSON으로 고정) → `signSafeTx`(소유자가 자기 키 하나로 서명. 서명은 공유해도 된다) → `execSafeTx`(서명이 threshold에 차면 아무 계정이나 제출). 이를 쓰는 CLI는 다음 requirement다.
 
-**실제 Sepolia 인계 순서** (실제 Safe가 생긴 뒤):
+**실제 Sepolia 인계 순서** (실제 Safe가 생긴 뒤, 체결이 열리기 전):
 
 1. T6a가 만든 실제 Safe 주소(`config.safe`)와 소유자·threshold를 확인한다. 인계 뒤에는 EOA로 아무것도 못 하므로, EOA로 할 일(예: `npm run clients`)이 남았는지 먼저 본다.
-2. 리허설: 그 시점의 Sepolia를 포크한 anvil에서 `npm run handoff -- --safe <Safe> --execute` → `npm run verify -- --safe <Safe>`.
-3. Sepolia 드라이런: RPC_URL을 Sepolia로 두고 `npm run handoff -- --safe <Safe>`. 계획 9건과 시뮬레이션 결과를 확인한다.
-4. 전송: `npm run handoff -- --safe <Safe> --execute --sepolia`. 중간에 끊기면 같은 명령을 다시 돌린다. 빠진 호출만 보낸다.
+2. 리허설: 그 시점의 Sepolia를 포크한 anvil에서 `FORK_IMPERSONATE=1 npm run handoff -- --safe <Safe> --execute` → `npm run verify -- --safe <Safe>`.
+3. Sepolia 드라이런: RPC_URL을 Sepolia로 두고 `npm run handoff -- --safe <Safe>`. 계획(부여 4 + 이전 1 + 살아 있는 하위 이름마다 2 + 회수 4, 지금이면 19건)과 확인 결과를 본다.
+4. 전송: `npm run handoff -- --safe <Safe> --execute --sepolia`. 중간에 끊기면 같은 명령을 다시 돌린다. 빠진 호출만 보내고, 등록이 풀린 이름은 기록값으로 다시 등록한다.
 5. `npm run verify -- --safe <Safe>`. 같은 전송 명령을 한 번 더 돌려 "nothing to do"를 확인한다.
+
+**키 없는 포크 실행 (팀 보안 SEC-05: 코딩 에이전트는 키를 받지 않는다).**
+
+- `FORK_IMPERSONATE=1`이면 `wallet('TREASURY_PK')`와 `wallet('AGENT_PK')`가 `deployments/`에 기록된 주소(`treasury`, `agent.address`)로 보낸다. anvil impersonation(`anvil_impersonateAccount`)을 쓰므로 키가 필요 없다. `.env`에는 `RPC_URL=http://127.0.0.1:8546` 한 줄이면 된다.
+- 로컬 RPC에서만 된다. 로컬이 아닌 RPC에서는 어떤 스크립트든 키나 네트워크를 쓰기 전에 거부한다(`--sepolia`를 줘도 마찬가지).
+- 키가 `.env`에 있어도 `FORK_IMPERSONATE=1`이면 impersonation이 우선한다.
 
 **포크 하네스 (포크 전용).** `scripts/fork-handoff-demo.ts`는 로컬 RPC가 아니면 거부한다.
 
 ```bash
 anvil --fork-url https://ethereum-sepolia-rpc.publicnode.com --chain-id 11155111 --port 8546
-RPC_URL=http://127.0.0.1:8546 npm run verify
-RPC_URL=http://127.0.0.1:8546 npx tsx scripts/fork-handoff-demo.ts
-RPC_URL=http://127.0.0.1:8546 npm run verify -- --safe <하네스가 출력한 Safe>
+npm run verify
+FORK_IMPERSONATE=1 npx tsx scripts/fork-handoff-demo.ts
+npm run verify -- --safe <하네스가 출력한 Safe>
 ```
 
 - Safe 소유자는 anvil 기본 계정 1–3이다. 공개 테스트 니모닉에서 실행 중에 유도하고 출력하지 않는다. 실제 소유자를 대신하는 포크 전용 대역이다.
-- 순서: 2-of-3 Safe 배포(saltNonce = `keccak256("ens-handoff-fork")`, T6a와 같은 방식) → 하위 이름 전송 시뮬레이션(읽기 전용) → handoff 드라이런, 실행, 재실행(EOA nonce와 블록 번호가 그대로인지 확인) → EOA의 `desk.terms` 쓰기 revert → Safe 트랜잭션(소유자 1·2 서명, 소유자 1 실행)으로 mm-a `desk.terms`를 바꿨다가 원래 값으로 → 에이전트의 `desk.spread` 쓰기.
+- 순서:
+  1. 2-of-3 Safe 배포(saltNonce = `keccak256("ens-handoff-fork")`, T6a와 같은 방식)
+  2. 인계 전 이름·값·레코드 기록
+  3. handoff 드라이런(계획 구조 확인), 실행, 재실행(EOA nonce와 블록 번호가 그대로인지 확인)
+  4. 이름마다 소유자 = Safe, 값·레코드는 인계 전과 같은지 확인
+  5. EOA의 `desk.terms` 쓰기 revert(시뮬레이션과 실제 채굴), Safe 트랜잭션(소유자 1·2 서명, 소유자 1 실행)으로 mm-a `desk.terms`를 바꿨다가 원래 값으로, 에이전트의 `desk.spread` 쓰기
 - 포크에서만 EOA와 에이전트의 잔액이 모자라면 채운다. `deployments/`는 바꾸지 않는다.
 
 ## 배포본 기준 사실 (저장소 main과 다르다)
