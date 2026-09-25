@@ -3,6 +3,7 @@
 !.env.example
 node_modules/
 dist/
+api/data/
 .DS_Store
 *.pem
 *.key
