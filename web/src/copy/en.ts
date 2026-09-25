@@ -11,6 +11,34 @@ export const CONTINUE = "Continue";
 export const UPDATED = "updated";
 export const CLOSES_IN = "closes in";
 
+export const HERO_TITLE = "An OTC desk in your wallet.";
+export const HERO_SUB =
+  "A DAO treasury quotes its own two-sided price to market makers it names. Tokens stay in the multisig until each fill. The price is computed on-chain.";
+export const OPEN_DEMO = "Open the live demo";
+export const HOW_IT_WORKS = "How it works";
+export const SEPOLIA_MICRO = "Sepolia testnet";
+export const COMPARE_2PCT = "$323k";
+export const COMPARE_10 = "$16k";
+export const COMPARE_25 = "$40k";
+export const PROBLEM = [
+  "In 2023 ENS DAO sold 10,000 ETH in one trade with a 2% slippage budget ($323k).",
+  "Each tranche would have needed its own vote.",
+  "The DAO was a price taker on its own inventory.",
+] as const;
+export const STEPS = [
+  "The Safe ships a pricing program to 1inch Aqua.",
+  "Named market makers (ENS names) trade against it; the price shades toward a 70/30 target.",
+  "Tokens move Safe ↔ MM only at fill time.",
+] as const;
+export const VERIFY_LINE = "Every fill can be recomputed from public data.";
+export const NOT_OPEN = "Not open";
+export const STRIP = {
+  status: "Desk status",
+  share: "ETH share vs 70% target",
+  mid: "Oracle mid",
+  fills: "Fills today",
+} as const;
+
 export const BANNER_NETWORK = "You're on the wrong network. The desk runs on Sepolia.";
 export const BANNER_MULTI = "More than one desk program is live on this Safe.";
 export const BANNER_NONE =
