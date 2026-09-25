@@ -7,11 +7,11 @@ notion: https://app.notion.com/p/3e58f1ec11b4818eba1af4370a1395d6
 
 ## Ready when
 
-Kick-off (H0). Repo decided (Aqua lane working rules §10; proposed default: a fresh repo named `desk`, with this Notion hub moved into `/docs` at the end).
+Kick-off (H0). The repo is `sdh2222/eth-tokyo`, and these docs already live in its `/docs`.
 
 ## Branch
 
-`aqua/t0-scaffold` from an empty `main`.
+`aqua/t0-scaffold` from `main`.
 
 ## Steps
 
@@ -20,7 +20,7 @@ Kick-off (H0). Repo decided (Aqua lane working rules §10; proposed default: a f
 3. Agent: mocks, interfaces, stubs (Spec 3–5). Checkpoint: `forge build` compiles everything.
 4. Agent: TS package and root tooling, including the `.gitignore` additions (Spec 6, 8). Checkpoint: `pnpm -C ts typecheck` passes.
 5. Agent: config, env example, licenses, README, Makefile and CI workflow (Spec 7, 9, 10). Checkpoint: `make check` green.
-6. A human reviewer (proposed) reviews (Aqua lane working rules §6) and merges. Gate G0.
+6. A human reviewer (proposed) reviews (Aqua lane working rules WR-07) and merges. Gate G0.
 
 ## Commands
 ```bash
