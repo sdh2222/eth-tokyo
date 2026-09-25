@@ -51,8 +51,8 @@ export function LandingPage() {
 
   return (
     <div className="flex flex-col gap-7">
-      <section className="grid grid-cols-12 gap-5">
-        <div className="col-span-7 flex flex-col gap-5">
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <div className="flex flex-col gap-5 lg:col-span-7">
           <p className="text-micro text-muted">{SEPOLIA_MICRO}</p>
           <h1 className="text-display font-semibold">{HERO_TITLE}</h1>
           <p className="text-h3">{HERO_SUB}</p>
@@ -65,7 +65,7 @@ export function LandingPage() {
             </a>
           </div>
         </div>
-        <div className="col-span-5 grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 lg:col-span-5">
           {loading ? (
             <>
               <Skeleton className="h-8 w-full" />
@@ -83,7 +83,7 @@ export function LandingPage() {
           )}
         </div>
       </section>
-      <section className="grid grid-cols-3 gap-5">
+      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <StatTile label="2%" value={COMPARE_2PCT} />
         <StatTile label="10 bps" value={COMPARE_10} />
         <StatTile label="25 bps" value={COMPARE_25} />

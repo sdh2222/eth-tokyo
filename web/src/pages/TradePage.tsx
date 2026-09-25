@@ -89,8 +89,9 @@ export function TradePage() {
           {TRADING_AS} {mm.name} · tier {formatBps(mm.terms.tierBps)} · cap {formatUsdc(mm.terms.cap)} {PER_FILL}
         </p>
       ) : (
-        <p className="text-body">{NOT_ON_LIST}</p>
+        <p className="rounded-card border border-border bg-surface p-5 text-body">{NOT_ON_LIST}</p>
       )}
+      <div className="flex flex-col gap-5 rounded-card border border-border bg-surface p-5">
       <div className="flex gap-2" role="group" aria-label="Side">
         <button type="button" aria-pressed={side === "buy"} className="rounded-control px-3 py-2 text-body" onClick={() => setSide("buy")}>
           {BUY_ETH}
@@ -145,6 +146,7 @@ export function TradePage() {
           onClose={() => setOverlay(null)}
         />
       ) : null}
+      </div>
     </div>
   );
 }

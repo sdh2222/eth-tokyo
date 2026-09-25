@@ -66,7 +66,7 @@ export function OpenPage() {
           onJump={(id) => setWizard({ ...wizard, step: Number(id) as WizardState["step"] })}
         />
       </div>
-      <div className="flex flex-col gap-5 lg:col-span-9">
+      <div className="flex flex-col gap-5 rounded-card border border-border bg-surface p-5 lg:col-span-9">
         {wizard.step === 1 ? (
           <section className="flex flex-col gap-3">
             <p className="num text-body">{FIXTURE_OWNERS[0]}</p>

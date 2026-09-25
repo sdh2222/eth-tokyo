@@ -9,11 +9,23 @@ export function AgentPage() {
   const sMin = 5;
   const sMax = 200;
   return (
-    <div className="flex flex-col gap-3">
-      <p className="num text-body">{AGENT}</p>
-      <p className="text-body">{AGENT_NAME}</p>
-      <p className="text-body">{AGENT_HELP}</p>
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-h1">Risk agent</h1>
+        <p className="text-body">{AGENT_NAME}</p>
+        <p className="num text-body text-muted">{AGENT}</p>
+      </header>
+      <p className="rounded-card border border-border bg-surface p-5 text-body">{AGENT_HELP}</p>
+      <div className="overflow-x-auto rounded-card border border-border px-5">
       <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Spread</th>
+            <th>Clamped</th>
+            <th>In force</th>
+          </tr>
+        </thead>
         <tbody>
           {(state.data?.mms ?? []).map((mm) => {
             const bps = mm.spread?.bps;
@@ -30,6 +42,7 @@ export function AgentPage() {
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

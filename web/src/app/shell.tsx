@@ -60,7 +60,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {children}
           {showHeader ? <DemoDrawer /> : null}
         </main>
-        <footer className="break-words border-t border-border px-8 py-6 text-small text-muted">{FOOTER}</footer>
+        <footer className="break-words border-t border-border bg-surface px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
       </div>
     </ToastProvider>
   );
@@ -115,11 +115,11 @@ function AppHeader() {
   }
 
   return (
-    <header className="border-b border-border">
+    <header className="sticky top-0 z-20 border-b border-border bg-bg">
       <div className="mx-auto flex w-full max-w-[var(--max)] flex-wrap items-center gap-3 px-4 py-4 sm:gap-5 sm:px-8">
         <span className="text-h3">{MARK}</span>
         <div className="relative" onMouseLeave={() => setOpen(null)}>
-          <div className="flex gap-1" role="group" aria-label="Role">
+          <div className="flex gap-1 rounded-control bg-surface p-1" role="group" aria-label="Role">
             {ROLES.map((item) => (
               <button
                 key={item}
@@ -128,8 +128,8 @@ function AppHeader() {
                 aria-expanded={open === item}
                 className={
                   item === role
-                    ? "rounded-control bg-surface px-3 py-2 text-body"
-                    : "rounded-control px-3 py-2 text-body text-muted"
+                    ? "border-transparent bg-text px-3 py-2 text-body text-onfocus"
+                    : "border-transparent bg-transparent px-3 py-2 text-body text-muted"
                 }
                 onMouseEnter={() => setOpen(item)}
                 onFocus={() => setOpen(item)}

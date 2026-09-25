@@ -29,16 +29,32 @@ export function ControlsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-h1">Controls</h1>
+        <p className="text-body text-muted">
+          {state.data ? formatWhen(state.data.deadline, now) : "—"} · {formatHash(strategy.strategyHash)}
+        </p>
+      </header>
+      <ol className="grid gap-3">
+        {lines.map((line, index) => (
+          <li key={line} className="flex gap-4 rounded-card border border-border bg-surface p-5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-program text-small text-onfocus">
+              {index + 1}
+            </span>
+            <p className="text-body">{line}</p>
+          </li>
+        ))}
+      </ol>
       <ShowRaw summary={lines.join(" ")}>
         <pre className="num">{strategy.program}</pre>
       </ShowRaw>
-      <p className="text-body">{state.data ? formatWhen(state.data.deadline, now) : "—"}</p>
-      <p className="num text-body">{formatHash(strategy.strategyHash)}</p>
+      <div className="flex flex-wrap items-center gap-4 rounded-card border border-border bg-surface p-5">
       <Link className="text-body" to="/open?step=3">
         Change
       </Link>
-      <p className="text-body">{CHANGE_NOTE}</p>
+      <p className="text-body text-muted">{CHANGE_NOTE}</p>
+      </div>
       <button type="button" className="text-body" onClick={() => setAskStop(true)}>
         {STOP}
       </button>
@@ -87,6 +103,7 @@ export function ControlsPage() {
           {SEED_TWO}
         </button>
       ) : null}
+      <div className="overflow-x-auto rounded-card border border-border px-5">
       <table>
         <tbody>
           <tr>
@@ -103,6 +120,7 @@ export function ControlsPage() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

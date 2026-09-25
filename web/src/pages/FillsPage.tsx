@@ -28,7 +28,12 @@ export function FillsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-h1">Fills</h1>
+        <p className="text-body text-muted">Every fill against this desk.</p>
+      </header>
+      <div className="flex flex-wrap gap-4 rounded-card border border-border bg-surface p-5">
       <label className="text-body">
         MM
         <select className="ml-2" value={mm} onChange={(event) => set({ mm: event.target.value, page: "1" })}>
@@ -48,7 +53,10 @@ export function FillsPage() {
           <option value="sold ETH">sold ETH</option>
         </select>
       </label>
+      </div>
+      <div className="overflow-x-auto rounded-card border border-border px-5">
       <FillTable fills={filtered.slice(start, start + 25)} weth={weth} midWad={state.data?.pWad ?? 0n} now={now} limit={25} />
+      </div>
       <div className="flex gap-3">
         <button type="button" className="text-body" disabled={page <= 1} onClick={() => set({ page: String(page - 1) })}>
           Previous

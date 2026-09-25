@@ -15,12 +15,12 @@ const STATUS: Record<DeskState["mms"][number]["status"], StatusKind> = {
 
 export function QuoteBoard({ mms, now = NOW }: { mms: DeskState["mms"]; now?: number }) {
   return (
-    <section>
-      <ul className="flex flex-col gap-3 lg:hidden">
+    <section className="overflow-hidden rounded-card border border-border bg-bg">
+      <ul className="flex flex-col gap-3 p-3 lg:hidden">
         {mms.map((mm) => {
           const open = mm.status === "ok";
           return (
-            <li key={mm.address} className={open ? "rounded-card bg-surface p-5" : "rounded-card bg-surface p-5 opacity-40"}>
+            <li key={mm.address} className={open ? "rounded-card border border-border bg-surface p-5" : "rounded-card border border-border bg-surface p-5 opacity-40"}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-body">{mm.name}</p>
                 <StatusBadge kind={STATUS[mm.status]} />
@@ -71,7 +71,7 @@ export function QuoteBoard({ mms, now = NOW }: { mms: DeskState["mms"]; now?: nu
         </tbody>
       </table>
       </div>
-      <p className="mt-3 text-small text-muted">Prices for a 1 ETH fill. Larger fills can carry a size floor.</p>
+      <p className="border-t border-border px-5 py-3 text-small text-muted">Prices for a 1 ETH fill. Larger fills can carry a size floor.</p>
     </section>
   );
 }

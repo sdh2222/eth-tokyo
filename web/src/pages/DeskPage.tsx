@@ -102,7 +102,12 @@ export function DeskPage() {
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-wrap items-center gap-4">
         <StatusBadge kind={kind} />
-        {desk ? <span className="num text-h2">{formatUsd(desk.pWad)}</span> : null}
+        {desk ? (
+          <p>
+            <span className="block text-small text-muted">Oracle mid</span>
+            <span className="num text-h2">{formatUsd(desk.pWad)}</span>
+          </p>
+        ) : null}
         {desk ? (
           <span className={`text-small ${updatedClass}`}>
             {UPDATED} {formatWhen(desk.oracleUpdatedAt, now)}
@@ -118,6 +123,7 @@ export function DeskPage() {
               void navigator.clipboard.writeText(strategy.strategyHash);
             }}
           >
+            <span className="block text-muted">Program</span>
             {formatHash(strategy.strategyHash)}
           </button>
         ) : null}
@@ -132,15 +138,15 @@ export function DeskPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-h3">In the vault</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <article className="rounded-card bg-surface p-5">
-          <p className="text-small text-muted">In the desk</p>
+        <article className="rounded-card border border-border bg-surface p-5">
+          <p className="text-small text-muted">ETH</p>
           <p className="num text-h3">{formatWeth(desk.balances.weth)}</p>
         </article>
-        <article className="rounded-card bg-surface p-5">
-          <p className="text-small text-muted">In the desk</p>
+        <article className="rounded-card border border-border bg-surface p-5">
+          <p className="text-small text-muted">USDC</p>
           <p className="num text-h3">{formatUsdc(desk.balances.usdc)}</p>
         </article>
-        <article className="rounded-card bg-surface p-5 sm:col-span-2 lg:col-span-3">
+        <article className="rounded-card border border-border bg-surface p-5 sm:col-span-2 lg:col-span-3">
           <ShareBar shareWad={desk.wWad} targetWad={desk.targetWad} caption={shareCaption} />
           <p className="mt-3 text-body">
             In the Safe: {formatWeth(desk.safeWallet.weth)} · {formatUsdc(desk.safeWallet.usdc)}
@@ -158,7 +164,7 @@ export function DeskPage() {
     {desk ? (
       <section className="flex flex-col gap-3">
         <h2 className="text-h3">Recent fills</h2>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-card border border-border px-5">
           <FillTable fills={fills.data ?? []} weth="" midWad={desk.pWad} now={now} />
         </div>
       </section>
