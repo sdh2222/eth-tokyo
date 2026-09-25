@@ -1,0 +1,32 @@
+{
+  "treasury": "0xf9007Ff12d8dC255eFD217911e9EB5A37D26D7e7",
+  "desk": {
+    "label": "dao-treasury-a",
+    "registerTx": "0x18445307c7ce6b56e558448dcd7ab830d74fe848f9134fc36573d4a367b01d2b",
+    "expiry": "1821880008"
+  },
+  "resolver": "0x228bd144dB976960E8D5AbfAe6d5CeB15346970F",
+  "registries": {
+    "desk": "0x72B3d4B4adCd057c904B3bB59fa201bF10F983b2",
+    "clients": "0x8f6c1e8DE9BDAe6Be0f028e7Ce596F9e530a984e",
+    "agents": "0x5A6b0C2DAb9A29FA2cc949Dbc8a38f222609b5CF"
+  },
+  "clients": {
+    "mm-a.clients.dao-treasury-a.eth": {
+      "address": "0x186AF6aF170cb8805c021EFa176c060214F6aD5d",
+      "expiry": "1792936164"
+    },
+    "mm-b.clients.dao-treasury-a.eth": {
+      "address": "0x5d5A4c611955334d6B5a0F46e1d2AebF2d2B0bF1",
+      "expiry": "1792936164"
+    },
+    "mm-c.clients.dao-treasury-a.eth": {
+      "address": "0xc9b7D2A317d1E969b50A876643fb4271B4339611",
+      "expiry": "1790345064"
+    }
+  },
+  "agent": {
+    "name": "risk.agents.dao-treasury-a.eth",
+    "address": "0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899"
+  }
+}
