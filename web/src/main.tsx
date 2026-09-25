@@ -1,7 +1,8 @@
 import "./styles/tokens.css";
 import "./styles/global.css";
 import { createRoot } from "react-dom/client";
-import { AppFrame } from "./app/shell";
+import { BrowserRouter } from "react-router-dom";
+import { AppRouter } from "./app/router";
 
 const root = document.getElementById("root");
 if (!root) {
@@ -9,7 +10,7 @@ if (!root) {
 }
 
 createRoot(root).render(
-  <AppFrame>
-    Desk
-  </AppFrame>,
+  <BrowserRouter>
+    <AppRouter />
+  </BrowserRouter>,
 );
