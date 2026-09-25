@@ -12,3 +12,7 @@ export function fixturePort(which: "qa" | "demo") {
 export function fixtureBlock(which: "qa" | "demo"): bigint {
   return fixture[which].block();
 }
+
+export function applyShip(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa") {
+  fixture[which].applyShip();
+}

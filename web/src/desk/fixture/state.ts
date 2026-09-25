@@ -65,7 +65,12 @@ function program(): StrategyInfo {
   };
 }
 
-export function createFixture(which: "qa" | "demo"): { port: DeskPort; bump: () => void; block: () => bigint } {
+export function createFixture(which: "qa" | "demo"): {
+  port: DeskPort;
+  bump: () => void;
+  block: () => bigint;
+  applyShip: () => void;
+} {
   const memory: Memory = {
     block: 100n,
     live: which === "qa" ? program() : null,
@@ -153,6 +158,10 @@ export function createFixture(which: "qa" | "demo"): { port: DeskPort; bump: () 
       memory.block += 1n;
     },
     block: () => memory.block,
+    applyShip() {
+      memory.live = program();
+      memory.block += 1n;
+    },
   };
 }
 
