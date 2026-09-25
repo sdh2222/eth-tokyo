@@ -10,6 +10,7 @@ export default {
       text: "var(--text)",
       muted: "var(--text-muted)",
       focus: "var(--focus)",
+      onfocus: "var(--on-focus)",
       treasury: {
         DEFAULT: "var(--treasury)",
         tint: "var(--treasury-tint)",

@@ -3,7 +3,11 @@ export const FOOTER =
 
 export const MARK = "Desk";
 
-export const WALLET_DISCONNECTED = "Not connected";
+export const NETWORK_SEPOLIA = "Sepolia";
+export const SWITCH_SEPOLIA = "Switch to Sepolia";
+export const CONNECT_WALLET = "Connect wallet";
+export const CONNECTED = "Connected";
+export const CONTINUE = "Continue";
 
 export const ROLE_LABEL = {
   treasury: "Treasury",

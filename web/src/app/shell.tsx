@@ -1,6 +1,19 @@
 import type { ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { MARK, NAV_LABEL, ROLE_LABEL, WALLET_DISCONNECTED, FOOTER } from "../copy/en";
+import { useAccount, useChainId, useConnect, useSwitchChain } from "wagmi";
+import { PrimaryButton } from "../components/PrimaryButton";
+import {
+  CONNECT_WALLET,
+  CONNECTED,
+  CONTINUE,
+  FOOTER,
+  MARK,
+  NAV_LABEL,
+  NETWORK_SEPOLIA,
+  ROLE_LABEL,
+  SWITCH_SEPOLIA,
+} from "../copy/en";
+import { formatAddr } from "../lib/format";
 import { homeFor, useRole, type Role } from "./role";
 
 const NAV: Record<Role, { to: string; label: string; end: boolean }[]> = {
@@ -36,7 +49,10 @@ export function AppFrame({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       {showHeader ? <AppHeader /> : null}
-      <main className="mx-auto w-full max-w-[var(--max)] px-8 py-8 flex-1">{children}</main>
+      <main className="mx-auto w-full max-w-[var(--max)] px-8 py-8 flex-1">
+        {showHeader ? <PrimaryButton>{CONTINUE}</PrimaryButton> : null}
+        {children}
+      </main>
       <footer className="border-t border-border px-8 py-6 text-small text-muted">{FOOTER}</footer>
     </div>
   );
@@ -88,8 +104,59 @@ function AppHeader() {
             </NavLink>
           ))}
         </nav>
-        <span className="text-body text-muted">{WALLET_DISCONNECTED}</span>
+        <NetworkChip />
+        <WalletChip />
       </div>
     </header>
+  );
+}
+
+function NetworkChip() {
+  const account = useAccount();
+  const configChainId = useChainId();
+  const chainId =
+    account.status === "connected" && account.chainId != null ? account.chainId : configChainId;
+  const { switchChain } = useSwitchChain();
+
+  if (chainId === 11155111) {
+    return <span className="text-body text-muted">{NETWORK_SEPOLIA}</span>;
+  }
+
+  return (
+    <button
+      type="button"
+      className="rounded-control bg-danger px-3 py-2 text-body text-onfocus"
+      onClick={() => switchChain({ chainId: 11155111 })}
+    >
+      {SWITCH_SEPOLIA}
+    </button>
+  );
+}
+
+function WalletChip() {
+  const { address, status } = useAccount();
+  const { connect, connectors } = useConnect();
+
+  if (status === "connected" && address) {
+    return (
+      <span className="text-body">
+        <span className="num">{formatAddr(address)}</span>{" "}
+        <span className="text-muted">{CONNECTED}</span>
+      </span>
+    );
+  }
+
+  const connector = connectors[0];
+
+  return (
+    <button
+      type="button"
+      className="text-body"
+      onClick={() => {
+        if (connector) connect({ connector });
+      }}
+    >
+      {CONNECT_WALLET}
+    </button>
   );
 }
