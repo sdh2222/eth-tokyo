@@ -3,6 +3,7 @@ import { PAGE } from "../copy/en";
 import { DeskPage } from "../pages/DeskPage";
 import { ControlsPage } from "../pages/ControlsPage";
 import { FillsPage } from "../pages/FillsPage";
+import { VerifyPage } from "../pages/VerifyPage";
 import { OpenPage } from "../pages/OpenPage";
 import { LandingPage } from "../pages/LandingPage";
 import { TradePage } from "../pages/TradePage";
@@ -21,6 +22,7 @@ export function AppRouter() {
         <Route path="/trade" element={<TradePage />} />
         <Route path="/controls" element={<ControlsPage />} />
         <Route path="/fills" element={<FillsPage />} />
+        <Route path="/fills/:tx" element={<VerifyPage />} />
         <Route path="/fills/:tx" element={<Placeholder title={PAGE.verify} />} />
         <Route path="/program" element={<Placeholder title={PAGE.program} />} />
         <Route path="/agent" element={<Placeholder title={PAGE.agent} />} />

@@ -73,6 +73,7 @@ export function createFixture(which: "qa" | "demo"): {
   applyShip: () => void;
   dock: () => void;
   seedTwo: () => void;
+  seedFill: () => string;
 } {
   const memory: Memory = {
     block: 100n,
@@ -176,6 +177,35 @@ export function createFixture(which: "qa" | "demo"): {
       memory.live = program();
       memory.multi = true;
       memory.block += 1n;
+    },
+    seedFill() {
+      const tx = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+      const steps = ["Mid", "ETH share before", "Skew", "Reference price", "Spread used", "Ask or bid", "Amount"].map(
+        (label) => ({ label, formula: label, value: "1" }),
+      );
+      memory.checks.set(tx, { matches: true, steps });
+      memory.fills = [
+        {
+          tx,
+          blockNumber: memory.block,
+          blockTime: NOW,
+          orderHash: tx,
+          nameHash: tx,
+          taker: "0x0000000000000000000000000000000000000005",
+          dnsName: "mm-a.clients.desk.eth",
+          name: "mm-a",
+          tokenIn: "0x0000000000000000000000000000000000000000",
+          tokenOut: "" as Address,
+          amountIn: 1n,
+          amountOut: 1n,
+          midWad: 1n,
+          spreadBps: 10,
+          spreadSource: 1,
+          wBeforeWad: 1n,
+        },
+      ];
+      memory.block += 1n;
+      return tx;
     },
   };
 }

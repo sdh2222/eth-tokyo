@@ -24,3 +24,7 @@ export function dockDesk(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE ===
 export function seedTwoDesks(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa") {
   fixture[which].seedTwo();
 }
+
+export function seedOneFill(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa") {
+  return fixture[which].seedFill();
+}

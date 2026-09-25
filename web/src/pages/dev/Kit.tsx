@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AddressCell } from "../../components/AddressCell";
 import { AmountInput } from "../../components/AmountInput";
 import { Countdown } from "../../components/Countdown";
@@ -11,6 +12,7 @@ import { StatTile } from "../../components/StatTile";
 import { StatusBadge, type StatusKind } from "../../components/StatusBadge";
 import { Stepper } from "../../components/Stepper";
 import { TxLink } from "../../components/TxLink";
+import { seedOneFill } from "../../desk/fixture";
 import { FIXTURE_MMS, FIXTURE_OWNERS } from "../../desk/fixture/state";
 import { labelFor } from "../../hooks/useCanAct";
 
@@ -26,12 +28,23 @@ const KINDS: StatusKind[] = [
 ];
 
 export function Kit() {
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState("1.5");
   const [step, setStep] = useState("policy");
 
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-h1">Kit</h1>
+      <button
+        type="button"
+        className="text-body"
+        onClick={() => {
+          seedOneFill();
+          void queryClient.invalidateQueries({ queryKey: ["fills"] });
+        }}
+      >
+        Seed one fill
+      </button>
       <p>{labelFor(FIXTURE_OWNERS[0] ?? "", FIXTURE_OWNERS, FIXTURE_MMS)}</p>
       <p>{labelFor(FIXTURE_MMS[0]?.address ?? "", FIXTURE_OWNERS, FIXTURE_MMS)}</p>
       <p>{labelFor("0x0000000000000000000000000000000000000009", FIXTURE_OWNERS, FIXTURE_MMS)}</p>
