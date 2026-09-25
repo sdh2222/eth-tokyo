@@ -11,13 +11,15 @@ export function FillTable({
   weth,
   midWad,
   now,
+  limit = 10,
 }: {
   fills: FillRecord[];
   weth: string;
   midWad: bigint;
   now: number;
+  limit?: number;
 }) {
-  const rows = fills.slice(0, 10).flatMap((fill) => {
+  const rows = fills.slice(0, limit).flatMap((fill) => {
     const bought = fill.tokenOut.toLowerCase() === weth.toLowerCase();
     const sold = fill.tokenIn.toLowerCase() === weth.toLowerCase();
     if (!bought && !sold) return [];
