@@ -36,7 +36,7 @@ This page defines the desk's shared terms, units and error catalogue, so code, U
 | Size floor | `floorBps`, source 2 | The minimum spread a large fill pays (Desk system D16). |
 | Spread range | `sMinBps`, `sMaxBps` | The treasury's bounds on the policy spread. |
 | Cap per fill | `capPerFill` | Largest USDC notional a name may trade in one fill. |
-| Name | DNS-encoded name, `dnsName` | A market maker's ENS name under `clients.desk.eth`. |
+| Name | DNS-encoded name, `dnsName` | A market maker's ENS name under `clients.dao-treasury-a.eth`. |
 | Price feed max age | `maxStaleness` | Oldest acceptable oracle update, in seconds. |
 | Desk closes | program deadline (`_deadline`) | After this time the program refuses every fill. |
 | Verify a fill | `verifyFill` | Recomputing a fill's price from its event. |
@@ -59,9 +59,9 @@ Columns: the code `decodeDeskError` returns (the Solidity error name, or a clien
 | --- | --- | --- | --- |
 | `EnsGateInvalidArgs` | The desk program is misconfigured | The gate's settings in the program are invalid. The treasury must reopen the desk. | config |
 | `EnsGateMissingName` | No name was sent | Trade from the Trade page, which sends your ENS name with the order. | system |
-| `EnsGateNameNotUnderDesk` | That name isn't one of the desk's clients | Only names under clients.desk.eth can trade. | user |
-| `EnsGateDeskMismatch` | The desk's ENS name is not active | desk.eth has expired or points somewhere else. The treasury must renew it. | config |
-| `EnsGateClientsMismatch` | The client list is not active | clients.desk.eth has expired or was relinked. The treasury must renew it. | config |
+| `EnsGateNameNotUnderDesk` | That name isn't one of the desk's clients | Only names under clients.dao-treasury-a.eth can trade. | user |
+| `EnsGateDeskMismatch` | The desk's ENS name is not active | dao-treasury-a.eth has expired or points somewhere else. The treasury must renew it. | config |
+| `EnsGateClientsMismatch` | The client list is not active | clients.dao-treasury-a.eth has expired or was relinked. The treasury must renew it. | config |
 | `EnsGateNameExpired` | Your name has expired | Ask the treasury to renew your name to trade again. | user |
 | `EnsGateWrongResolver` | Your name isn't set up for the desk | Its resolver must be the treasury's resolver. Ask the treasury. | config |
 | `EnsGateTakerMismatch` | This wallet isn't on the desk's list | Only the address in a client name's ENS record can trade under that name. | user |

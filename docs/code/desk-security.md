@@ -56,8 +56,8 @@ Each invariant names what enforces it and which test proves it. Test IDs are def
 
 | ID | Invariant | Enforced by | Proven by |
 | --- | --- | --- | --- |
-| INV-1 | Only the `addr` of a live name under the pinned `clients.desk.eth` can fill or get a quote. | #34 steps 3 to 8 | T-G-1..10, T-I-3, T-I-6 |
-| INV-2 | A lapsed and re-registered `desk.eth` or `clients.desk.eth` cannot revive the gate. | Pinned desk and clients registries (D3) | T-G `DeskMismatch`, `ClientsMismatch` |
+| INV-1 | Only the `addr` of a live name under the pinned `clients.dao-treasury-a.eth` can fill or get a quote. | #34 steps 3 to 8 | T-G-1..10, T-I-3, T-I-6 |
+| INV-2 | A lapsed and re-registered `dao-treasury-a.eth` or `clients.dao-treasury-a.eth` cannot revive the gate. | Pinned desk and clients registries (D3) | T-G `DeskMismatch`, `ClientsMismatch` |
 | INV-3 | No fill moves more than the name's `capPerFill` of USDC notional. | #35 step 10 | T-P-5 |
 | INV-4 | No fill is priced better for the MM than `r·(1 ± sMin)`. | Clamp in #35 step 6; floor only raises s | T-P-3, T-P-10 |
 | INV-5 | A buy followed by a sell-back (or the reverse) never leaves the MM richer at mid. | Size floor (D16) | T-P-10 fuzz |
@@ -78,7 +78,7 @@ Each invariant names what enforces it and which test proves it. Test IDs are def
 | TH-1 | Outsider fills | INV-1 | None known |
 | TH-2 | MM uses another MM's name to get better terms | `addr == msg.sender` (#34 step 8) | None known |
 | TH-3 | Attacker builds `mm-a.clients.evil.eth` pointing at our clients registry | Suffix pin (D4) | None known |
-| TH-4 | `desk.eth` lapses and is re-registered by someone else | INV-2 | Desk stops; renew before expiry |
+| TH-4 | `dao-treasury-a.eth` lapses and is re-registered by someone else | INV-2 | Desk stops; renew before expiry |
 | TH-5 | Agent key stolen | INV-4, INV-8, INV-9; Safe revokes roles | Attacker can widen spreads to sMax for every MM until revoked (fills get worse for MMs, not for the treasury) |
 | TH-6 | MM round-trips a large size for profit | INV-5 | Many small alternating fills pay 2s each way, so they lose |
 | TH-7 | Oracle stale or manipulated | INV-7; MockOracle owned by deployer | Accepted for the demo (proposed): the deployer can set any price. Production would use Chainlink with a deviation band (out of scope) |

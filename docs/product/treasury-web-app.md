@@ -33,7 +33,7 @@ The web app is where judges see the product. A demo visitor plays a DAO treasury
 
 - The header (every page except Landing) holds, left to right: product mark and name **Desk**, the role switcher, the page navigation, then the network chip and the wallet chip.
 - **Role switcher**: a segmented control `Treasury | Market maker | Observer`. It changes the navigation and the default page only. It grants nothing: what a wallet can do is decided on-chain.
-- **Wallet chip**: shows the connected address, shortened, plus what it is to the desk: `Safe owner 1/3`, `mm-a.clients.desk.eth`, or `Not on the desk`. Detected from `readDeskState` (MM addresses) and the Safe owners list.
+- **Wallet chip**: shows the connected address, shortened, plus what it is to the desk: `Safe owner 1/3`, `mm-a.clients.dao-treasury-a.eth`, or `Not on the desk`. Detected from `readDeskState` (MM addresses) and the Safe owners list.
 - **Network chip**: `Sepolia` in neutral; anything else in red with "Switch to Sepolia" (SEC-08).
 - **Role and wallet mismatch** (for example, role Treasury with an MM wallet): the page renders read-only and shows an inline banner: "Connect a Safe owner wallet to act as the treasury." It is an inline banner, not a blocking modal.
 
@@ -131,13 +131,13 @@ If a desk is already live, `/open` shows: "A desk is already open. Change it fro
 
 - **Table (L1):** Name · Address (short, copy) · Expires (date + "in 12 d", red if expired) · Tier · Cap per fill · Agent spread (value, valid until, or "none") · Status.
 - **Row actions (Treasury, Safe owner wallet):** "Edit terms" (tier bps, cap USDC) and "Cut off" (sets cap to 0). Both open O1 with the planned ENS write. These exist only if the desk client exposes `planSetTerms` and `planCutOff` (see §15); otherwise the actions are hidden and a note says "Terms are managed by the ENS lane".
-- **Explainer (L3):** "Each market maker is a name under clients.desk.eth. Its address, tier and cap live in its ENS records; the desk reads them at every fill. When the name expires, it can no longer trade."
+- **Explainer (L3):** "Each market maker is a name under clients.dao-treasury-a.eth. Its address, tier and cap live in its ENS records; the desk reads them at every fill. When the name expires, it can no longer trade."
 
 ### 5.4 P4 Trade (`/trade`)
 
 **Purpose:** a market maker gets its own price and fills in two clicks.
 
-1. **Identity strip (L1).** "Trading as mm-a.clients.desk.eth · tier 10 bps · cap 100,000 USDC per fill". If the wallet is not a listed name: "This wallet isn't on the desk's list. You can still ask for a quote to see the desk refuse it." (quote allowed, Fill hidden).
+1. **Identity strip (L1).** "Trading as mm-a.clients.dao-treasury-a.eth · tier 10 bps · cap 100,000 USDC per fill". If the wallet is not a listed name: "This wallet isn't on the desk's list. You can still ask for a quote to see the desk refuse it." (quote allowed, Fill hidden).
 2. **Order form (L1).** Side toggle `Buy ETH | Sell ETH`. One amount input with a unit toggle `ETH | USDC` (the leg rule in Desk system §8.4). Slippage setting behind a gear, default 10 bps.
 3. **Quote panel (L1).** Refreshes 400 ms after the last keystroke. Shows: You pay · You receive · Price (USDC per ETH) · vs mid (± bps) · Spread used with its source badge. A 15-second countdown ring; at zero the quote greys out and "Refresh quote" appears. A small line "Checked against the on-chain formula ✓" when `mirrorMatches`.
 4. **Primary button:** "Approve router" if `planMmApprovals` returns anything, then "Fill". Opens O2.
@@ -167,7 +167,7 @@ If a desk is already live, `/open` shows: "A desk is already open. Change it fro
 
 ### 5.8 P8 Risk agent (`/agent`)
 
-- Agent identity: `risk.agents.desk.eth` → address.
+- Agent identity: `risk.agents.dao-treasury-a.eth` → address.
 - Table per MM: current agent spread, valid until, clamped value, and whether it is in force.
 - Text of `desk.stats` if present.
 - Explainer: "The agent can only change one number per market maker, inside the range the treasury set. It can't block trading."
@@ -196,7 +196,7 @@ Opened with the keyboard shortcut `Shift+D` or `?demo=1`. It stays out of the na
 | ETH share | percent, 1 decimal | 90.0% |
 | Time | relative within 24 h ("12 s ago", "in 5 h 12 m"), else absolute; absolute always in JST with the zone | 2026-10-25 21:00 JST |
 | Address / hash | first 6 and last 4 characters, mono, copy button, explorer link | 0x1bd2…09f6 |
-| ENS name | full name, never shortened | mm-a.clients.desk.eth |
+| ENS name | full name, never shortened | mm-a.clients.dao-treasury-a.eth |
 
 Rules: plain decimal notation only (no scientific notation); show the exact, unrounded number for anything the user will sign (in the review step); formatting happens only in the UI (the desk client returns bigint); a number that could not be read shows an em dash character (U+2014), never 0.
 

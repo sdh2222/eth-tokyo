@@ -7,7 +7,7 @@ notion: https://app.notion.com/p/3e58f1ec11b481f687d1c0011c35716a
 
 ## Goal
 
-Instruction #34: only the `addr` of a live name under the pinned `clients.desk.eth` passes. Plus the ENS mocks every later test reuses.
+Instruction #34: only the `addr` of a live name under the pinned `clients.dao-treasury-a.eth` passes. Plus the ENS mocks every later test reuses.
 
 ## Source of truth
 
@@ -31,7 +31,7 @@ Desk system §2.2 D1, D3, D4; §5.3; §6; §9 (gate vector); §10 (`EnsGate.t.so
 	- `function build(GateArgs memory a) internal pure returns (bytes memory)`: packed layout of Desk system §5.3; reverts `EnsGateInvalidArgs()` on any rule of step 1.
 	- `function parse(bytes calldata args) internal pure returns (GateArgs memory a, string memory clientsLabel, string memory deskLabel)`: validates step 1 and returns the two parent labels from the suffix.
 	- `function splitName(bytes calldata dnsName) internal pure returns (string memory label, bytes calldata rest)`: step 3's split; reverts `EnsGateNameNotUnderDesk()` on a zero-length or overrunning label.
-	- `build` must reproduce the §9 `gate` vector (98 bytes) for the placeholder addresses.
+	- `build` must reproduce the §9 `gate` vector (108 bytes) for the placeholder addresses.
 3. Label ids are `uint256(keccak256(bytes(label)))` (ENS `LibLabel.id`).
 4. `MockEnsRegistry` (semantics of `PermissionedRegistry.sol:277-286, 327, 663`):
 	- `function set(string calldata label, address subregistry, address resolver, uint64 expiry) external`

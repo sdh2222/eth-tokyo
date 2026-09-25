@@ -30,7 +30,7 @@ Desk system §4.2, §7.2 (`findLiveStrategy`, `quoteFor`, `buildSwapTx`, `planMm
 
 - `approve --mm mm-b` then `fill --mm mm-b --side buy --weth 1` succeeds and the printed amounts equal `priceMirror`.
 - `fill --mm mm-a --side sell --weth 0.5` and `fill --mm mm-a --side buy --usdc 1000` succeed.
-- With mm-b's key but `--name mm-a.clients.desk.eth` (a debug flag that overrides the name sent) the quote prints `✖ This wallet isn't on the desk's list — …`.
+- With mm-b's key but `--name mm-a.clients.dao-treasury-a.eth` (a debug flag that overrides the name sent) the quote prints `✖ This wallet isn't on the desk's list — …`.
 - `oracle --stale` then `quote` prints the stale title; `oracle` then `quote` succeeds.
 - `loop --interval 5 --weth 0.1` runs three iterations without error (stop with Ctrl-C).
 

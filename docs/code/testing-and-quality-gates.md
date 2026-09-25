@@ -78,7 +78,7 @@ Run on the anvil fork with the fixture, in Chrome with MetaMask, window 1280 wid
 **Shell (W1)**
 
 - Q-W-SHELL-1: switch MetaMask to Mainnet → danger banner, every primary button disabled, "Switch to Sepolia" works.
-- Q-W-SHELL-2: connect owner 1, mm-a, outsider in turn → wallet chip shows "Safe owner 1/3", "mm-a.clients.desk.eth", "Not on the desk".
+- Q-W-SHELL-2: connect owner 1, mm-a, outsider in turn → wallet chip shows "Safe owner 1/3", "mm-a.clients.dao-treasury-a.eth", "Not on the desk".
 - Q-W-SHELL-3: switch roles → navigation matches Treasury web app §4.2 exactly, default page correct.
 - Q-W-SHELL-4: role Treasury with mm-a's wallet → read-only banner, no blocking modal.
 - Q-W-SHELL-5: every page shows the mandatory footer text exactly (Treasury web app §8).

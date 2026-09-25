@@ -21,7 +21,7 @@ Desk system §5.3 steps 4 to 8, §5.4 step 6, §6.4, §10 (T-F-1), §13 C1 and C
 
 1. The test is skipped unless `SEPOLIA_RPC_URL` is set (`vm.envOr`); it forks at the latest block.
 2. Addresses come from `config/sepolia.json` (`ens.ethRegistry`), read with `vm.readFile` + `vm.parseJson`. The Aqua lane fills them at H0 (C1).
-3. The measured name: an existing registered 2LD on Sepolia ENSv2 that has a subregistry and a PermissionedResolver, given by the page Owner in the PR request (for example a team member's own test name). If none is available at H0, the Aqua lane registers `desk.eth` first; the agent does not guess a name.
+3. The measured name: an existing registered 2LD on Sepolia ENSv2 that has a subregistry and a PermissionedResolver, given by the page Owner in the PR request (for example a team member's own test name). If none is available at H0, the Aqua lane registers `dao-treasury-a.eth` first; the agent does not guess a name.
 4. Measure with `gasleft()` deltas, each call on its own:
 	- `getSubregistry(label)` on ETHRegistry, and on the 2LD's registry for a child label (or a missing label)
 	- `getExpiry(uint256(keccak256(label)))`

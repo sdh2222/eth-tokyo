@@ -26,7 +26,7 @@ Source versions this page was checked against. Every `file:line` citation below 
 
 A Safe multisig (the treasury) ships one SwapVM strategy to the official Aqua registry on Sepolia. The strategy runs on **DeskRouter**, a copy of the SwapVM v1.0.2 Aqua router with a reduced opcode table plus two new instructions:
 
-- **#34 ****`EnsGate`** checks that the caller is the `addr` of a live `*.clients.desk.eth` name.
+- **#34 ****`EnsGate`** checks that the caller is the `addr` of a live `*.clients.dao-treasury-a.eth` name.
 - **#35 ****`DeskPrice`** reads that name's terms and spread from ENS, reads the oracle mid, and prices the fill with an inventory skew.
 Market makers (MMs) call `DeskRouter.swap` directly. Tokens move Safe ↔ MM through `Aqua.pull` and `Aqua.push` in the same transaction. Our contracts store no configuration: everything is in the shipped program's bytes or read live at fill time.
 
@@ -56,8 +56,8 @@ The team can revise any of these in review.
 | --- | --- | --- |
 | D1 | The MM name is passed **once**. #34 reads it without consuming it (`ctx.takerArgs()`), and #35 consumes it (`ctx.tryChopTakerArgs`). #34 must come immediately before #35 in the program. | Instructions share only the swap registers and the taker-args cursor (`swap-vm/src/libs/VM.sol:87,102`). Proposed 09-24. |
 | D2 | #34 makes one resolver call (`addr`). #35 makes one resolver call (a `multicall` of the two data records). | Follows from D1: #34 cannot hand values to #35. This is two resolver calls, not one. Gas is measured in hour 1 (T2b). |
-| D3 | Parent liveness is checked by walking the registries: `ETHRegistry.getSubregistry("desk")` must equal the pinned desk registry, then its `.getSubregistry("clients")` must equal the pinned clients registry. Both are pinned so that a lapsed-and-re-registered `desk.eth` pointing at our clients registry cannot revive the gate (found in review 09-24). The MM label's expiry is read explicitly with `getExpiry`. | `getSubregistry` and `getResolver` return zero once a label is expired (`contracts-v2/contracts/src/registry/PermissionedRegistry.sol:277-286`). One call per level therefore both checks expiry and proves the chain is still ours. The explicit MM-label expiry check gives the demo a clear revert reason. |
-| D4 | The name must end with the pinned suffix `clients.desk.eth` (byte comparison). | Stops `mm-a.clients.<attacker>.eth` from reaching our pinned clients registry through an attacker's own subregistry link. |
+| D3 | Parent liveness is checked by walking the registries: `ETHRegistry.getSubregistry("dao-treasury-a")` must equal the pinned desk registry, then its `.getSubregistry("clients")` must equal the pinned clients registry. Both are pinned so that a lapsed-and-re-registered `dao-treasury-a.eth` pointing at our clients registry cannot revive the gate (found in review 09-24). The MM label's expiry is read explicitly with `getExpiry`. | `getSubregistry` and `getResolver` return zero once a label is expired (`contracts-v2/contracts/src/registry/PermissionedRegistry.sol:277-286`). One call per level therefore both checks expiry and proves the chain is still ours. The explicit MM-label expiry check gives the demo a clear revert reason. |
+| D4 | The name must end with the pinned suffix `clients.dao-treasury-a.eth` (byte comparison). | Stops `mm-a.clients.<attacker>.eth` from reaching our pinned clients registry through an attacker's own subregistry link. |
 | D5 | `capPerFill` is in USDC base units (6 decimals) and applies to the USDC leg of the fill, in both directions. | One unit for both directions. Human-readable. |
 | D6 | All rounding favours the treasury: output is rounded down and input is rounded up. | Standard maker safety. |
 | D7 | A malformed or stale `desk.spread` is **ignored** (fall back to the tier spread). A malformed or missing `desk.terms`, or `capPerFill == 0`, **reverts**. | A broken or hostile agent write can then never block fills, and a name without terms can never trade. |
@@ -168,7 +168,7 @@ Nothing else changes. ENS, the oracle and DeskRouter storage are untouched.
 | Agent spread expires or is malformed | time passes | tier spread from `desk.terms` | no |
 | Terms change (tier or cap) | Safe `R.setData(name, "desk.terms", …)` | new tier and cap | no |
 | MM cut off | let `mm-a` expire, or Safe changes its `addr`, or sets cap 0 | #34 or #35 reverts | no |
-| Whole desk off | `desk.eth` or `clients.desk.eth` expires, even if someone re-registers it | #34 reverts (`DeskMismatch` or `ClientsMismatch`) | no |
+| Whole desk off | `dao-treasury-a.eth` or `clients.dao-treasury-a.eth` expires, even if someone re-registers it | #34 reverts (`DeskMismatch` or `ClientsMismatch`) | no |
 | Change w\*, κ, bounds, staleness, oracle, trusted ENS contracts | Safe, one MultiSend: `Aqua.dock(DeskRouter, oldHash, [WETH, USDC])` then `Aqua.ship(...)` with a **new salt** | old strategy's `safeBalances` reverts; new one is live | yes |
 | Re-ship identical bytes | n/a | reverts `StrategiesMustBeImmutable` (`Aqua.sol:48`) | use a new salt |
 | Emergency stop | Safe `Aqua.dock`, or revoke the ERC-20 allowance to Aqua | all fills revert | n/a |
@@ -225,17 +225,17 @@ contract DeskRouter is Simulator, SwapVM, DeskOpcodes {
 
 ### 5.3 #34 `EnsGate._ensGate(Context memory ctx, bytes calldata args) internal view`
 
-**Program args** (variable length, 80 + suffix length; 98 bytes for `clients.desk.eth`):
+**Program args** (variable length, 80 + suffix length; 108 bytes for `clients.dao-treasury-a.eth`):
 
 | Offset | Size | Field |
 | --- | --- | --- |
 | 0 | 20 | `ethRegistry`: the ENSv2 registry for `.eth` |
-| 20 | 20 | `deskRegistry`: the registry of `desk.eth` (its subregistry) |
-| 40 | 20 | `clientsRegistry`: the registry of `clients.desk.eth` |
+| 20 | 20 | `deskRegistry`: the registry of `dao-treasury-a.eth` (its subregistry) |
+| 40 | 20 | `clientsRegistry`: the registry of `clients.dao-treasury-a.eth` |
 | 60 | 20 | `resolver` R: the treasury's PermissionedResolver |
-| 80 | n | `suffix`: DNS-encoded `clients.desk.eth` including the terminal `0x00` (n = 18). It must be exactly three labels, and the last must be `eth`. |
+| 80 | n | `suffix`: DNS-encoded `clients.dao-treasury-a.eth` including the terminal `0x00` (n = 28). It must be exactly three labels, and the last must be `eth`. |
 
-**Taker args** (read, **not consumed**): `uint8 len ‖ dnsName[len]`. For example, `mm-a.clients.desk.eth` gives `len = 23` (§9).
+**Taker args** (read, **not consumed**): `uint8 len ‖ dnsName[len]`. For example, `mm-a.clients.dao-treasury-a.eth` gives `len = 33` (§9).
 **Behaviour, in order.** The first failing check reverts.
 
 1. Parse args. Revert `EnsGateInvalidArgs()` if any of these hold:
@@ -247,7 +247,7 @@ contract DeskRouter is Simulator, SwapVM, DeskOpcodes {
 	- the first length byte is 0 (the root name)
 	- the first label's length byte overruns `dnsName`
 	- `keccak256(rest) != keccak256(suffix)`
-4. `d = IRegistry(ethRegistry).getSubregistry(suffixLabel[1])` (= `"desk"`). Revert `EnsGateDeskMismatch(d)` if `d != deskRegistry`. Zero means `desk.eth` is expired or has no subregistry. Any other value means someone else now controls `desk.eth`.
+4. `d = IRegistry(ethRegistry).getSubregistry(suffixLabel[1])` (= `"dao-treasury-a"`). Revert `EnsGateDeskMismatch(d)` if `d != deskRegistry`. Zero means `dao-treasury-a.eth` is expired or has no subregistry. Any other value means someone else now controls `dao-treasury-a.eth`.
 5. `c = IRegistry(deskRegistry).getSubregistry(suffixLabel[0])` (= `"clients"`). Revert `EnsGateClientsMismatch(c)` if `c != clientsRegistry`. Zero means `clients` is expired.
 6. `expiry = IStandardRegistry(clientsRegistry).getExpiry(uint256(keccak256(bytes(label))))`. Revert `EnsGateNameExpired(expiry)` if `block.timestamp >= expiry`. This matches the registry's own rule (`PermissionedRegistry.sol:663-665`). An unregistered label has expiry 0 and reverts here.
 7. `r = IRegistry(clientsRegistry).getResolver(label)`. Revert `EnsGateWrongResolver(r)` if `r != resolver`. The resolver must be set **on the ****`mm-a`**** label itself**; parent fallback is not accepted.
@@ -364,12 +364,14 @@ Mocks are MIT-licensed; they are not SwapVM derivatives.
 
 This page assumes the treasury owns every name (proposed; still open for the team, see Open questions in §13 and arch page §7).
 
+The desk lives under the DAO's own name. `dao-treasury-a.eth` is a made-up demo DAO ("DAO A"). A real DAO uses a name it already owns, for example `mm-a.clients.ensdao.eth` for ENS DAO: #34 trusts whoever controls the parent, so a shared parent owned by a third party would make that party a middleman over every DAO's market-maker list. Only the pinned registries and the `suffix` in the program change; the contracts stay the same.
+
 | Name | Where it lives | Requirement |
 | --- | --- | --- |
-| `desk.eth` | ETHRegistry label `desk` | registered, unexpired through the demo, subregistry = desk UserRegistry `D` |
-| `clients.desk.eth` | `D` label `clients` | registered, unexpired, subregistry = clients UserRegistry `C` |
-| `mm-a.clients.desk.eth` (and `mm-b`, …) | `C` label `mm-a` | registered, expiry = end of that MM's access, **resolver set on this label = R** |
-| `agents.desk.eth`, `risk.agents.desk.eth` | ENS lane's choice | not read by the router |
+| `dao-treasury-a.eth` | ETHRegistry label `dao-treasury-a` | registered, unexpired through the demo, subregistry = the DAO's UserRegistry `D` |
+| `clients.dao-treasury-a.eth` | `D` label `clients` | registered, unexpired, subregistry = clients UserRegistry `C` |
+| `mm-a.clients.dao-treasury-a.eth` (and `mm-b`, …) | `C` label `mm-a` | registered, expiry = end of that MM's access, **resolver set on this label = R** |
+| `agents.dao-treasury-a.eth`, `risk.agents.dao-treasury-a.eth` | ENS lane's choice | not read by the router |
 
 ### 6.2 Records on resolver R (keyed by full name)
 
@@ -412,7 +414,7 @@ The return type `IRegistry` is declared as `address` here; the ABI is the same. 
 These go into `config/sepolia.json` (§8.0):
 
 - `ethRegistry`, `deskRegistry` (`D`), `clientsRegistry` (`C`), `resolver` (R)
-- the suffix string (`clients.desk.eth`)
+- the suffix string (`clients.dao-treasury-a.eth`)
 - the list of MM names with the addresses they point to
 
 ## 7. Off-chain library (`ts/src/lib`)
@@ -421,7 +423,7 @@ These go into `config/sepolia.json` (§8.0):
 
 All encoders take and return `0x`-prefixed hex or `bigint`. The Solidity `DeskArgs` library mirrors them.
 ```typescript
-export function dnsEncode(name: string): Hex                         // "mm-a.clients.desk.eth" → 0x046d6d2d61…00
+export function dnsEncode(name: string): Hex                         // "mm-a.clients.dao-treasury-a.eth" → 0x046d6d2d61…00
 export function encodeGateArgs(a: { ethRegistry: Address; deskRegistry: Address; clientsRegistry: Address; resolver: Address; suffix: string }): Hex
 export function encodePriceArgs(a: { resolver; oracle; base; quote: Address; oracleDecimals; baseDecimals; quoteDecimals: number;
                                      maxStaleness: number; wStarBps; kappaBps; sMinBps; sMaxBps: number }): Hex
@@ -466,7 +468,7 @@ export function decodeProgram(program: Hex): DecodedProgram
     // DecodedProgram = { deadline: bigint, salt: bigint, gate: GateArgs, price: PriceArgs, unknown: [...] }
 export function describeProgram(d: DecodedProgram, cfg: DeskConfig): string[]
     // Plain-English lines for the review screen, e.g.
-    // "Open until 2026-10-25 21:00 JST", "Only names under clients.desk.eth may trade",
+    // "Open until 2026-10-25 21:00 JST", "Only names under clients.dao-treasury-a.eth may trade",
     // "Price: oracle mid, skewed toward 70% ETH (κ 2%)", "Spread between 0.05% and 2.00%, set per name",
     // "Oracle older than 60 minutes blocks trading". Also flags any value that differs from cfg.
 
@@ -535,12 +537,12 @@ Rules for the desk client:
 ```json
 { "chainId": 11155111,
   "aqua": "0x1111113ccf1426a8e30e2bff5e005d929bf6a90a",
-  "ens": { "ethRegistry": "", "deskRegistry": "", "clientsRegistry": "", "resolver": "", "suffix": "clients.desk.eth", "universalResolver": "" },
+  "ens": { "ethRegistry": "", "deskRegistry": "", "clientsRegistry": "", "resolver": "", "suffix": "clients.dao-treasury-a.eth", "universalResolver": "" },
   "tokens": { "weth": "", "usdc": "" }, "oracle": "", "router": "", "safe": "",
   "desk": { "oracleDecimals": 8, "baseDecimals": 18, "quoteDecimals": 6, "maxStaleness": 3600,
             "wStarBps": 7000, "kappaBps": 200, "sMinBps": 5, "sMaxBps": 200, "strategyTtlDays": 30,
             "shipWeth": "900000000000000000000", "shipUsdc": "400000000000" },
-  "mms": [ { "name": "mm-a.clients.desk.eth", "address": "" }, { "name": "mm-b.clients.desk.eth", "address": "" } ],
+  "mms": [ { "name": "mm-a.clients.dao-treasury-a.eth", "address": "" }, { "name": "mm-b.clients.dao-treasury-a.eth", "address": "" } ],
   "deployBlock": 0, "logChunk": 50000, "explorer": "https://sepolia.etherscan.io" }
 ```
 The default ship amounts, 900 WETH and 400k USDC, reproduce the pitch example (w = 0.9). `deployBlock` is the router's deploy block (written by Deploy.s.sol) and bounds every log scan.
@@ -610,13 +612,13 @@ The on-chain `amount` argument is always that named leg (`TakerTraits.sol:179,18
 Solidity tests and TS tests must both reproduce these values exactly. The placeholder addresses are `ethRegistry = 0x…e1`, `deskRegistry = 0x…d1`, `clientsRegistry = 0x…c1`, `resolver = 0x…a1`, `oracle = 0x…0a`, `base = 0x…ee`, `quote = 0x…dc` (20-byte, left-zero-padded).
 **Encodings**
 ```javascript
-suffix  (18)  07636c69656e7473046465736b0365746800
-gate    (98)  00000000000000000000000000000000000000e1 00000000000000000000000000000000000000d1
+suffix  (28)  07636c69656e7473 0e64616f2d74726561737572792d61 0365746800
+gate   (108)  00000000000000000000000000000000000000e1 00000000000000000000000000000000000000d1
               00000000000000000000000000000000000000c1 00000000000000000000000000000000000000a1
-              07636c69656e7473046465736b0365746800
+              07636c69656e74730e64616f2d74726561737572792d610365746800
 price   (95)  …a1 …0a …ee …dc 08 12 06 00000e10 1b58 00c8 0005 00c8
-taker   (24)  17 046d6d2d61 07636c69656e7473 046465736b 03657468 00
-program(214)  0d05 006ab13b80 | 1408 0000000000000001 | 2262 <gate> | 235f <price>
+taker   (34)  21 046d6d2d61 07636c69656e7473 0e64616f2d74726561737572792d61 03657468 00
+program(224)  0d05 006ab13b80 | 1408 0000000000000001 | 226c <gate> | 235f <price>
               (deadline 1790000000, salt 1)
 terms value   0000…01 | 0000…0a | 0000…174876e800      (version 1, tier 10 bps, cap 100_000e6)
 ```
@@ -701,11 +703,11 @@ def dns(name):
 
 def encodings():
     E, D, C, R, O, W, U = (addr(x) for x in (0xE1, 0xD1, 0xC1, 0xA1, 0x0A, 0xEE, 0xDC))
-    suffix = dns("clients.desk.eth")
+    suffix = dns("clients.dao-treasury-a.eth")
     gate = E + D + C + R + suffix
     price = R + O + W + U + bytes([8, 18, 6]) + (3600).to_bytes(4, "big") + b"".join(
         v.to_bytes(2, "big") for v in (7000, 200, 5, 200))
-    name = dns("mm-a.clients.desk.eth")
+    name = dns("mm-a.clients.dao-treasury-a.eth")
     taker = bytes([len(name)]) + name
     deadline, salt = (1_790_000_000).to_bytes(5, "big"), (1).to_bytes(8, "big")
     program = (bytes([13, 5]) + deadline + bytes([20, 8]) + salt
@@ -775,7 +777,7 @@ Test file names are set in advance so tasks don't collide. The full test catalog
 	- `InvalidArgs`
 	- `MissingName` (empty and short)
 	- `NameNotUnderDesk` (wrong suffix, root name, attacker path `mm-a.clients.evil.eth`)
-	- `DeskMismatch` (desk expired; `desk.eth` re-pointed to another registry that links our clients registry)
+	- `DeskMismatch` (desk expired; `dao-treasury-a.eth` re-pointed to another registry that links our clients registry)
 	- `ClientsMismatch` (clients expired; clients relinked)
 	- `NameExpired` (at expiry exactly; unregistered)
 	- `WrongResolver` (unset; other resolver)
@@ -818,7 +820,7 @@ Test file names are set in advance so tasks don't collide. The full test catalog
 **`test/fork/SepoliaEns.fork.t.sol`** (T2b and T9). Skipped unless `SEPOLIA_RPC_URL` is set.
 
 - T-F-1 (hour 1, T2b): gas of `getSubregistry` ×2, `getExpiry`, `getResolver`, `resolve(addr)` and `resolve(multicall(data, data))` against an existing ENSv2 name on Sepolia. Report the numbers in the PR.
-- T-F-2 (T9): full gate and price against the real `desk.eth` names once the ENS lane has created them.
+- T-F-2 (T9): full gate and price against the real `dao-treasury-a.eth` names once the ENS lane has created them.
 **TS tests (****`ts/`****, vitest)** (T5)
 
 - T-TS-1: every encoding in §9 matches byte-for-byte.
@@ -876,7 +878,7 @@ This implements SwapVM-1.1 §2.4, §3.1 A–E and §7.4 (`swap-vm/LICENSES/SwapV
 - C2 (hour 0): role constants, re-read from the verified source of whichever `PermissionedResolverImpl` is live.
 - C3 (hour 1, T2b): gas of the ENS reads (T-F-1). If the reads exceed \~250k, which puts a fill at roughly 400k or more (unverified), tell the page Owner. The proposed response (T2b Plan, fallbacks) is to keep the design and report the number, because Sepolia gas is only a demo cost.
 - C4 (Friday, Aqua lane): whether 1inch accepts a Sepolia submission using the official registry and our router (unverified; ask on Discord).
-- C5 (hour 0): `desk.eth` still unregistered.
+- C5 (hour 0): `dao-treasury-a.eth` still unregistered on Sepolia (unverified).
 **Open questions**
 
 | Question | Proposed default | Who answers |

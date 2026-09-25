@@ -15,10 +15,10 @@ T0 merged.
 
 ## Steps
 
-1. Write the two mocks with NatSpec (Spec 4–5). Checkpoint: a tiny test registers `mm-a.clients.desk.eth` and reads `addr` back through `resolve`.
+1. Write the two mocks with NatSpec (Spec 4–5). Checkpoint: a tiny test registers `mm-a.clients.dao-treasury-a.eth` and reads `addr` back through `resolve`.
 2. Write `EnsGateArgs` (Spec 2) and the gate vector test. Checkpoint: vector test green.
 3. Implement `_ensGate` steps 1–8 (Spec 1). Test through a harness contract that inherits `EnsGate` and exposes `gate(ctxFields, args)`.
-4. Write T-G-1..10, one test per bullet in Desk system §10 (the attacker path `mm-a.clients.evil.eth`, the re-pointed `desk.eth`, expiry exactly at `block.timestamp`, an unregistered label).
+4. Write T-G-1..10, one test per bullet in Desk system §10 (the attacker path `mm-a.clients.evil.eth`, the re-pointed `dao-treasury-a.eth`, expiry exactly at `block.timestamp`, an unregistered label).
 5. QC gate; PR.
 
 ## Commands

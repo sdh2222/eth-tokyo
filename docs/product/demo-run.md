@@ -103,7 +103,7 @@ Prize requirements as read from the prize pages (unverified).
 | 1inch: build an Aqua app; SwapVM use scores higher; opcodes may be modified | Program page (#34, #35), Review step (ship to Aqua) |
 | 1inch: positions demonstrated through tests or a UI, on-chain token movement shown | The live fill; Etherscan tab shows Safe → MM transfer in the same tx |
 | ENS: best use of ENSv2 | Names as the client book: address, terms, expiry, per-key delegation |
-| ENS bonus: agents as namespaces with their own identity and permissions | `risk.agents.desk.eth` writes one record key only |
+| ENS bonus: agents as namespaces with their own identity and permissions | `risk.agents.dao-treasury-a.eth` writes one record key only |
 
 ## 9. Judge questions and prepared answers
 
