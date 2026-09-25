@@ -38,6 +38,7 @@ const DEADLINE = 1792926000;
 type Memory = {
   block: bigint;
   live: StrategyInfo | null;
+  multi: boolean;
   oracleUpdatedAt: number;
   fills: FillRecord[];
   checks: Map<string, FillCheck>;
@@ -70,10 +71,13 @@ export function createFixture(which: "qa" | "demo"): {
   bump: () => void;
   block: () => bigint;
   applyShip: () => void;
+  dock: () => void;
+  seedTwo: () => void;
 } {
   const memory: Memory = {
     block: 100n,
     live: which === "qa" ? program() : null,
+    multi: false,
     oracleUpdatedAt: NOW - 12,
     fills: [],
     checks: new Map(),
@@ -84,7 +88,8 @@ export function createFixture(which: "qa" | "demo"): {
       return memory.live ? [memory.live] : [];
     },
     async findLiveStrategy() {
-      return memory.live;
+      if (!memory.live) return null;
+      return memory.multi ? { ...memory.live, warning: "MULTIPLE_LIVE" as const } : memory.live;
     },
     decodeProgram(programHex) {
       return { deadline: BigInt(DEADLINE), salt: 1n, unknown: [{ opcode: 0, args: programHex }] };
@@ -160,6 +165,16 @@ export function createFixture(which: "qa" | "demo"): {
     block: () => memory.block,
     applyShip() {
       memory.live = program();
+      memory.block += 1n;
+    },
+    dock() {
+      memory.live = null;
+      memory.multi = false;
+      memory.block += 1n;
+    },
+    seedTwo() {
+      memory.live = program();
+      memory.multi = true;
       memory.block += 1n;
     },
   };

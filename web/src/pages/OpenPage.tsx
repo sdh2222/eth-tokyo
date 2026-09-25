@@ -53,7 +53,7 @@ export function OpenPage() {
     );
   }
 
-  if (live.data) {
+  if (live.data && !params.get("step")) {
     return <p className="text-body">{ALREADY_OPEN}</p>;
   }
 

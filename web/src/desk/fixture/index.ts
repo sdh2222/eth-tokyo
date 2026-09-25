@@ -16,3 +16,11 @@ export function fixtureBlock(which: "qa" | "demo"): bigint {
 export function applyShip(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa") {
   fixture[which].applyShip();
 }
+
+export function dockDesk(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa") {
+  fixture[which].dock();
+}
+
+export function seedTwoDesks(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa") {
+  fixture[which].seedTwo();
+}
