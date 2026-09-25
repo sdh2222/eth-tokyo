@@ -1,10 +1,11 @@
+import { FillTable } from "../components/FillTable";
 import { QuoteBoard } from "../components/QuoteBoard";
 import { ShareBar } from "../components/ShareBar";
 import { Skeleton } from "../components/Skeleton";
 import { StatusBadge, type StatusKind } from "../components/StatusBadge";
 import { CLOSES_IN, UPDATED } from "../copy/en";
 import { emptyConfig, NOW } from "../desk/fixture/state";
-import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatShare, formatSkewBps, formatUsd, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
 
@@ -14,6 +15,7 @@ export function DeskPage() {
   const live = useLiveStrategy();
   const strategy = live.data ?? null;
   const state = useDeskState(strategy);
+  const fills = useFills(strategy);
 
   if (live.isPending || (strategy !== null && state.isPending)) {
     return <Skeleton className="h-8 w-full" />;
@@ -87,6 +89,9 @@ export function DeskPage() {
       </section>
     ) : null}
     {desk ? <QuoteBoard mms={desk.mms} now={now} /> : null}
+    {desk ? (
+      <FillTable fills={fills.data ?? []} weth="" midWad={desk.pWad} now={now} />
+    ) : null}
     </div>
   );
 }
