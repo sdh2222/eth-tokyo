@@ -15,5 +15,5 @@
     "outDir": "dist"
   },
   "include": ["src"],
-  "exclude": ["src/dev", "src/scripts"]
+  "exclude": ["src/dev", "src/scripts", "src/bot"]
 }

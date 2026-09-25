@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["es2022"]
+  },
+  "include": ["src/bot", "src/scripts", "src/dev"],
+  "exclude": []
+}
