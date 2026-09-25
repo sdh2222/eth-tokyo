@@ -1,7 +1,7 @@
 // Acceptance checks for the ENS part (ENS_구현_매뉴얼.md §7 step 6 and §10). Exits 1 if a required check fails.
 import { decodeAbiParameters, encodeFunctionData, namehash, parseAbi, parseUnits } from 'viem'
 import { profileAbi, registryAbi, resolverAbi } from '../src/abis.js'
-import { account, ADDR, CLIENTS_NAME, DESK_LABEL, DESK_NAME, publicClient } from '../src/config.js'
+import { ADDR, CLIENTS_NAME, DESK_LABEL, DESK_NAME, publicClient } from '../src/config.js'
 import { loadDeployment, requireField } from '../src/deployments.js'
 import { dnsEncode, encodeTakerName, KEY_SPREAD, KEY_TERMS, keyResource, labelId } from '../src/encode.js'
 import { readClient, readRecords } from '../src/read.js'
@@ -18,7 +18,8 @@ const iso = (t: bigint) => new Date(Number(t) * 1000).toISOString()
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
 const d = loadDeployment()
-const treasury = account('TREASURY_PK').address
+// Reads only public addresses from deployments/sepolia.json, so a reviewer can run this without any keys.
+const treasury = requireField(d.treasury, 'treasury', 'register')
 const resolver = requireField(d.resolver, 'resolver', 'setup')
 const now = (await publicClient.getBlock()).timestamp
 const eth = { address: ADDR.ethRegistry, abi: registryAbi } as const
@@ -38,7 +39,7 @@ check(same(deskSub, d.registries?.desk ?? ''), `${DESK_NAME} subregistry wired`)
 // 2. MM names, as the router's gate would see them
 const mmA = await readClient(`mm-a.${CLIENTS_NAME}`)
 check(mmA.gateOk, `${mmA.name} passes the gate (3-level expiry + resolver + terms)`)
-check(same(mmA.addr, account('MM_A_PK').address), `${mmA.name} addr = MM_A`)
+check(same(mmA.addr, requireField(d.clients?.[mmA.name]?.address, 'mm-a', 'clients')), `${mmA.name} addr = the recorded MM_A address`)
 check(mmA.termsValid && mmA.terms?.tierBps === 10 && mmA.terms?.capPerFill === parseUnits('100000', 6), `${mmA.name} desk.terms = tier 10 bps / cap 100,000 USDC (96 bytes)`, JSON.stringify(mmA.terms, (_, v) => (typeof v === 'bigint' ? v.toString() : v)))
 check(mmA.expiries.length === 3, `${mmA.name} expiry read at 3 levels`, mmA.expiries.map((e) => `${e.name} ${iso(e.expiry)}`).join(' | '))
 

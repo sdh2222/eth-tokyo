@@ -80,7 +80,11 @@ export async function readClient(fullName: string): Promise<ClientView> {
   const [levels, expected, block] = await Promise.all([walkRegistries(fullName), treasuryResolver(deskLabel), publicClient.getBlock()])
   const leaf = levels.at(-1)!
   const resolver = await publicClient.readContract({ address: leaf.registry, abi: registryAbi, functionName: 'getResolver', args: [leaf.label] })
-  const records = await readRecords(resolver, fullName, block.timestamp)
+  // An expired or unregistered label has no resolver (the registry returns 0x0), so there is nothing to read.
+  const records: Records =
+    resolver === zeroAddress
+      ? { addr: zeroAddress, terms: null, termsValid: false, spread: null, spreadValid: false }
+      : await readRecords(resolver, fullName, block.timestamp)
   const expiryOk = levels.every((l) => l.expiry > block.timestamp)
   const resolverOk = resolver !== zeroAddress && resolver.toLowerCase() === expected.toLowerCase()
   const rawSpread = records.spreadValid
