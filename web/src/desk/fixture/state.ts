@@ -196,10 +196,10 @@ function state(memory: Memory): DeskState {
     deadline: DEADLINE,
     maxStaleness: 3600,
     mms: [
-      mm(MM_A, "mm-a.clients.desk.eth", NOW + 86400, false, 10, 100000000000n, 20),
-      mm(MM_B, "mm-b.clients.desk.eth", NOW + 86400, false, 25, 50000000000n, 0),
-      mm(MM_C, "mm-c.clients.desk.eth", NOW - 86400, true, 10, 100000000000n, 0),
-      mm(MM_X, "mm-x.clients.desk.eth", NOW + 86400, false, 0, 0n, 0),
+      mm(MM_A, "mm-a.clients.desk.eth", NOW + 86400, false, 10, 100000000000n, 20, 3991968000000000000000n, 3976032000000000000000n),
+      mm(MM_B, "mm-b.clients.desk.eth", NOW + 86400, false, 25, 50000000000n, 0, 3993960000000000000000n, 3974040000000000000000n),
+      mm(MM_C, "mm-c.clients.desk.eth", NOW - 86400, true, 10, 100000000000n, 0, 0n, 0n),
+      mm(MM_X, "mm-x.clients.desk.eth", NOW + 86400, false, 0, 0n, 0, 0n, 0n),
     ],
   };
 }
@@ -212,6 +212,8 @@ function mm(
   tierBps: number,
   cap: bigint,
   agentBps: number,
+  askWad: bigint,
+  bidWad: bigint,
 ): DeskState["mms"][number] {
   const noTerms = cap === 0n;
   return {
@@ -223,8 +225,8 @@ function mm(
     ...(noTerms ? {} : { terms: { tierBps, cap } }),
     ...(agentBps > 0 ? { spread: { bps: agentBps, validUntil: NOW + 3600, valid: true } } : {}),
     sPolicy: agentBps > 0 ? agentBps : tierBps,
-    askWad: 0n,
-    bidWad: 0n,
+    askWad,
+    bidWad,
     status: expired ? "expired" : noTerms ? "no-terms" : "ok",
   };
 }

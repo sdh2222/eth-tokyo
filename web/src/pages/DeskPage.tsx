@@ -1,3 +1,4 @@
+import { QuoteBoard } from "../components/QuoteBoard";
 import { ShareBar } from "../components/ShareBar";
 import { Skeleton } from "../components/Skeleton";
 import { StatusBadge, type StatusKind } from "../components/StatusBadge";
@@ -85,6 +86,7 @@ export function DeskPage() {
         </article>
       </section>
     ) : null}
+    {desk ? <QuoteBoard mms={desk.mms} now={now} /> : null}
     </div>
   );
 }
