@@ -28,3 +28,11 @@ export function seedTwoDesks(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE
 export function seedOneFill(which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa") {
   return fixture[which].seedFill();
 }
+
+export function setOracle(
+  answer: number,
+  updatedAt: number,
+  which: "qa" | "demo" = import.meta.env.VITE_FIXTURE === "demo" ? "demo" : "qa",
+) {
+  fixture[which].setOracle(BigInt(Math.trunc(answer)), updatedAt);
+}

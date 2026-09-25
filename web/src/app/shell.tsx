@@ -20,6 +20,7 @@ import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
 import { useCanAct, useWalletLabel } from "../hooks/useCanAct";
 import { formatWhen } from "../lib/time";
 import { formatAddr } from "../lib/format";
+import { DemoDrawer } from "../pages/DemoDrawer";
 import { homeFor, useRole, type Role } from "./role";
 
 const NAV: Record<Role, { to: string; label: string; end: boolean }[]> = {
@@ -60,6 +61,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {showHeader ? <PageNotices /> : null}
           {showHeader ? <PrimaryButton>{CONTINUE}</PrimaryButton> : null}
           {children}
+          {showHeader ? <DemoDrawer /> : null}
         </main>
         <footer className="border-t border-border px-8 py-6 text-small text-muted">{FOOTER}</footer>
       </div>
