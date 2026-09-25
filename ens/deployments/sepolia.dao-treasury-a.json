@@ -13,11 +13,11 @@
   },
   "clients": {
     "mm-a.clients.dao-treasury-a.eth": {
-      "address": "0xa5CB8D83b5eF68E992e018095E167b9D0EC90159",
+      "address": "0x186AF6aF170cb8805c021EFa176c060214F6aD5d",
       "expiry": "1792936164"
     },
     "mm-b.clients.dao-treasury-a.eth": {
-      "address": "0xB59331143dcA4E1C720E50d052a46149ae4A8B10",
+      "address": "0x5d5A4c611955334d6B5a0F46e1d2AebF2d2B0bF1",
       "expiry": "1792936164"
     },
     "mm-c.clients.dao-treasury-a.eth": {
