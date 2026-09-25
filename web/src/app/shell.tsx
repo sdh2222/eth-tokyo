@@ -15,7 +15,10 @@ import {
   ROLE_LABEL,
   SWITCH_SEPOLIA,
 } from "../copy/en";
+import { NOW } from "../desk/fixture/state";
+import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
 import { useCanAct, useWalletLabel } from "../hooks/useCanAct";
+import { formatWhen } from "../lib/time";
 import { formatAddr } from "../lib/format";
 import { homeFor, useRole, type Role } from "./role";
 
@@ -67,11 +70,26 @@ export function AppFrame({ children }: { children: ReactNode }) {
 function PageNotices() {
   const { wrongNetwork, readOnlyTreasury } = useCanAct();
   const { switchChain } = useSwitchChain();
-  const banners = bannersFrom(
-    wrongNetwork
-      ? { wrongNetwork: true, onSwitch: () => switchChain({ chainId: 11155111 }) }
-      : undefined,
-  );
+  const navigate = useNavigate();
+  const [role] = useRole();
+  const live = useLiveStrategy();
+  const state = useDeskState(live.data ?? null);
+  const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
+  const desk = state.data;
+  const banners = bannersFrom({
+    ...(wrongNetwork ? { wrongNetwork: true, onSwitch: () => switchChain({ chainId: 11155111 }) } : {}),
+    ...(live.data?.warning ? { strategyWarning: live.data.warning, onControls: () => navigate("/controls") } : {}),
+    ...(desk?.oracleStale ? { oracleStale: true, maxStaleness: desk.maxStaleness } : {}),
+    ...(live.isSuccess ? { loaded: true, live: live.data } : {}),
+    ...(role === "treasury" ? { isTreasury: true, onOpen: () => navigate("/open") } : {}),
+    ...(desk
+      ? {
+          secondsToDeadline: desk.deadline - now,
+          deadlineText: formatWhen(desk.deadline, now),
+          onControls: () => navigate("/controls"),
+        }
+      : {}),
+  });
 
   return (
     <>
@@ -84,7 +102,8 @@ function PageNotices() {
 function AppHeader() {
   const [role, setRole] = useRole();
   const navigate = useNavigate();
-  const links = NAV[role];
+  const live = useLiveStrategy();
+  const links = NAV[role].filter((link) => !(role === "treasury" && live.data && link.to === "/open"));
 
   function pick(next: Role) {
     if (next === role) return;

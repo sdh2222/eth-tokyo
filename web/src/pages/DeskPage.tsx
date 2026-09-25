@@ -1,3 +1,4 @@
+import { EmptyState } from "../components/EmptyState";
 import { FillTable } from "../components/FillTable";
 import { QuoteBoard } from "../components/QuoteBoard";
 import { ShareBar } from "../components/ShareBar";
@@ -5,7 +6,11 @@ import { Skeleton } from "../components/Skeleton";
 import { StatusBadge, type StatusKind } from "../components/StatusBadge";
 import { CLOSES_IN, UPDATED } from "../copy/en";
 import { emptyConfig, NOW } from "../desk/fixture/state";
+import { useRole } from "../app/role";
+import { useCanAct } from "../hooks/useCanAct";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
+import { ERRORS } from "../copy/errors";
+import { useNavigate } from "react-router-dom";
 import { formatHash, formatShare, formatSkewBps, formatUsd, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
 
@@ -16,12 +21,59 @@ export function DeskPage() {
   const strategy = live.data ?? null;
   const state = useDeskState(strategy);
   const fills = useFills(strategy);
+  const { isOwner } = useCanAct();
+  const [role] = useRole();
+  const navigate = useNavigate();
 
   if (live.isPending || (strategy !== null && state.isPending)) {
-    return <Skeleton className="h-8 w-full" />;
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+    );
+  }
+
+  if (live.isError || state.isError) {
+    const error = live.error ?? state.error;
+    const title =
+      error && typeof error === "object" && "title" in error && typeof error.title === "string"
+        ? error.title
+        : ERRORS.UNKNOWN?.title ?? "Something went wrong";
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-body">{title}</p>
+        <button
+          type="button"
+          className="text-body"
+          onClick={() => {
+            void live.refetch();
+            void state.refetch();
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   const desk = state.data;
+
+  if (!strategy || !desk) {
+    return (
+      <div className="flex flex-col gap-5">
+        <StatusBadge kind="NotOpen" />
+        <EmptyState
+          sentence="No desk is open"
+          {...(role === "treasury" && isOwner
+            ? { action: { label: "Open a desk", onClick: () => navigate("/open") } }
+            : {})}
+        />
+      </div>
+    );
+  }
+
   const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
   const kind: StatusKind = desk?.oracleStale
     ? "Stale"
