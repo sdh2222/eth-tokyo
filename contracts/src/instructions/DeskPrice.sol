@@ -5,14 +5,14 @@ pragma solidity 0.8.30;
 /// @custom:copyright © 2025 Degensoft Ltd
 /// @notice Derived from swap-vm v1.0.2 src/instructions (© 2025 Degensoft Ltd). Modified by the Desk team on 2026-09-25: DeskPrice instruction #35.
 
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import { Context, ContextLib } from "@1inch/swap-vm/libs/VM.sol";
+import {Context, ContextLib} from "@1inch/swap-vm/libs/VM.sol";
 
-import { AggregatorV3Interface } from "../interfaces/AggregatorV3Interface.sol";
-import { IDataResolver, IExtendedResolver, IMulticallable } from "../interfaces/IDeskEns.sol";
-import { IDeskEvents } from "../interfaces/IDeskEvents.sol";
-import { DeskArgs } from "../libs/DeskArgs.sol";
+import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
+import {IDataResolver, IExtendedResolver, IMulticallable} from "../interfaces/IDeskEns.sol";
+import {IDeskEvents} from "../interfaces/IDeskEvents.sol";
+import {DeskArgs} from "../libs/DeskArgs.sol";
 
 abstract contract DeskPrice is IDeskEvents {
     using ContextLib for Context;
@@ -93,10 +93,7 @@ abstract contract DeskPrice is IDeskEvents {
         dnsName = name;
     }
 
-    function _pair(
-        Context memory ctx,
-        DeskArgs.PriceArgs memory a
-    )
+    function _pair(Context memory ctx, DeskArgs.PriceArgs memory a)
         private
         pure
         returns (bool baseIsIn, bool baseIsOut)
@@ -118,12 +115,7 @@ abstract contract DeskPrice is IDeskEvents {
         pWad = uint256(answer) * (10 ** (18 - a.oracleDecimals));
     }
 
-    function _records(
-        address resolver,
-        bytes memory dnsName,
-        uint16 sMin,
-        uint16 sMax
-    )
+    function _records(address resolver, bytes memory dnsName, uint16 sMin, uint16 sMax)
         private
         view
         returns (uint256 cap, uint256 sPolicy, uint8 spreadSource)
@@ -198,9 +190,8 @@ abstract contract DeskPrice is IDeskEvents {
     ) private pure returns (uint256 s, uint8 spreadSource) {
         uint256 amount = ctx.query.isExactIn ? ctx.swap.amountIn : ctx.swap.amountOut;
         address known = ctx.query.isExactIn ? ctx.query.tokenIn : ctx.query.tokenOut;
-        uint256 notionalEst = known == a.base
-            ? Math.mulDiv(amount * baseScale, pWad, WAD, Math.Rounding.Floor)
-            : amount * quoteScale;
+        uint256 notionalEst =
+            known == a.base ? Math.mulDiv(amount * baseScale, pWad, WAD, Math.Rounding.Floor) : amount * quoteScale;
         uint256 floorBps = Math.mulDiv(notionalEst, a.kappaBps, 2 * book, Math.Rounding.Ceil);
         s = floorBps > sPolicy ? floorBps : sPolicy;
         spreadSource = floorBps > sPolicy ? 2 : source;
@@ -226,11 +217,7 @@ abstract contract DeskPrice is IDeskEvents {
         uint256 bidWad,
         bool baseIsIn,
         bool
-    )
-        private
-        pure
-        returns (uint256 amountIn, uint256 amountOut)
-    {
+    ) private pure returns (uint256 amountIn, uint256 amountOut) {
         uint256 baseScale = 10 ** (18 - a.baseDecimals);
         uint256 quoteScale = 10 ** (18 - a.quoteDecimals);
         if (!baseIsIn && ctx.query.isExactIn) {

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { Test } from "forge-std/Test.sol";
-import { Vm } from "forge-std/Vm.sol";
+import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 
-import { CalldataPtrLib } from "@1inch/solidity-utils/contracts/libraries/CalldataPtr.sol";
-import { Context, ContextLib } from "@1inch/swap-vm/libs/VM.sol";
+import {CalldataPtrLib} from "@1inch/solidity-utils/contracts/libraries/CalldataPtr.sol";
+import {Context, ContextLib} from "@1inch/swap-vm/libs/VM.sol";
 
-import { DeskPrice } from "../src/instructions/DeskPrice.sol";
-import { DeskArgs } from "../src/libs/DeskArgs.sol";
-import { MockOracle } from "../src/mocks/MockOracle.sol";
-import { MockUSDC } from "../src/mocks/MockUSDC.sol";
-import { MockWETH } from "../src/mocks/MockWETH.sol";
-import { MockEnsResolver } from "./mocks/MockEnsResolver.sol";
+import {DeskPrice} from "../src/instructions/DeskPrice.sol";
+import {DeskArgs} from "../src/libs/DeskArgs.sol";
+import {MockOracle} from "../src/mocks/MockOracle.sol";
+import {MockUSDC} from "../src/mocks/MockUSDC.sol";
+import {MockWETH} from "../src/mocks/MockWETH.sol";
+import {MockEnsResolver} from "./mocks/MockEnsResolver.sol";
 
 contract PriceHarness is DeskPrice {
     using ContextLib for Context;
@@ -27,10 +27,7 @@ contract PriceHarness is DeskPrice {
         uint256 balOut,
         uint256 known,
         bool staticCtx
-    )
-        external
-        returns (uint256 amountIn, uint256 amountOut)
-    {
+    ) external returns (uint256 amountIn, uint256 amountOut) {
         Context memory ctx = _ctx(taker, exactIn, tokenIn, tokenOut, balIn, balOut, known, staticCtx);
         _deskPrice(ctx, args);
         return (ctx.swap.amountIn, ctx.swap.amountOut);
@@ -45,10 +42,7 @@ contract PriceHarness is DeskPrice {
         uint256 balIn,
         uint256 balOut,
         uint256 known
-    )
-        external
-        returns (bytes memory)
-    {
+    ) external returns (bytes memory) {
         Context memory ctx = _ctx(takerData, exactIn, tokenIn, tokenOut, balIn, balOut, known, true);
         _deskPrice(ctx, args);
         return ctx.takerArgs();
@@ -69,11 +63,7 @@ contract PriceHarness is DeskPrice {
         uint256 balOut,
         uint256 known,
         bool staticCtx
-    )
-        private
-        pure
-        returns (Context memory ctx)
-    {
+    ) private pure returns (Context memory ctx) {
         ctx.vm.isStaticContext = staticCtx;
         ctx.vm.takerArgsPtr = CalldataPtrLib.from(taker);
         ctx.query.isExactIn = exactIn;
@@ -187,14 +177,16 @@ contract DeskPriceTest is Test {
         assertEq(amountIn, 100_000e6);
         assertEq(amountOut, 24_759_675_164_946_479_981);
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        (,,,,,, uint16 spread, uint8 source,) =
-            abi.decode(logs[logs.length - 1].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint8, uint256));
+        (,,,,,, uint16 spread, uint8 source,) = abi.decode(
+            logs[logs.length - 1].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint8, uint256)
+        );
         assertEq(spread, 7);
         assertEq(source, 2);
 
         uint256 baseLeft = 100e18 - amountOut;
         uint256 quoteNext = 1_200_000e6 + 100_000e6;
-        (, uint256 back) = harness.run(priceArgs, taker, true, address(weth), address(usdc), baseLeft, quoteNext, amountOut, true);
+        (, uint256 back) =
+            harness.run(priceArgs, taker, true, address(weth), address(usdc), baseLeft, quoteNext, amountOut, true);
         assertEq(back, 99_982_843_971);
 
         resolver.setData(dnsName, "desk.terms", abi.encode(uint8(1), uint16(10), uint128(100_000e6)));
@@ -221,12 +213,23 @@ contract DeskPriceTest is Test {
             uint256, uint256 wethOut
         ) {
             if (wethOut == 0 || wethOut > baseBal) return;
-            try harness.run(priceArgs, taker, true, address(weth), address(usdc), baseBal - wethOut, quoteBal + usdcIn, wethOut, true)
-            returns (uint256, uint256 usdcBack) {
+            try harness.run(
+                priceArgs,
+                taker,
+                true,
+                address(weth),
+                address(usdc),
+                baseBal - wethOut,
+                quoteBal + usdcIn,
+                wethOut,
+                true
+            ) returns (
+                uint256, uint256 usdcBack
+            ) {
                 uint256 endValue = (baseBal - wethOut) * p / 1e18 + (quoteBal + usdcIn - usdcBack) * 1e12;
                 assertLe(endValue, start);
-            } catch { }
-        } catch { }
+            } catch {}
+        } catch {}
     }
 
     function test_TP2_roundingFavoursTreasury(uint128 baseBal, uint128 quoteBal, uint96 usdcIn, uint96 wethIn) public {
@@ -243,7 +246,7 @@ contract DeskPriceTest is Test {
                     harness.run(priceArgs, taker, true, address(weth), address(usdc), baseBal, quoteBal, wethOut, true);
                 assertLe(usdcBack, usdcIn);
             }
-        } catch { }
+        } catch {}
         try harness.run(priceArgs, taker, true, address(weth), address(usdc), baseBal, quoteBal, wethIn, true) returns (
             uint256, uint256 usdcOut
         ) {
@@ -252,7 +255,7 @@ contract DeskPriceTest is Test {
                     harness.run(priceArgs, taker, true, address(usdc), address(weth), quoteBal, baseBal, usdcOut, true);
                 assertLe(wethBack, wethIn);
             }
-        } catch { }
+        } catch {}
     }
 
     function test_TP3_spreadSelection() public {
@@ -424,14 +427,7 @@ contract DeskPriceTest is Test {
         assertEq(left, hex"ab");
     }
 
-    function _cell(
-        uint256 wethBal,
-        uint256 usdcBal,
-        bool quoteIn,
-        bool exactIn,
-        uint256 known,
-        uint256 expected
-    )
+    function _cell(uint256 wethBal, uint256 usdcBal, bool quoteIn, bool exactIn, uint256 known, uint256 expected)
         private
     {
         address tokenIn = quoteIn ? address(usdc) : address(weth);

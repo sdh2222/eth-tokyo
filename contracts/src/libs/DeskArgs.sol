@@ -5,7 +5,7 @@ pragma solidity 0.8.30;
 /// @custom:copyright © 2025 Degensoft Ltd
 /// @notice Derived from swap-vm v1.0.2 src/libs (© 2025 Degensoft Ltd). Modified by the Desk team on 2026-09-25: encode DeskPrice args, taker args and the program.
 
-import { DeskPrice } from "../instructions/DeskPrice.sol";
+import {DeskPrice} from "../instructions/DeskPrice.sol";
 
 library DeskArgs {
     struct PriceArgs {
@@ -89,12 +89,7 @@ library DeskArgs {
         return out;
     }
 
-    function buildProgram(
-        uint40 deadline,
-        uint64 salt,
-        bytes memory gateArgs,
-        bytes memory priceArgs
-    )
+    function buildProgram(uint40 deadline, uint64 salt, bytes memory gateArgs, bytes memory priceArgs)
         internal
         pure
         returns (bytes memory)
