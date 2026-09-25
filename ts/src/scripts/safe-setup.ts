@@ -54,9 +54,15 @@ const THRESHOLD = 2;
 // protocol-kit 8.0.7's default version: the canonical Safe v1.4.1 deployment on Sepolia.
 const SAFE_VERSION: SafeVersion = "1.4.1";
 // T6a Spec Req 3 fixes the saltNonce "desk-demo-1". protocol-kit 8.0.7 takes a uint256 (it calls
-// BigInt(saltNonce), which throws on that string), so the nonce is keccak256 of the label.
+// BigInt(saltNonce), which throws on that string), so the nonce is keccak256 of the label. Team
+// decision 09-26 pins this exact value, passed as a hex string that protocol-kit reads with BigInt:
+// a JavaScript number would round it and move the Safe's address.
 const SALT_LABEL = "desk-demo-1";
-const SALT_NONCE = keccak256(stringToHex(SALT_LABEL));
+const SALT_NONCE =
+  "0xca3fc9b156f9e611c604031881d00d1e48ea507bcef0f429ede93ff25a4f3440";
+if (keccak256(stringToHex(SALT_LABEL)) !== SALT_NONCE) {
+  throw new Error(`saltNonce is not keccak256("${SALT_LABEL}")`);
+}
 // T6a Spec Req 4: each MM's targets, in whole tokens.
 const MM_WETH = "100";
 const MM_USDC = "400000";
