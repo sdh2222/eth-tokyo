@@ -1,0 +1,32 @@
+{
+  "treasury": "0xf9007Ff12d8dC255eFD217911e9EB5A37D26D7e7",
+  "desk": {
+    "label": "desk",
+    "registerTx": "0x3ceab0240c34fe82be9910c9f211450c9239e436035d984cf1554d8b05b76e2d",
+    "expiry": "1821877044"
+  },
+  "resolver": "0x7cD19D7E17f490Fb0B022c52BB27709118F6cAc7",
+  "registries": {
+    "desk": "0x9C006F3B239e1F5250C472D2C44E6F6353093378",
+    "clients": "0x55ccE20b9bC9ec10120b8bB2E349E0401ab53Fd8",
+    "agents": "0xEfA696b4bc98BBe35C713EE924598bb750AD1228"
+  },
+  "clients": {
+    "mm-a.clients.desk.eth": {
+      "address": "0xa5CB8D83b5eF68E992e018095E167b9D0EC90159",
+      "expiry": "1792933332"
+    },
+    "mm-b.clients.desk.eth": {
+      "address": "0xB59331143dcA4E1C720E50d052a46149ae4A8B10",
+      "expiry": "1792933332"
+    },
+    "mm-c.clients.desk.eth": {
+      "address": "0xc9b7D2A317d1E969b50A876643fb4271B4339611",
+      "expiry": "1790342232"
+    }
+  },
+  "agent": {
+    "name": "risk.agents.desk.eth",
+    "address": "0x7ab77A08283705816454C1d2916CBE607e875Ca3"
+  }
+}
