@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { PAGE } from "../copy/en";
+import { Kit } from "../pages/dev/Kit";
 import { Placeholder } from "../pages/Placeholder";
 import { AppFrame } from "./shell";
 
@@ -17,6 +18,7 @@ export function AppRouter() {
         <Route path="/fills/:tx" element={<Placeholder title={PAGE.verify} />} />
         <Route path="/program" element={<Placeholder title={PAGE.program} />} />
         <Route path="/agent" element={<Placeholder title={PAGE.agent} />} />
+        {import.meta.env.DEV ? <Route path="/dev/kit" element={<Kit />} /> : null}
         <Route path="*" element={<Navigate to="/desk" replace />} />
       </Routes>
     </AppFrame>
