@@ -1,0 +1,14 @@
+# Compiler settings copied from lib/swap-vm/foundry.toml [profile.default] (swap-vm v1.0.2),
+# plus evm_version and fs_permissions (T0 Spec requirement 1, Desk system §3).
+
+[profile.default]
+solc_version   = "0.8.30"
+optimizer      = true
+optimizer_runs = 700
+via_ir         = true
+evm_version    = "cancun"
+fs_permissions = [{ access = "read-write", path = "../config" }]
+
+[profile.default.optimizer_details]
+yul = true
+yulDetails = { stackAllocation = true, optimizerSteps = "dhfoDgvulfnTUtnIf[xa[r]EscLMcCTUtTOntnfDIulLculVcul Tpeul]jmul[jul] VcTOcul jmul : fDnTOcmu" }

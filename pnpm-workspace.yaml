@@ -1,0 +1,8 @@
+packages:
+  - ts
+  - web
+
+# pnpm 11 fails an install on dependency build scripts nobody reviewed. esbuild (used by tsx and
+# vitest) runs from its prebuilt platform package, so its install script is not run.
+allowBuilds:
+  esbuild: false

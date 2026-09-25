@@ -1,0 +1,41 @@
+# QC gate on every pull request: runs `make check` (T0 Spec requirement 9, Desk testing and quality gates §3).
+name: QC
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      # No "packageManager" field in package.json: yarn 1.22 would then refuse to install inside
+      # contracts/lib/swap-vm, so the pnpm version is pinned here.
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.1.1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.16.0
+          cache: pnpm
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.3
+
+      - name: Install swap-vm dependencies
+        working-directory: contracts/lib/swap-vm
+        run: npx --yes yarn@1.22.22 install --frozen-lockfile
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: make check
+        run: make check

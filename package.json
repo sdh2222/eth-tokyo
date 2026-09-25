@@ -1,0 +1,16 @@
+{
+  "name": "desk",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "safe:setup": "pnpm -C ts safe:setup",
+    "ship": "pnpm -C ts ship",
+    "bot": "pnpm -C ts bot",
+    "e2e": "pnpm -C ts e2e",
+    "secretlint": "secretlint"
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.5",
+    "secretlint": "13.0.5"
+  }
+}
