@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { PAGE } from "../copy/en";
+import { DeskPage } from "../pages/DeskPage";
 import { Kit } from "../pages/dev/Kit";
 import { Placeholder } from "../pages/Placeholder";
 import { AppFrame } from "./shell";
@@ -9,7 +10,7 @@ export function AppRouter() {
     <AppFrame>
       <Routes>
         <Route path="/" element={<Placeholder title={PAGE.landing} />} />
-        <Route path="/desk" element={<Placeholder title={PAGE.dashboard} />} />
+        <Route path="/desk" element={<DeskPage />} />
         <Route path="/open" element={<Placeholder title={PAGE.open} />} />
         <Route path="/counterparties" element={<Placeholder title={PAGE.counterparties} />} />
         <Route path="/trade" element={<Placeholder title={PAGE.trade} />} />

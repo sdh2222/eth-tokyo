@@ -8,6 +8,8 @@ export const SWITCH_SEPOLIA = "Switch to Sepolia";
 export const CONNECT_WALLET = "Connect wallet";
 export const CONNECTED = "Connected";
 export const CONTINUE = "Continue";
+export const UPDATED = "updated";
+export const CLOSES_IN = "closes in";
 
 export const BANNER_NETWORK = "You're on the wrong network. The desk runs on Sepolia.";
 export const BANNER_MULTI = "More than one desk program is live on this Safe.";
