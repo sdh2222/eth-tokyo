@@ -179,6 +179,56 @@ contract DeskPriceTest is Test {
         _cell(100e18, 1_200_000e6, false, true, 0.5e18, 2_015_982_000);
     }
 
+    function test_TP10_sizeFloor() public {
+        resolver.setData(dnsName, "desk.terms", abi.encode(uint8(1), uint16(5), uint128(100_000e6)));
+        vm.recordLogs();
+        (uint256 amountIn, uint256 amountOut) =
+            harness.run(priceArgs, taker, true, address(usdc), address(weth), 1_200_000e6, 100e18, 100_000e6, false);
+        assertEq(amountIn, 100_000e6);
+        assertEq(amountOut, 24_759_675_164_946_479_981);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        (,,,,,, uint16 spread, uint8 source,) =
+            abi.decode(logs[logs.length - 1].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint8, uint256));
+        assertEq(spread, 7);
+        assertEq(source, 2);
+
+        uint256 baseLeft = 100e18 - amountOut;
+        uint256 quoteNext = 1_200_000e6 + 100_000e6;
+        (, uint256 back) = harness.run(priceArgs, taker, true, address(weth), address(usdc), baseLeft, quoteNext, amountOut, true);
+        assertEq(back, 99_982_843_971);
+
+        resolver.setData(dnsName, "desk.terms", abi.encode(uint8(1), uint16(10), uint128(100_000e6)));
+        vm.recordLogs();
+        harness.run(priceArgs, taker, true, address(usdc), address(weth), 400_000e6, 900e18, 1_000e6, false);
+        logs = vm.getRecordedLogs();
+        (,,,,,, spread, source,) =
+            abi.decode(logs[0].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint8, uint256));
+        assertEq(spread, 10);
+        assertEq(source, 0);
+
+        resolver.setData(dnsName, "desk.terms", abi.encode(uint8(1), uint16(5), uint128(type(uint128).max)));
+        vm.expectRevert(abi.encodeWithSelector(DeskPrice.DeskPriceSizeTooLarge.selector, uint256(243903)));
+        harness.run(priceArgs, taker, true, address(usdc), address(weth), 1e6, 0.01e18, 100_000e6, true);
+    }
+
+    function test_TP10_roundTripDoesNotPayTheMaker(uint128 baseBal, uint96 usdcIn) public {
+        baseBal = uint128(bound(baseBal, 50e18, 500e18));
+        usdcIn = uint96(bound(usdcIn, 1_000e6, 20_000e6));
+        uint256 quoteBal = 1_000_000e6;
+        uint256 p = 4000e18;
+        uint256 start = baseBal * p / 1e18 + quoteBal * 1e12;
+        try harness.run(priceArgs, taker, true, address(usdc), address(weth), quoteBal, baseBal, usdcIn, true) returns (
+            uint256, uint256 wethOut
+        ) {
+            if (wethOut == 0 || wethOut > baseBal) return;
+            try harness.run(priceArgs, taker, true, address(weth), address(usdc), baseBal - wethOut, quoteBal + usdcIn, wethOut, true)
+            returns (uint256, uint256 usdcBack) {
+                uint256 endValue = (baseBal - wethOut) * p / 1e18 + (quoteBal + usdcIn - usdcBack) * 1e12;
+                assertLe(endValue, start);
+            } catch { }
+        } catch { }
+    }
+
     function test_TP2_roundingFavoursTreasury(uint128 baseBal, uint128 quoteBal, uint96 usdcIn, uint96 wethIn) public {
         baseBal = uint128(bound(baseBal, 10e18, 1000e18));
         quoteBal = uint128(bound(quoteBal, 10_000e6, 2_000_000e6));

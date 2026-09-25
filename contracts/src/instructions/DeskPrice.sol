@@ -42,9 +42,11 @@ abstract contract DeskPrice is IDeskEvents {
 
         (uint256 pWad) = _oracle(a);
         (uint256 cap, uint256 sPolicy, uint8 spreadSource) = _records(a.resolver, dnsName, a.sMinBps, a.sMaxBps);
-        uint256 s = sPolicy; // 7b: human
+        (uint256 wWad, uint256 book, uint256 baseScale, uint256 quoteScale) = _inventory(ctx, a, pWad, baseIsIn);
+        (uint256 s, uint8 source) = _sizeFloor(ctx, a, pWad, sPolicy, spreadSource, book, baseScale, quoteScale);
+        spreadSource = source;
 
-        (uint256 wWad, uint256 askWad, uint256 bidWad) = _quotes(ctx, a, pWad, s, baseIsIn);
+        (uint256 askWad, uint256 bidWad) = _quotes(a, pWad, wWad, s);
         (uint256 amountIn, uint256 amountOut) = _amounts(ctx, a, askWad, bidWad, baseIsIn, baseIsOut);
         uint256 notional = baseIsIn ? amountOut : amountIn;
         if (notional > cap) {
@@ -168,27 +170,48 @@ abstract contract DeskPrice is IDeskEvents {
         }
     }
 
-    function _quotes(
-        Context memory ctx,
-        DeskArgs.PriceArgs memory a,
-        uint256 pWad,
-        uint256 s,
-        bool baseIsIn
-    )
+    function _inventory(Context memory ctx, DeskArgs.PriceArgs memory a, uint256 pWad, bool baseIsIn)
         private
         pure
-        returns (uint256 wWad, uint256 askWad, uint256 bidWad)
+        returns (uint256 wWad, uint256 book, uint256 baseScale, uint256 quoteScale)
     {
-        uint256 baseScale = 10 ** (18 - a.baseDecimals);
-        uint256 quoteScale = 10 ** (18 - a.quoteDecimals);
+        baseScale = 10 ** (18 - a.baseDecimals);
+        quoteScale = 10 ** (18 - a.quoteDecimals);
         uint256 bBal = baseIsIn ? ctx.swap.balanceIn : ctx.swap.balanceOut;
         uint256 qBal = baseIsIn ? ctx.swap.balanceOut : ctx.swap.balanceIn;
         uint256 ethValue = Math.mulDiv(bBal * baseScale, pWad, WAD, Math.Rounding.Floor);
         uint256 usdValue = qBal * quoteScale;
-        if (ethValue + usdValue == 0) {
-            revert DeskPriceEmptyBook();
-        }
-        wWad = Math.mulDiv(ethValue, WAD, ethValue + usdValue, Math.Rounding.Floor);
+        if (ethValue + usdValue == 0) revert DeskPriceEmptyBook();
+        book = ethValue + usdValue;
+        wWad = Math.mulDiv(ethValue, WAD, book, Math.Rounding.Floor);
+    }
+
+    function _sizeFloor(
+        Context memory ctx,
+        DeskArgs.PriceArgs memory a,
+        uint256 pWad,
+        uint256 sPolicy,
+        uint8 source,
+        uint256 book,
+        uint256 baseScale,
+        uint256 quoteScale
+    ) private pure returns (uint256 s, uint8 spreadSource) {
+        uint256 amount = ctx.query.isExactIn ? ctx.swap.amountIn : ctx.swap.amountOut;
+        address known = ctx.query.isExactIn ? ctx.query.tokenIn : ctx.query.tokenOut;
+        uint256 notionalEst = known == a.base
+            ? Math.mulDiv(amount * baseScale, pWad, WAD, Math.Rounding.Floor)
+            : amount * quoteScale;
+        uint256 floorBps = Math.mulDiv(notionalEst, a.kappaBps, 2 * book, Math.Rounding.Ceil);
+        s = floorBps > sPolicy ? floorBps : sPolicy;
+        spreadSource = floorBps > sPolicy ? 2 : source;
+        if (s >= 10_000) revert DeskPriceSizeTooLarge(floorBps);
+    }
+
+    function _quotes(DeskArgs.PriceArgs memory a, uint256 pWad, uint256 wWad, uint256 s)
+        private
+        pure
+        returns (uint256 askWad, uint256 bidWad)
+    {
         int256 dev = int256(wWad) - int256(uint256(a.wStarBps) * 1e14);
         int256 skew = int256(uint256(a.kappaBps)) * dev / 10_000;
         uint256 rWad = Math.mulDiv(pWad, uint256(int256(WAD) - skew), WAD, Math.Rounding.Floor);
