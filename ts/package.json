@@ -36,9 +36,12 @@
     "viem": "2.56.8"
   },
   "devDependencies": {
+    "@types/node": "24.13.6",
     "eslint": "10.11.0",
     "prettier": "3.9.9",
     "typescript": "7.0.2",
+    "typescript-eslint": "8.70.1",
+    "typescript6": "npm:typescript@6.0.3",
     "vitest": "5.0.1"
   }
 }
