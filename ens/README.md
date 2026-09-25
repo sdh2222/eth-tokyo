@@ -2,15 +2,32 @@
 
 지갑 안의 OTC 데스크의 ENS 파트. 트레저리가 소유한 이름 계층을 만들고, MM별 거래 조건을 레코드로 기록하고, 리스크 에이전트에게 스프레드 키 하나만 위임한다. 라우터가 읽는 계약은 `docs/code/desk-system.md` §6(브랜치 `claude/sleepy-ritchie-5lp65m`)이 기준이다.
 
-> **정리 필요: 팀 설계(§6.2)와 레코드 형식이 다르다.** 이 브랜치는 ENS 파트가 제안한 비대칭 스프레드 형식을 쓴다. 라우터(T3)는 §6.2의 96바이트 대칭 형식을 검사하므로, 둘 중 하나로 맞추기 전에는 통합하면 체결이 `DeskPriceNoTerms`로 막힌다.
->
-> | 항목 | 이 브랜치 | 팀 설계 §6.2 / D5 |
-> | --- | --- | --- |
-> | `desk.terms` | `abi.encode(uint8 1, uint16 askBps, uint16 bidBps, uint128 capPerFill)` 128바이트 | `abi.encode(uint8 1, uint16 tierBps, uint128 capPerFill)` 96바이트 |
-> | `desk.spread` | `abi.encode(uint8 1, uint16 askBps, uint16 bidBps, uint64 validUntil)` | `abi.encode(uint8 1, uint16 spreadBps, uint64 validUntil)` |
-> | `capPerFill` 단위 | WETH 18자리 (시드 5 WETH) | USDC 6자리, 체결의 USDC 쪽 (예 `100_000e6`) |
-> | 주소 전달 | `ens/deployments/sepolia.json` | `config/sepolia.json`의 `ens`, `mms` |
-> | 트레저리 | 테스트넷 EOA (임시) | Safe |
+레코드 형식과 단위는 팀 설계 §6.2·D5를 따른다: `desk.terms = abi.encode(uint8 1, uint16 tierBps, uint128 capPerFill)`, `desk.spread = abi.encode(uint8 1, uint16 spreadBps, uint64 validUntil)`, 둘 다 96바이트, `capPerFill`은 USDC 6자리.
+
+## 현재 배포 (Sepolia, 2026-09-25)
+
+`npm run verify`의 모든 필수 검사가 실제 체인에서 통과했다. 다른 파트로 넘길 값은 `npm run export`가 `deployments/config.ens.json`에 `config/sepolia.json`(§8.0) 형식으로 쓴다.
+
+| 항목 | 주소 |
+| --- | --- |
+| resolver R | `0x7cD19D7E17f490Fb0B022c52BB27709118F6cAc7` |
+| desk registry D (`desk.eth`의 하위) | `0x9C006F3B239e1F5250C472D2C44E6F6353093378` |
+| clients registry C (`clients.desk.eth`의 하위) | `0x55ccE20b9bC9ec10120b8bB2E349E0401ab53Fd8` |
+| agents registry | `0xEfA696b4bc98BBe35C713EE924598bb750AD1228` |
+| mm-a / mm-b | tier 10 / 25 bps, cap 100,000 USDC, 만료 2026-10-25 |
+| mm-c | mm-a와 같은 조건, 만료 15분 (데모 3번용 — 데모 직전 `npm run clients`로 재설정) |
+| risk.agents.desk.eth | 에이전트 `0x7ab77A08283705816454C1d2916CBE607e875Ca3` |
+
+데모용 트랜잭션:
+
+- `desk.eth` 등록 — [0x3cea…6e2d](https://sepolia.etherscan.io/tx/0x3ceab0240c34fe82be9910c9f211450c9239e436035d984cf1554d8b05b76e2d)
+- 에이전트가 `desk.spread`를 씀 (허용) — [0x010a…a8472](https://sepolia.etherscan.io/tx/0x010aace1d6dc94d0da4e1c1b3296e3212267924bbfbba85b4487a52fefba8472)
+- 에이전트가 `desk.terms`를 쓰려다 revert (거부) — [0x00f2…6bae](https://sepolia.etherscan.io/tx/0x00f2815bfd1f352629ea187c583d2730595b239db38bf79974a85c2b117a6bae)
+
+남은 일:
+
+- **Safe 인계.** 지금은 테스트넷 EOA(`TREASURY_PK`)가 이름과 resolver·레지스트리 루트 권한을 갖고 있다. §6.3대로 Safe가 생기면(T6a) resolver `grantRootRoles`, 세 레지스트리의 루트 권한, `desk.eth` 소유권을 Safe로 넘기고 EOA 권한을 회수한다.
+- `config/sepolia.json`이 생기면(T0) `npm run export`가 `ens`, `mms`를 병합한다.
 
 ```
 desk.eth                      트레저리 소유, 트레저리 resolver
@@ -33,6 +50,7 @@ npm run setup      # resolver + 서브레지스트리 3개 배포, desk.eth 연�
 npm run clients    # mm-a/b/c 발급 + addr, desk.terms
 npm run agent      # 에이전트 위임 + 경계 확인 (--send-revert: 거부되는 쓰기를 실제로 채굴해 해시 확보)
 npm run verify     # 수용 기준 자동 검사
+npm run export     # config/sepolia.json 형식으로 ens, mms 내보내기
 ```
 
 모든 스크립트는 멱등이다. 체인 상태나 `deployments/sepolia.json`을 먼저 보고 이미 된 단계는 건너뛴다. 데모 직전에 `npm run clients`를 다시 돌리면 mm-c의 만료 시계가 새로 시작된다(`MM_C_TTL_SECONDS`, 기본 900초).
@@ -86,12 +104,12 @@ calls[0] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms"));
 calls[1] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.spread"));
 bytes memory out = IExtendedResolver(treasuryResolver).resolve(dnsName, abi.encodeCall(IMulticallable.multicall, (calls)));
 bytes[] memory res = abi.decode(out, (bytes[]));
-bytes memory terms  = abi.decode(res[0], (bytes));   // abi.encode(uint8 v, uint16 askBps, uint16 bidBps, uint128 capPerFill)
-bytes memory spread = abi.decode(res[1], (bytes));   // abi.encode(uint8 v, uint16 askBps, uint16 bidBps, uint64 validUntil) 또는 빈 값
+bytes memory terms  = abi.decode(res[0], (bytes));   // abi.encode(uint8 v, uint16 tierBps, uint128 capPerFill), 96바이트
+bytes memory spread = abi.decode(res[1], (bytes));   // abi.encode(uint8 v, uint16 spreadBps, uint64 validUntil), 96바이트 또는 빈 값
 ```
 
 - `terms`가 빈 값이면 체결 불가. 기본 레코드의 `capPerFill`이 0이라 레코드 없는 이름도 여기서 걸린다.
-- `spread`가 빈 값이거나 `validUntil <= block.timestamp`면 `terms`의 ask/bid로 폴백하고, 최종값을 전략의 `[minBps, maxBps]`로 clamp한다.
-- `version != 1`이면 revert.
+- `spread`가 96바이트가 아니거나 버전이 1이 아니거나 `validUntil < block.timestamp`면 무시하고 `terms`의 `tierBps`로 폴백하고, 최종값을 `[sMinBps, sMaxBps]`로 clamp한다(§5.4).
+- `terms`가 96바이트가 아니거나 버전이 1이 아니거나 `capPerFill == 0`이면 `DeskPriceNoTerms`로 revert한다(D7).
 
 `takerData`는 팀 설계 §5.3에 따라 `uint8 len ‖ dnsName`이다. `dnsEncode()`는 그중 `dnsName` 부분만 만든다. `npm run verify`가 mm-a의 `dnsName`을 출력한다.

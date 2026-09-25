@@ -10,6 +10,7 @@
     "setup": "tsx scripts/02-setup.ts",
     "clients": "tsx scripts/03-clients.ts",
     "agent": "tsx scripts/04-agent.ts",
+    "export": "tsx scripts/05-export-config.ts",
     "verify": "tsx scripts/99-verify.ts",
     "typecheck": "tsc --noEmit"
   },

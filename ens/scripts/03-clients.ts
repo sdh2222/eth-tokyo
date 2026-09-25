@@ -1,6 +1,6 @@
 // Issue MM names under clients.<desk>.eth and write their addr + desk.terms. Idempotent.
 // Seeds match the runbook (idea1/해커톤_런북.md): mm-a and mm-b price differently, mm-c expires for demo scene 3.
-import { encodeFunctionData, parseEther, zeroAddress, type Hex } from 'viem'
+import { encodeFunctionData, parseUnits, zeroAddress, type Hex } from 'viem'
 import { registryAbi, resolverAbi } from '../src/abis.js'
 import { account, CLIENTS_NAME, publicClient, wallet } from '../src/config.js'
 import { loadDeployment, requireField, saveDeployment } from '../src/deployments.js'
@@ -11,10 +11,12 @@ import { send } from '../src/tx.js'
 const DAY = 86400n
 const MM_C_TTL = BigInt(process.env.MM_C_TTL_SECONDS ?? 900) // re-run before the demo to reset the clock
 
+// capPerFill is in USDC base units and bounds the USDC leg of a fill in either direction (desk-system D5).
+const CAP = parseUnits('100000', 6)
 const SEEDS = [
-  { label: 'mm-a', envKey: 'MM_A_PK', askBps: 10, bidBps: 25, capPerFill: parseEther('5'), ttl: 30n * DAY },
-  { label: 'mm-b', envKey: 'MM_B_PK', askBps: 25, bidBps: 50, capPerFill: parseEther('5'), ttl: 30n * DAY },
-  { label: 'mm-c', envKey: 'MM_C_PK', askBps: 10, bidBps: 25, capPerFill: parseEther('5'), ttl: MM_C_TTL },
+  { label: 'mm-a', envKey: 'MM_A_PK', tierBps: 10, capPerFill: CAP, ttl: 30n * DAY },
+  { label: 'mm-b', envKey: 'MM_B_PK', tierBps: 25, capPerFill: CAP, ttl: 30n * DAY },
+  { label: 'mm-c', envKey: 'MM_C_PK', tierBps: 10, capPerFill: CAP, ttl: MM_C_TTL },
 ] as const
 
 const w = wallet('TREASURY_PK')
@@ -39,13 +41,13 @@ for (const seed of SEEDS) {
     })
   }
 
-  const current = await readRecords(resolver, name)
+  const current = await readRecords(resolver, name, now)
   const calls: Hex[] = []
   if (current.addr.toLowerCase() !== mm.toLowerCase()) {
     calls.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setAddress', args: [dnsEncode(name), COIN_TYPE_ETH, mm] }))
   }
   const t = current.terms
-  if (!t || t.askBps !== seed.askBps || t.bidBps !== seed.bidBps || t.capPerFill !== seed.capPerFill) {
+  if (!current.termsValid || !t || t.tierBps !== seed.tierBps || t.capPerFill !== seed.capPerFill) {
     calls.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setData', args: [dnsEncode(name), KEY_TERMS, encodeTerms(seed)] }))
   }
   if (calls.length) {

@@ -47,9 +47,9 @@ if ((await publicClient.getBalance({ address: agent })) < parseEther('0.003')) {
 
 // 4. The boundary.
 const validUntil = (await publicClient.getBlock()).timestamp + 3600n
-await send(agentWallet, { ...R, functionName: 'setData', args: [dnsEncode(target), KEY_SPREAD, encodeSpread({ askBps: 40, bidBps: 80, validUntil })], label: `agent writes ${KEY_SPREAD} on ${target}` })
+await send(agentWallet, { ...R, functionName: 'setData', args: [dnsEncode(target), KEY_SPREAD, encodeSpread({ spreadBps: 40, validUntil })], label: `agent writes ${KEY_SPREAD} on ${target}` })
 
-const deniedTerms = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_TERMS, encodeTerms({ askBps: 1, bidBps: 1, capPerFill: parseEther('1000') })] as const }
+const deniedTerms = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_TERMS, encodeTerms({ tierBps: 1, capPerFill: 10n ** 12n })] as const }
 const deniedAddr = { ...R, functionName: 'setAddress' as const, args: [dnsEncode(target), COIN_TYPE_ETH, agent as Hex] as const }
 for (const [what, call] of [[`${KEY_TERMS}`, deniedTerms], ['addr', deniedAddr]] as const) {
   const reason = await revertName(() => publicClient.simulateContract({ account: agent, ...call } as never))

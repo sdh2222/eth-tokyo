@@ -44,31 +44,39 @@ export const labelId = (label: string) => BigInt(labelhash(label))
 /** EAC resource for a string argument, as PermissionedResolverLib.resource(string). */
 export const keyResource = (key: string) => BigInt(keccak256(stringToBytes(key)))
 
-// desk.terms = abi.encode(uint8 version, uint16 askBps, uint16 bidBps, uint128 capPerFill)   — multisig only
-// desk.spread = abi.encode(uint8 version, uint16 askBps, uint16 bidBps, uint64 validUntil)   — risk agent only
-const TERMS = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint16' }, { type: 'uint128' }] as const
-const SPREAD = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint16' }, { type: 'uint64' }] as const
+// Record formats from desk-system §6.2 / D5. abi.encode, so each value is exactly 96 bytes.
+// desk.terms  = abi.encode(uint8 version, uint16 tierBps, uint128 capPerFill)  — Safe only. capPerFill is in USDC base units (6 dp)
+// desk.spread = abi.encode(uint8 version, uint16 spreadBps, uint64 validUntil)  — risk agent only
+const TERMS = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint128' }] as const
+const SPREAD = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint64' }] as const
+const RECORD_BYTES = 96
 
-export type Terms = { version: number; askBps: number; bidBps: number; capPerFill: bigint }
-export type Spread = { version: number; askBps: number; bidBps: number; validUntil: bigint }
+export type Terms = { version: number; tierBps: number; capPerFill: bigint }
+export type Spread = { version: number; spreadBps: number; validUntil: bigint }
 
-export const encodeTerms = (t: { askBps: number; bidBps: number; capPerFill: bigint }) =>
-  encodeAbiParameters(TERMS, [RECORD_VERSION, t.askBps, t.bidBps, t.capPerFill])
+export const encodeTerms = (t: { tierBps: number; capPerFill: bigint }) =>
+  encodeAbiParameters(TERMS, [RECORD_VERSION, t.tierBps, t.capPerFill])
 
-export const encodeSpread = (s: { askBps: number; bidBps: number; validUntil: bigint }) =>
-  encodeAbiParameters(SPREAD, [RECORD_VERSION, s.askBps, s.bidBps, s.validUntil])
+export const encodeSpread = (s: { spreadBps: number; validUntil: bigint }) =>
+  encodeAbiParameters(SPREAD, [RECORD_VERSION, s.spreadBps, s.validUntil])
 
-/** Empty record -> null. Unknown version -> throws, the same way the router must revert. */
-export function decodeTerms(value: Hex): Terms | null {
-  if (value === '0x') return null
-  const [version, askBps, bidBps, capPerFill] = decodeAbiParameters(TERMS, value)
-  if (version !== RECORD_VERSION) throw new Error(`desk.terms version ${version} is not supported`)
-  return { version, askBps, bidBps, capPerFill }
+const byteLength = (value: Hex) => (value.length - 2) / 2
+
+/**
+ * The router's reading of desk.terms (desk-system §5.4 step 6): 96 bytes, version 1, capPerFill > 0.
+ * Anything else means "no terms" and the fill reverts with DeskPriceNoTerms. Decoding does not throw.
+ */
+export function decodeTerms(value: Hex): { terms: Terms | null; valid: boolean } {
+  if (byteLength(value) !== RECORD_BYTES) return { terms: null, valid: false }
+  const [version, tierBps, capPerFill] = decodeAbiParameters(TERMS, value)
+  const terms = { version, tierBps, capPerFill }
+  return { terms, valid: version === RECORD_VERSION && capPerFill > 0n }
 }
 
-export function decodeSpread(value: Hex): Spread | null {
-  if (value === '0x') return null
-  const [version, askBps, bidBps, validUntil] = decodeAbiParameters(SPREAD, value)
-  if (version !== RECORD_VERSION) throw new Error(`desk.spread version ${version} is not supported`)
-  return { version, askBps, bidBps, validUntil }
+/** The router's reading of desk.spread: 96 bytes, version 1, and not past validUntil. Otherwise it is ignored. */
+export function decodeSpread(value: Hex, now: bigint): { spread: Spread | null; valid: boolean } {
+  if (byteLength(value) !== RECORD_BYTES) return { spread: null, valid: false }
+  const [version, spreadBps, validUntil] = decodeAbiParameters(SPREAD, value)
+  const spread = { version, spreadBps, validUntil }
+  return { spread, valid: version === RECORD_VERSION && now <= validUntil }
 }

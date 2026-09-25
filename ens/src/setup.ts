@@ -5,11 +5,10 @@ import { dnsEncode, encodeTerms, KEY_TERMS } from './encode.js'
 import { REGISTRY_ROOT_ALL, RESOLVER_ROOT_ALL } from './roles.js'
 
 /**
- * The default record is the record of the root name (0x00). Names without their own record fall back to it,
- * so capPerFill = 0 here means "a registered name with no terms cannot fill". Its spread is deliberately wide:
- * a fallback must never be cheaper than what the agent set.
+ * The default record is the record of the root name (0x00). Names without their own record fall back to it
+ * (desk-system §6.2). capPerFill = 0 means the router reverts DeskPriceNoTerms for any such name.
  */
-export const DEFAULT_TERMS = { askBps: 300, bidBps: 300, capPerFill: 0n }
+export const DEFAULT_TERMS = { tierBps: 0, capPerFill: 0n }
 
 const salt = (tag: string) => BigInt(keccak256(stringToBytes(`${DESK_NAME}/${tag}`)))
 
