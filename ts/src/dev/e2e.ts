@@ -1,4 +1,4 @@
-import { encodeErrorResult } from "viem";
+import { encodeErrorResult, type Address } from "viem";
 
 import { decodeDeskError } from "../lib/client/errors.js";
 import { decide } from "../scripts/ship.js";
@@ -23,8 +23,8 @@ export function runChecks(): { id: string; pass: boolean; detail: string }[] {
       midWad: 4000n * 10n ** 18n,
       spreadBps: 0,
       wBeforeWad: 7000n * 10n ** 14n,
-      tokenIn: cfg.tokens.usdc,
-      base: cfg.tokens.weth,
+      tokenIn: tokenAddress(cfg.tokens.usdc),
+      base: tokenAddress(cfg.tokens.weth),
     },
     cfg,
   );
@@ -96,14 +96,19 @@ export function runChecks(): { id: string; pass: boolean; detail: string }[] {
   ];
 }
 
+function tokenAddress(value: Address | ""): Address {
+  if (value === "") throw new Error("token address is unset");
+  return value;
+}
+
 function fillArgs(cfg: ReturnType<typeof placeholderConfig>) {
   return {
     amountIn: 1_000n * 10n ** 6n,
     midWad: 4000n * 10n ** 18n,
     spreadBps: 0,
     wBeforeWad: 7000n * 10n ** 14n,
-    tokenIn: cfg.tokens.usdc,
-    base: cfg.tokens.weth,
+    tokenIn: tokenAddress(cfg.tokens.usdc),
+    base: tokenAddress(cfg.tokens.weth),
   };
 }
 
