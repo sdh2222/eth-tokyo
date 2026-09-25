@@ -26,7 +26,7 @@ export function PolicyStep({ wizard, onChange }: { wizard: WizardState; onChange
   }));
 
   return (
-    <div className="grid grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div className="flex flex-col gap-4">
         <label className="text-body">
           {TARGET_LABEL}

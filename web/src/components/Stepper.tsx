@@ -10,7 +10,7 @@ export function Stepper({
   const index = steps.findIndex((step) => step.id === current);
 
   return (
-    <ol className="flex flex-col gap-2">
+    <ol className="flex flex-row flex-wrap gap-x-4 gap-y-2 lg:flex-col">
       {steps.map((step, stepIndex) => {
         const done = stepIndex < index;
         return (

@@ -92,9 +92,15 @@ export function DeskPage() {
     : "";
 
   return (
-    <div className="flex flex-col gap-6">
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-8">
+    <header className="flex flex-col gap-2">
+      <h1 className="text-h1">Desk</h1>
+      <p className="max-w-3xl text-body text-muted">
+        The treasury is selling from this vault. Each named market maker gets a different price. Tokens stay in the Safe until a fill.
+      </p>
+    </header>
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <StatusBadge kind={kind} />
         {desk ? <span className="num text-h2">{formatUsd(desk.pWad)}</span> : null}
         {desk ? (
@@ -123,7 +129,9 @@ export function DeskPage() {
       </div>
     </div>
     {desk ? (
-      <section className="grid grid-cols-5 gap-5">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-h3">In the vault</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <article className="rounded-card bg-surface p-5">
           <p className="text-small text-muted">In the desk</p>
           <p className="num text-h3">{formatWeth(desk.balances.weth)}</p>
@@ -132,17 +140,28 @@ export function DeskPage() {
           <p className="text-small text-muted">In the desk</p>
           <p className="num text-h3">{formatUsdc(desk.balances.usdc)}</p>
         </article>
-        <article className="col-span-3 rounded-card bg-surface p-5">
+        <article className="rounded-card bg-surface p-5 sm:col-span-2 lg:col-span-3">
           <ShareBar shareWad={desk.wWad} targetWad={desk.targetWad} caption={shareCaption} />
           <p className="mt-3 text-body">
             In the Safe: {formatWeth(desk.safeWallet.weth)} · {formatUsdc(desk.safeWallet.usdc)}
           </p>
         </article>
+      </div>
       </section>
     ) : null}
-    {desk ? <QuoteBoard mms={desk.mms} now={now} /> : null}
     {desk ? (
-      <FillTable fills={fills.data ?? []} weth="" midWad={desk.pWad} now={now} />
+      <section className="flex flex-col gap-3">
+        <h2 className="text-h3">Price for each market maker</h2>
+        <QuoteBoard mms={desk.mms} now={now} />
+      </section>
+    ) : null}
+    {desk ? (
+      <section className="flex flex-col gap-3">
+        <h2 className="text-h3">Recent fills</h2>
+        <div className="overflow-x-auto">
+          <FillTable fills={fills.data ?? []} weth="" midWad={desk.pWad} now={now} />
+        </div>
+      </section>
     ) : null}
     </div>
   );

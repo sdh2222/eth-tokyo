@@ -58,15 +58,15 @@ export function OpenPage() {
   }
 
   return (
-    <div className="grid grid-cols-12 gap-6">
-      <div className="col-span-3">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="lg:col-span-3">
         <Stepper
           steps={OPEN_STEPS.map((label, index) => ({ id: String(index + 1), label }))}
           current={String(wizard.step)}
           onJump={(id) => setWizard({ ...wizard, step: Number(id) as WizardState["step"] })}
         />
       </div>
-      <div className="col-span-9 flex flex-col gap-5">
+      <div className="flex flex-col gap-5 lg:col-span-9">
         {wizard.step === 1 ? (
           <section className="flex flex-col gap-3">
             <p className="num text-body">{FIXTURE_OWNERS[0]}</p>

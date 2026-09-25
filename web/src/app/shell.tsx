@@ -1,13 +1,11 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAccount, useChainId, useConnect, useSwitchChain } from "wagmi";
 import { BannerList, bannersFrom } from "./banners";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { ToastProvider } from "../components/Toast";
 import {
   BANNER_OWNER,
   CONNECT_WALLET,
-  CONTINUE,
   FOOTER,
   MARK,
   NAV_LABEL,
@@ -57,9 +55,8 @@ export function AppFrame({ children }: { children: ReactNode }) {
     <ToastProvider>
       <div className="min-h-screen flex flex-col">
         {showHeader ? <AppHeader /> : null}
-        <main className="mx-auto flex w-full max-w-[var(--max)] flex-1 flex-col gap-5 px-8 py-8">
+        <main className="mx-auto flex w-full min-w-0 max-w-[var(--max)] flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
           {showHeader ? <PageNotices /> : null}
-          {showHeader ? <PrimaryButton>{CONTINUE}</PrimaryButton> : null}
           {children}
           {showHeader ? <DemoDrawer /> : null}
         </main>
@@ -103,9 +100,13 @@ function PageNotices() {
 
 function AppHeader() {
   const [role, setRole] = useRole();
+  const [open, setOpen] = useState<Role | null>(null);
   const navigate = useNavigate();
   const live = useLiveStrategy();
-  const links = NAV[role].filter((link) => !(role === "treasury" && live.data && link.to === "/open"));
+  const shown = open ?? null;
+  const links = shown
+    ? NAV[shown].filter((link) => !(shown === "treasury" && live.data && link.to === "/open"))
+    : [];
 
   function pick(next: Role) {
     if (next === role) return;
@@ -115,41 +116,54 @@ function AppHeader() {
 
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex w-full max-w-[var(--max)] flex-wrap items-center gap-5 px-8 py-4">
+      <div className="mx-auto flex w-full max-w-[var(--max)] flex-wrap items-center gap-3 px-4 py-4 sm:gap-5 sm:px-8">
         <span className="text-h3">{MARK}</span>
-        <div className="flex gap-1" role="group" aria-label="Role">
-          {ROLES.map((item) => (
-            <button
-              key={item}
-              type="button"
-              aria-pressed={item === role}
-              className={
-                item === role
-                  ? "rounded-control bg-surface px-3 py-2 text-body"
-                  : "rounded-control px-3 py-2 text-body text-muted"
-              }
-              onClick={() => pick(item)}
+        <div className="relative" onMouseLeave={() => setOpen(null)}>
+          <div className="flex gap-1" role="group" aria-label="Role">
+            {ROLES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={item === role}
+                aria-expanded={open === item}
+                className={
+                  item === role
+                    ? "rounded-control bg-surface px-3 py-2 text-body"
+                    : "rounded-control px-3 py-2 text-body text-muted"
+                }
+                onMouseEnter={() => setOpen(item)}
+                onFocus={() => setOpen(item)}
+                onClick={() => pick(item)}
+              >
+                {ROLE_LABEL[item]}
+              </button>
+            ))}
+          </div>
+          {shown ? (
+            <nav
+              className="absolute left-0 top-full z-10 flex min-w-full flex-wrap gap-4 rounded-control border border-border bg-bg px-3 py-3 shadow-overlay"
+              aria-label="Pages"
             >
-              {ROLE_LABEL[item]}
-            </button>
-          ))}
+              {links.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.end}
+                  onClick={() => setRole(shown)}
+                  className={({ isActive }) =>
+                    isActive && shown === role ? "text-body text-text" : "text-body text-muted"
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+            </nav>
+          ) : null}
         </div>
-        <nav className="flex min-w-0 flex-1 flex-wrap gap-4" aria-label="Pages">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              className={({ isActive }) =>
-                isActive ? "text-body text-text" : "text-body text-muted"
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
-        </nav>
-        <NetworkChip />
-        <WalletChip />
+        <div className="ml-auto flex items-center gap-4">
+          <NetworkChip />
+          <WalletChip />
+        </div>
       </div>
     </header>
   );
