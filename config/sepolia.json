@@ -1,9 +1,9 @@
 { "chainId": 11155111,
   "aqua": "0x1111113ccf1426a8e30e2bff5e005d929bf6a90a",
-  "ens": { "ethRegistry": "", "deskRegistry": "", "clientsRegistry": "", "resolver": "", "suffix": "clients.dao-treasury-a.eth", "universalResolver": "" },
+  "ens": { "ethRegistry": "0x657ea849311d3d5823348dded7c2aaafb3ede09e", "deskRegistry": "0x72B3d4B4adCd057c904B3bB59fa201bF10F983b2", "clientsRegistry": "0x8f6c1e8DE9BDAe6Be0f028e7Ce596F9e530a984e", "resolver": "0x228bd144dB976960E8D5AbfAe6d5CeB15346970F", "suffix": "clients.dao-treasury-a.eth", "universalResolver": "0x5d25c1d6acbb71b7a28aa7899618a3412a8303e3" },
   "tokens": { "weth": "", "usdc": "" }, "oracle": "", "router": "", "safe": "",
   "desk": { "oracleDecimals": 8, "baseDecimals": 18, "quoteDecimals": 6, "maxStaleness": 3600,
             "wStarBps": 7000, "kappaBps": 200, "sMinBps": 5, "sMaxBps": 200, "strategyTtlDays": 30,
             "shipWeth": "900000000000000000000", "shipUsdc": "400000000000" },
-  "mms": [ { "name": "mm-a.clients.dao-treasury-a.eth", "address": "" }, { "name": "mm-b.clients.dao-treasury-a.eth", "address": "" } ],
+  "mms": [ { "name": "mm-a.clients.dao-treasury-a.eth", "address": "0xa5CB8D83b5eF68E992e018095E167b9D0EC90159" }, { "name": "mm-b.clients.dao-treasury-a.eth", "address": "0xB59331143dcA4E1C720E50d052a46149ae4A8B10" } ],
   "deployBlock": 0, "logChunk": 50000, "explorer": "https://sepolia.etherscan.io" }
