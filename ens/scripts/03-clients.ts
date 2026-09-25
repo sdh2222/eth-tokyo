@@ -26,6 +26,14 @@ const mmAddress = (seed: (typeof SEEDS)[number]): Address => {
   return given ? getAddress(given) : account(seed.envKey).address
 }
 
+// `--only mm-a,mm-b` touches just those names, e.g. repoint two addrs without re-arming an expired mm-c,
+// or re-arm mm-c alone right before the demo.
+const onlyAt = process.argv.indexOf('--only')
+const only = onlyAt >= 0 ? new Set((process.argv[onlyAt + 1] ?? '').split(',').filter(Boolean)) : null
+if (only && (only.size === 0 || [...only].some((l) => !SEEDS.some((s) => s.label === l)))) {
+  throw new Error(`--only takes a comma-separated subset of ${SEEDS.map((s) => s.label).join(',')}`)
+}
+
 const w = wallet('TREASURY_PK')
 const treasury = w.account.address
 const d = loadDeployment()
@@ -34,6 +42,7 @@ const clientsReg = requireField(d.registries?.clients, 'clients registry', 'setu
 const now = (await publicClient.getBlock()).timestamp
 
 for (const seed of SEEDS) {
+  if (only && !only.has(seed.label)) continue
   const name = `${seed.label}.${CLIENTS_NAME}`
   const mm = mmAddress(seed)
   let expiry = await publicClient.readContract({ address: clientsReg, abi: registryAbi, functionName: 'findExpiry', args: [seed.label] })
@@ -50,15 +59,18 @@ for (const seed of SEEDS) {
 
   const current = await readRecords(resolver, name, now)
   const calls: Hex[] = []
+  const changed: string[] = []
   if (current.addr.toLowerCase() !== mm.toLowerCase()) {
     calls.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setAddress', args: [dnsEncode(name), COIN_TYPE_ETH, mm] }))
+    changed.push(`addr → ${mm}`)
   }
   const t = current.terms
   if (!current.termsValid || !t || t.tierBps !== seed.tierBps || t.capPerFill !== seed.capPerFill) {
     calls.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setData', args: [dnsEncode(name), KEY_TERMS, encodeTerms(seed)] }))
+    changed.push('desk.terms')
   }
   if (calls.length) {
-    await send(w, { address: resolver, abi: resolverAbi, functionName: 'multicall', args: [calls], label: `${name} addr + desk.terms` })
+    await send(w, { address: resolver, abi: resolverAbi, functionName: 'multicall', args: [calls], label: `${name} ${changed.join(' + ')}` })
   } else {
     console.log(`  = ${name} records already match`)
   }
