@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { CalldataPtrLib } from "@1inch/solidity-utils/contracts/libraries/CalldataPtr.sol";
-import { Context, ContextLib } from "@1inch/swap-vm/libs/VM.sol";
+import {CalldataPtrLib} from "@1inch/solidity-utils/contracts/libraries/CalldataPtr.sol";
+import {Context, ContextLib} from "@1inch/swap-vm/libs/VM.sol";
 
-import { EnsGate, EnsGateArgs } from "../src/instructions/EnsGate.sol";
-import { MockEnsRegistry } from "./mocks/MockEnsRegistry.sol";
-import { MockEnsResolver } from "./mocks/MockEnsResolver.sol";
+import {EnsGate, EnsGateArgs} from "../src/instructions/EnsGate.sol";
+import {MockEnsRegistry} from "./mocks/MockEnsRegistry.sol";
+import {MockEnsResolver} from "./mocks/MockEnsResolver.sol";
 
 contract GateHarness is EnsGate {
     using ContextLib for Context;
@@ -172,14 +172,7 @@ contract EnsGateTest is Test {
         );
     }
 
-    function _wire(
-        address desk,
-        address clients,
-        address resol,
-        uint64 deskExp,
-        uint64 clientsExp,
-        uint64 nameExp
-    )
+    function _wire(address desk, address clients, address resol, uint64 deskExp, uint64 clientsExp, uint64 nameExp)
         private
     {
         ethReg.set("desk", desk, address(0), deskExp);
@@ -187,13 +180,7 @@ contract EnsGateTest is Test {
         clientsReg.set("mm-a", address(0), resol, nameExp);
     }
 
-    function _args(
-        address eth,
-        address desk,
-        address clients,
-        address resol,
-        bytes memory suf
-    )
+    function _args(address eth, address desk, address clients, address resol, bytes memory suf)
         private
         pure
         returns (bytes memory)

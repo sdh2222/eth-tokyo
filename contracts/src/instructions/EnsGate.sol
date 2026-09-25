@@ -5,9 +5,9 @@ pragma solidity 0.8.30;
 /// @custom:copyright © 2025 Degensoft Ltd
 /// @notice Derived from swap-vm v1.0.2 src/instructions (© 2025 Degensoft Ltd). Modified by the Desk team on 2026-09-25: EnsGate instruction #34.
 
-import { Context, ContextLib } from "@1inch/swap-vm/libs/VM.sol";
+import {Context, ContextLib} from "@1inch/swap-vm/libs/VM.sol";
 
-import { IAddrResolver, IExtendedResolver, IRegistry, IStandardRegistry } from "../interfaces/IDeskEns.sol";
+import {IAddrResolver, IExtendedResolver, IRegistry, IStandardRegistry} from "../interfaces/IDeskEns.sol";
 
 library EnsGateArgs {
     struct GateArgs {

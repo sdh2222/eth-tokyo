@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { IAddrResolver, IDataResolver, IMulticallable } from "../../src/interfaces/IDeskEns.sol";
+import {IAddrResolver, IDataResolver, IMulticallable} from "../../src/interfaces/IDeskEns.sol";
 
 /// @notice Test double for the treasury PermissionedResolver.
 /// @dev Records are keyed by `namehash(dnsName)`. A name with no record falls back to node `0x00`.
