@@ -9,6 +9,7 @@ import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
 import { formatUsd, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
 import { useAccount } from "wagmi";
+import { PolicyStep, policyInvalid } from "./open/PolicyStep";
 import { INITIAL_WIZARD, type WizardState } from "./open/types";
 
 export function OpenPage() {
@@ -24,7 +25,7 @@ export function OpenPage() {
   const state = useDeskState(live.data ?? null);
   const desk = state.data;
   const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const stepOk = wizard.step === 1 ? isOwner : true;
+  const stepOk = wizard.step === 1 ? isOwner : wizard.step === 3 ? !policyInvalid(wizard) : true;
 
   return (
     <div className="grid grid-cols-12 gap-6">
@@ -53,6 +54,7 @@ export function OpenPage() {
             {isOwner ? null : <p className="text-body">{BANNER_OWNER}</p>}
           </section>
         ) : null}
+        {wizard.step === 3 ? <PolicyStep wizard={wizard} onChange={setWizard} /> : null}
         {wizard.step === 2 ? (
           <section className="flex flex-col gap-3">
             <p className="text-body">{PAIR}</p>
