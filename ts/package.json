@@ -22,7 +22,9 @@
     "safe:setup": "tsx src/scripts/safe-setup.ts",
     "ship": "tsx src/scripts/ship.ts",
     "bot": "tsx src/bot/index.ts",
-    "e2e": "tsx src/dev/e2e.ts"
+    "e2e": "tsx src/dev/e2e.ts",
+    "fixture": "tsx src/dev/fixture.ts",
+    "gen:abi": "tsx src/scripts/gen-abi.ts"
   },
   "dependencies": {
     "@1inch/byte-utils": "3.1.9",
