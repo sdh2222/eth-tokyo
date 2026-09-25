@@ -106,16 +106,23 @@ export function TradePage() {
         onUnit={() => setUnit(unit === "ETH" ? "USDC" : "ETH")}
         {...(parsed.ok === false && parsed.reason === "decimals" ? { error: TOO_MANY_DECIMALS } : {})}
       />
-      <details>
-        <summary className="text-body">{SLIPPAGE}</summary>
+      <label className="text-body">
+        {SLIPPAGE}
         <input
-          className="mt-2 rounded-control border border-border px-3 py-2 text-body"
+          className="ml-2 rounded-control border border-border px-3 py-2 text-body"
           type="text"
           inputMode="numeric"
           value={slippage}
           onChange={(event) => setSlippage(event.target.value.replace(/\D/g, ""))}
         />
-      </details>
+      </label>
+      <QuotePanel
+        quote={quote}
+        side={side}
+        midWad={state.data?.pWad ?? 0n}
+        empty={parsed.ok === false && parsed.reason === "empty"}
+        onRefresh={() => void quote.refetch()}
+      />
       {named && quote.data?.ok && quote.secondsLeft > 0 ? (
         (approvals.data?.length ?? 0) > 0 ? (
           <button type="button" className="text-body" onClick={() => setOverlay("approve")}>
@@ -138,13 +145,6 @@ export function TradePage() {
           onClose={() => setOverlay(null)}
         />
       ) : null}
-      <QuotePanel
-        quote={quote}
-        side={side}
-        midWad={state.data?.pWad ?? 0n}
-        empty={parsed.ok === false && parsed.reason === "empty"}
-        onRefresh={() => void quote.refetch()}
-      />
     </div>
   );
 }
@@ -162,7 +162,7 @@ function QuotePanel({
   empty: boolean;
   onRefresh: () => void;
 }) {
-  if (empty) return <p className="text-body">{ENTER_AMOUNT}</p>;
+  if (empty) return <p tabIndex={0} className="text-body">{ENTER_AMOUNT}</p>;
   if (quote.isFetching && !quote.data) return <Skeleton className="h-8 w-full" />;
   const data = quote.data;
   if (!data) return null;
@@ -176,7 +176,7 @@ function QuotePanel({
   }
   const fresh = quote.secondsLeft > 0;
   return (
-    <div className={fresh ? "flex flex-col gap-2" : "flex flex-col gap-2 text-muted"}>
+    <div tabIndex={0} className={fresh ? "flex flex-col gap-2" : "flex flex-col gap-2 text-muted"}>
       <p className="text-body">
         {YOU_PAY} {side === "buy" ? formatUsdc(data.amountIn) : formatWeth(data.amountIn)}
       </p>

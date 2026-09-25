@@ -63,7 +63,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {children}
           {showHeader ? <DemoDrawer /> : null}
         </main>
-        <footer className="border-t border-border px-8 py-6 text-small text-muted">{FOOTER}</footer>
+        <footer className="break-words border-t border-border px-8 py-6 text-small text-muted">{FOOTER}</footer>
       </div>
     </ToastProvider>
   );
@@ -115,7 +115,7 @@ function AppHeader() {
 
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex w-full max-w-[var(--max)] items-center gap-5 px-8 py-4">
+      <div className="mx-auto flex w-full max-w-[var(--max)] flex-wrap items-center gap-5 px-8 py-4">
         <span className="text-h3">{MARK}</span>
         <div className="flex gap-1" role="group" aria-label="Role">
           {ROLES.map((item) => (
@@ -134,7 +134,7 @@ function AppHeader() {
             </button>
           ))}
         </div>
-        <nav className="flex flex-1 gap-4" aria-label="Pages">
+        <nav className="flex min-w-0 flex-1 flex-wrap gap-4" aria-label="Pages">
           {links.map((link) => (
             <NavLink
               key={link.to}
