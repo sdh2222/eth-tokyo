@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { AmountInput } from "../components/AmountInput";
+import { Countdown } from "../components/Countdown";
+import { Skeleton } from "../components/Skeleton";
+import { SourceBadge } from "../components/SourceBadge";
 import {
   BUY_ETH,
+  CHECKED,
+  ENTER_AMOUNT,
   NOT_ON_LIST,
   PER_FILL,
+  REFRESH_QUOTE,
   SELL_ETH,
   SLIPPAGE,
   TOO_MANY_DECIMALS,
   TRADING_AS,
+  YOU_PAY,
+  YOU_RECEIVE,
 } from "../copy/en";
 import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
-import { formatBps, formatUsdc } from "../lib/format";
+import { useQuote } from "../hooks/useQuote";
+import { formatBps, formatPrice, formatUsdc, formatWeth } from "../lib/format";
+import { formatVsMidBps } from "../lib/format";
 
 type Side = "buy" | "sell";
 type Unit = "ETH" | "USDC";
@@ -43,6 +53,14 @@ export function TradePage() {
   const mm = state.data?.mms.find((item) => address && item.address.toLowerCase() === address.toLowerCase());
   const named = mm && (mm.status === "ok" || mm.terms);
   const parsed = parseAmount(amount, unit === "ETH" ? 18 : 6);
+  const route = legFor(side, unit);
+  const quote = useQuote({
+    strategy: live.data ?? null,
+    mm: (address as `0x${string}` | undefined) ?? "0x0000000000000000000000000000000000000009",
+    side,
+    leg: route.leg,
+    amount: parsed.ok ? parsed.value : null,
+  });
 
   return (
     <div className="flex flex-col gap-5">
@@ -79,6 +97,63 @@ export function TradePage() {
           onChange={(event) => setSlippage(event.target.value.replace(/\D/g, ""))}
         />
       </details>
+      <QuotePanel
+        quote={quote}
+        side={side}
+        midWad={state.data?.pWad ?? 0n}
+        empty={parsed.ok === false && parsed.reason === "empty"}
+        onRefresh={() => void quote.refetch()}
+      />
+    </div>
+  );
+}
+
+function QuotePanel({
+  quote,
+  side,
+  midWad,
+  empty,
+  onRefresh,
+}: {
+  quote: ReturnType<typeof useQuote>;
+  side: Side;
+  midWad: bigint;
+  empty: boolean;
+  onRefresh: () => void;
+}) {
+  if (empty) return <p className="text-body">{ENTER_AMOUNT}</p>;
+  if (quote.isFetching && !quote.data) return <Skeleton className="h-8 w-full" />;
+  const data = quote.data;
+  if (!data) return null;
+  if (!data.ok) {
+    return (
+      <div>
+        <p className="text-body">{data.error.title}</p>
+        <p className="text-body text-muted">{data.error.hint}</p>
+      </div>
+    );
+  }
+  const fresh = quote.secondsLeft > 0;
+  return (
+    <div className={fresh ? "flex flex-col gap-2" : "flex flex-col gap-2 text-muted"}>
+      <p className="text-body">
+        {YOU_PAY} {side === "buy" ? formatUsdc(data.amountIn) : formatWeth(data.amountIn)}
+      </p>
+      <p className="text-body">
+        {YOU_RECEIVE} {side === "buy" ? formatWeth(data.amountOut) : formatUsdc(data.amountOut)}
+      </p>
+      <p className="num text-h3">{formatPrice(data.priceWad)}</p>
+      <p className="text-body">{midWad === 0n ? "—" : `${formatVsMidBps(data.priceWad, midWad).toString()} bps`}</p>
+      <p className="text-body">
+        {formatBps(data.spreadBps)} <SourceBadge source={data.spreadSource} />
+      </p>
+      <Countdown secondsLeft={quote.secondsLeft} />
+      {data.mirrorMatches ? <p className="text-body">{CHECKED} ✓</p> : null}
+      {fresh ? null : (
+        <button type="button" className="text-body" onClick={onRefresh}>
+          {REFRESH_QUOTE}
+        </button>
+      )}
     </div>
   );
 }
