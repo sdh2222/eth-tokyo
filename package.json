@@ -2,7 +2,6 @@
   "name": "desk",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@11.1.1",
   "scripts": {
     "safe:setup": "pnpm -C ts safe:setup",
     "ship": "pnpm -C ts ship",
