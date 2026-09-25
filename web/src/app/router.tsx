@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { PAGE } from "../copy/en";
 import { DeskPage } from "../pages/DeskPage";
 import { LandingPage } from "../pages/LandingPage";
+import { TradePage } from "../pages/TradePage";
 import { Kit } from "../pages/dev/Kit";
 import { Placeholder } from "../pages/Placeholder";
 import { AppFrame } from "./shell";
@@ -14,7 +15,7 @@ export function AppRouter() {
         <Route path="/desk" element={<DeskPage />} />
         <Route path="/open" element={<Placeholder title={PAGE.open} />} />
         <Route path="/counterparties" element={<Placeholder title={PAGE.counterparties} />} />
-        <Route path="/trade" element={<Placeholder title={PAGE.trade} />} />
+        <Route path="/trade" element={<TradePage />} />
         <Route path="/controls" element={<Placeholder title={PAGE.controls} />} />
         <Route path="/fills" element={<Placeholder title={PAGE.fills} />} />
         <Route path="/fills/:tx" element={<Placeholder title={PAGE.verify} />} />

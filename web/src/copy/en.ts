@@ -32,6 +32,26 @@ export const STEPS = [
 ] as const;
 export const VERIFY_LINE = "Every fill can be recomputed from public data.";
 export const NOT_OPEN = "Not open";
+export const TRADING_AS = "Trading as";
+export const PER_FILL = "per fill";
+export const NOT_ON_LIST =
+  "This wallet isn't on the desk's list. You can still ask for a quote to see the desk refuse it.";
+export const BUY_ETH = "Buy ETH";
+export const SELL_ETH = "Sell ETH";
+export const SLIPPAGE = "Slippage";
+export const TOO_MANY_DECIMALS = "Too many decimal places";
+export const ENTER_AMOUNT = "Enter an amount";
+export const YOU_PAY = "You pay";
+export const YOU_RECEIVE = "You receive";
+export const CHECKED = "Checked against the on-chain formula";
+export const REFRESH_QUOTE = "Refresh quote";
+export const APPROVE_ROUTER = "Approve router";
+export const FILL = "Fill";
+export const CANCELLED = "Cancelled";
+export const APPROVE_COPY = "This approves the router to move your tokens for fills.";
+export const FILL_COPY = "This fills your quote. Tokens move between your wallet and the Safe.";
+export const VERIFY_FILL = "Verify this fill";
+export const COPY_SAFE = "Copy transaction for Safe{Wallet}";
 export const STRIP = {
   status: "Desk status",
   share: "ETH share vs 70% target",
