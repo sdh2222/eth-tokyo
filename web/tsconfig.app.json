@@ -21,7 +21,8 @@
     "noUnusedParameters": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@config": ["../config/sepolia.json"]
     }
   },
   "include": ["src"]

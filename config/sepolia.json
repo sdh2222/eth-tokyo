@@ -1,0 +1,36 @@
+{
+  "chainId": 11155111,
+  "aqua": "",
+  "ens": {
+    "ethRegistry": "",
+    "deskRegistry": "",
+    "clientsRegistry": "",
+    "resolver": "",
+    "suffix": "clients.desk.eth",
+    "universalResolver": ""
+  },
+  "tokens": { "weth": "", "usdc": "" },
+  "oracle": "",
+  "router": "",
+  "safe": "",
+  "desk": {
+    "oracleDecimals": 8,
+    "baseDecimals": 18,
+    "quoteDecimals": 6,
+    "maxStaleness": 3600,
+    "wStarBps": 7000,
+    "kappaBps": 200,
+    "sMinBps": 5,
+    "sMaxBps": 200,
+    "strategyTtlDays": 30,
+    "shipWeth": "900000000000000000000",
+    "shipUsdc": "400000000000"
+  },
+  "mms": [
+    { "name": "mm-a.clients.desk.eth", "address": "" },
+    { "name": "mm-b.clients.desk.eth", "address": "" }
+  ],
+  "deployBlock": 0,
+  "logChunk": 50000,
+  "explorer": "https://sepolia.etherscan.io"
+}

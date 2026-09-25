@@ -11,6 +11,8 @@ import { StatTile } from "../../components/StatTile";
 import { StatusBadge, type StatusKind } from "../../components/StatusBadge";
 import { Stepper } from "../../components/Stepper";
 import { TxLink } from "../../components/TxLink";
+import { FIXTURE_MMS, FIXTURE_OWNERS } from "../../desk/fixture/state";
+import { labelFor } from "../../hooks/useCanAct";
 
 const KINDS: StatusKind[] = [
   "Live",
@@ -30,6 +32,9 @@ export function Kit() {
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-h1">Kit</h1>
+      <p>{labelFor(FIXTURE_OWNERS[0] ?? "", FIXTURE_OWNERS, FIXTURE_MMS)}</p>
+      <p>{labelFor(FIXTURE_MMS[0]?.address ?? "", FIXTURE_OWNERS, FIXTURE_MMS)}</p>
+      <p>{labelFor("0x0000000000000000000000000000000000000009", FIXTURE_OWNERS, FIXTURE_MMS)}</p>
       <StatTile label="Ready" value="400,000.00 USDC" delta="+1" />
       <StatTile label="Missing" value="—" />
       <EmptyState sentence="No desk is open." action={{ label: "Open a desk", onClick: () => undefined }} />

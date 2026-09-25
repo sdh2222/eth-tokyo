@@ -7,7 +7,6 @@ import { ToastProvider } from "../components/Toast";
 import {
   BANNER_OWNER,
   CONNECT_WALLET,
-  CONNECTED,
   CONTINUE,
   FOOTER,
   MARK,
@@ -16,7 +15,7 @@ import {
   ROLE_LABEL,
   SWITCH_SEPOLIA,
 } from "../copy/en";
-import { useCanAct } from "../hooks/useCanAct";
+import { useCanAct, useWalletLabel } from "../hooks/useCanAct";
 import { formatAddr } from "../lib/format";
 import { homeFor, useRole, type Role } from "./role";
 
@@ -160,12 +159,12 @@ function NetworkChip() {
 function WalletChip() {
   const { address, status } = useAccount();
   const { connect, connectors } = useConnect();
+  const label = useWalletLabel();
 
   if (status === "connected" && address) {
     return (
       <span className="text-body">
-        <span className="num">{formatAddr(address)}</span>{" "}
-        <span className="text-muted">{CONNECTED}</span>
+        <span className="num">{formatAddr(address)}</span> <span className="text-muted">{label}</span>
       </span>
     );
   }
