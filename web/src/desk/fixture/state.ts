@@ -40,6 +40,7 @@ type Memory = {
   live: StrategyInfo | null;
   multi: boolean;
   oracleUpdatedAt: number;
+  oracleAnswer: bigint;
   fills: FillRecord[];
   checks: Map<string, FillCheck>;
 };
@@ -74,12 +75,14 @@ export function createFixture(which: "qa" | "demo"): {
   dock: () => void;
   seedTwo: () => void;
   seedFill: () => string;
+  setOracle: (answer: bigint, updatedAt: number) => void;
 } {
   const memory: Memory = {
     block: 100n,
     live: which === "qa" ? program() : null,
     multi: false,
     oracleUpdatedAt: NOW - 12,
+    oracleAnswer: 400000000000n,
     fills: [],
     checks: new Map(),
   };
@@ -93,7 +96,17 @@ export function createFixture(which: "qa" | "demo"): {
       return memory.multi ? { ...memory.live, warning: "MULTIPLE_LIVE" as const } : memory.live;
     },
     decodeProgram(programHex) {
-      return { deadline: BigInt(DEADLINE), salt: 1n, unknown: [{ opcode: 0, args: programHex }] };
+      const body = programHex.slice(2);
+      const unknown: { opcode: number; args: Hex }[] = [];
+      let i = 0;
+      while (i + 4 <= body.length) {
+        const opcode = Number.parseInt(body.slice(i, i + 2), 16);
+        const len = Number.parseInt(body.slice(i + 2, i + 4), 16);
+        const args = `0x${body.slice(i + 4, i + 4 + len * 2)}` as Hex;
+        unknown.push({ opcode, args });
+        i += 4 + len * 2;
+      }
+      return { deadline: BigInt(DEADLINE), salt: 1n, unknown };
     },
     describeProgram() {
       const deadline = DEADLINE;
@@ -176,6 +189,11 @@ export function createFixture(which: "qa" | "demo"): {
     seedTwo() {
       memory.live = program();
       memory.multi = true;
+      memory.block += 1n;
+    },
+    setOracle(answer: bigint, updatedAt: number) {
+      memory.oracleAnswer = answer;
+      memory.oracleUpdatedAt = updatedAt;
       memory.block += 1n;
     },
     seedFill() {
