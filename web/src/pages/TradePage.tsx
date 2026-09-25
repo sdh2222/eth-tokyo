@@ -1,11 +1,15 @@
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
+import { WalletTxOverlay } from "../overlays/WalletTxOverlay";
 import { AmountInput } from "../components/AmountInput";
 import { Countdown } from "../components/Countdown";
 import { Skeleton } from "../components/Skeleton";
 import { SourceBadge } from "../components/SourceBadge";
 import {
+  APPROVE_ROUTER,
   BUY_ETH,
+  FILL,
   CHECKED,
   ENTER_AMOUNT,
   NOT_ON_LIST,
@@ -18,7 +22,8 @@ import {
   YOU_PAY,
   YOU_RECEIVE,
 } from "../copy/en";
-import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { emptyConfig } from "../desk/fixture/state";
+import { useDeskPort, useDeskState, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { formatBps, formatPrice, formatUsdc, formatWeth } from "../lib/format";
 import { formatVsMidBps } from "../lib/format";
@@ -33,6 +38,12 @@ export function parseAmount(text: string, decimals: number): { ok: true; value: 
   if (frac.length > decimals) return { ok: false, reason: "decimals" };
   const digits = `${whole}${frac.padEnd(decimals, "0")}`;
   return { ok: true, value: BigInt(digits) };
+}
+
+function bpsOf(text: string): number {
+  let value = 0;
+  for (const char of text) value = value * 10 + (char.charCodeAt(0) - 48);
+  return value;
 }
 
 export function legFor(side: Side, unit: Unit): { leg: "weth" | "usdc"; exact: "exactIn" | "exactOut" } {
@@ -54,6 +65,14 @@ export function TradePage() {
   const named = mm && (mm.status === "ok" || mm.terms);
   const parsed = parseAmount(amount, unit === "ETH" ? 18 : 6);
   const route = legFor(side, unit);
+  const port = useDeskPort();
+  const client = usePublicClient();
+  const [overlay, setOverlay] = useState<"approve" | "fill" | null>(null);
+  const approvals = useQuery({
+    queryKey: ["approvals", address],
+    queryFn: () => port.planMmApprovals({ client, cfg: emptyConfig() }, address as `0x${string}`),
+    enabled: address !== undefined,
+  });
   const quote = useQuote({
     strategy: live.data ?? null,
     mm: (address as `0x${string}` | undefined) ?? "0x0000000000000000000000000000000000000009",
@@ -97,6 +116,28 @@ export function TradePage() {
           onChange={(event) => setSlippage(event.target.value.replace(/\D/g, ""))}
         />
       </details>
+      {named && quote.data?.ok && quote.secondsLeft > 0 ? (
+        (approvals.data?.length ?? 0) > 0 ? (
+          <button type="button" className="text-body" onClick={() => setOverlay("approve")}>
+            {APPROVE_ROUTER}
+          </button>
+        ) : (
+          <button type="button" className="text-body" onClick={() => setOverlay("fill")}>
+            {FILL}
+          </button>
+        )
+      ) : null}
+      {overlay && live.data && quote.data?.ok ? (
+        <WalletTxOverlay
+          kind={overlay}
+          tx={
+            overlay === "approve"
+              ? (approvals.data?.[0] ?? port.buildSwapTx({ client, cfg: emptyConfig() }, live.data, quote.data, { slippageBps: bpsOf(slippage), deadlineSec: 120 }))
+              : port.buildSwapTx({ client, cfg: emptyConfig() }, live.data, quote.data, { slippageBps: bpsOf(slippage), deadlineSec: 120 })
+          }
+          onClose={() => setOverlay(null)}
+        />
+      ) : null}
       <QuotePanel
         quote={quote}
         side={side}
