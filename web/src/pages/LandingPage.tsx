@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LANDING } from "../copy/en";
+import { LandingSwarm } from "./LandingSwarm";
 import "./landing.css";
 
 // Squares on a time axis. "dump" is the whole amount in the first columns; "fills" is the
@@ -108,182 +109,6 @@ const SKY_WIDTHS = [
   [1600, "(max-width: 1600px)"],
 ] as const;
 
-// Two panels, the same takers arriving in the same order. On the left anyone who reaches
-// the DAO's price takes a piece of it. On the right an ENS ring stands around the price:
-// named takers (sky) pass through, takers with no name (ink) bounce off.
-const SWARM = { w: 560, h: 360, cell: 14, gap: 3, grid: 6, ring: 104, size: 10 };
-const SKY = "#6ec1ea";
-const INK = "#111111";
-const RING = "#c8c8c8";
-
-type Taker = { x: number; y: number; vx: number; vy: number; named: boolean; bounced: boolean };
-type Panel = { gated: boolean; takers: Taker[]; cells: boolean[]; ringFlash: number; seed: number };
-
-function makePanel(gated: boolean): Panel {
-  return { gated, takers: [], cells: Array(SWARM.grid * SWARM.grid).fill(true), ringFlash: 0, seed: 7 };
-}
-
-function random(panel: Panel) {
-  panel.seed = (Math.imul(panel.seed, 1664525) + 1013904223) >>> 0;
-  return panel.seed / 4294967296;
-}
-
-function spawn(panel: Panel) {
-  const { w, h } = SWARM;
-  const edge = Math.floor(random(panel) * 4);
-  const t = random(panel);
-  const x = edge === 0 ? t * w : edge === 1 ? w : edge === 2 ? t * w : 0;
-  const y = edge === 0 ? 0 : edge === 1 ? t * h : edge === 2 ? h : t * h;
-  const angle = Math.atan2(h / 2 - y, w / 2 - x) + (random(panel) - 0.5) * 0.25;
-  const speed = 110 + random(panel) * 60;
-  panel.takers.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, named: random(panel) < 0.35, bounced: false });
-}
-
-function step(panel: Panel, dt: number) {
-  const { w, h, cell, gap, grid, ring } = SWARM;
-  const half = (grid * (cell + gap) - gap) / 2;
-  for (const taker of panel.takers) {
-    const beforeInside = Math.abs(taker.x - w / 2) < ring && Math.abs(taker.y - h / 2) < ring;
-    taker.x += taker.vx * dt;
-    taker.y += taker.vy * dt;
-    const inside = Math.abs(taker.x - w / 2) < ring && Math.abs(taker.y - h / 2) < ring;
-    if (panel.gated && !taker.named && !beforeInside && inside && !taker.bounced) {
-      taker.vx = -taker.vx * 1.1 + (random(panel) - 0.5) * 30;
-      taker.vy = -taker.vy * 1.1 + (random(panel) - 0.5) * 30;
-      taker.x += taker.vx * dt * 2;
-      taker.y += taker.vy * dt * 2;
-      taker.bounced = true;
-      panel.ringFlash = 1;
-    }
-  }
-  panel.takers = panel.takers.filter((taker) => {
-    const hit = Math.abs(taker.x - w / 2) < half && Math.abs(taker.y - h / 2) < half;
-    if (hit) {
-      const left = panel.cells.flatMap((on, i) => (on ? [i] : []));
-      const pick = left[Math.floor(random(panel) * left.length)];
-      if (pick !== undefined) panel.cells[pick] = false;
-      return false;
-    }
-    return taker.x > -20 && taker.x < w + 20 && taker.y > -20 && taker.y < h + 20;
-  });
-  panel.ringFlash = Math.max(0, panel.ringFlash - dt * 3);
-}
-
-function draw(ctx: CanvasRenderingContext2D, panel: Panel, scale: number) {
-  const { w, h, cell, gap, grid, ring, size } = SWARM;
-  ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-  const half = (grid * (cell + gap) - gap) / 2;
-  panel.cells.forEach((on, i) => {
-    const x = w / 2 - half + (i % grid) * (cell + gap);
-    const y = h / 2 - half + Math.floor(i / grid) * (cell + gap);
-    ctx.fillStyle = on ? SKY : "#ececec";
-    ctx.fillRect(x, y, cell, cell);
-  });
-  if (panel.gated) {
-    ctx.fillStyle = panel.ringFlash > 0.05 ? INK : RING;
-    for (let d = -ring; d <= ring; d += 8) {
-      ctx.fillRect(w / 2 + d - 2, h / 2 - ring - 2, 4, 4);
-      ctx.fillRect(w / 2 + d - 2, h / 2 + ring - 2, 4, 4);
-      ctx.fillRect(w / 2 - ring - 2, h / 2 + d - 2, 4, 4);
-      ctx.fillRect(w / 2 + ring - 2, h / 2 + d - 2, 4, 4);
-    }
-  }
-  for (const taker of panel.takers) {
-    ctx.fillStyle = taker.named ? SKY : INK;
-    ctx.fillRect(taker.x - size / 2, taker.y - size / 2, size, size);
-  }
-}
-
-function Swarm() {
-  const copy = LANDING.gate;
-  const openRef = useRef<HTMLCanvasElement>(null);
-  const namedRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvases = [openRef.current, namedRef.current];
-    if (canvases.some((c) => !c)) return;
-    const panels = [makePanel(false), makePanel(true)];
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let frame = 0;
-    let last = 0;
-    let spawnClock = 0;
-    let regenClock = 0;
-    let visible = false;
-
-    const render = () => {
-      canvases.forEach((canvas, i) => {
-        if (!canvas) return;
-        const ratio = window.devicePixelRatio || 1;
-        const width = canvas.clientWidth;
-        const scale = (width / SWARM.w) * ratio;
-        if (canvas.width !== Math.round(SWARM.w * scale)) {
-          canvas.width = Math.round(SWARM.w * scale);
-          canvas.height = Math.round(SWARM.h * scale);
-        }
-        const ctx = canvas.getContext("2d");
-        if (ctx) draw(ctx, panels[i]!, scale);
-      });
-    };
-
-    const advance = (dt: number) => {
-      spawnClock += dt;
-      regenClock += dt;
-      while (spawnClock > 0.12) {
-        spawnClock -= 0.12;
-        panels.forEach(spawn);
-      }
-      while (regenClock > 0.5) {
-        regenClock -= 0.5;
-        for (const panel of panels) {
-          const gone = panel.cells.findIndex((on) => !on);
-          if (gone >= 0) panel.cells[gone] = true;
-        }
-      }
-      panels.forEach((panel) => step(panel, dt));
-    };
-
-    if (reduce) {
-      for (let i = 0; i < 360; i += 1) advance(1 / 60);
-      render();
-      return;
-    }
-
-    const tick = (now: number) => {
-      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
-      last = now;
-      advance(dt);
-      render();
-      frame = visible ? requestAnimationFrame(tick) : 0;
-    };
-    const observer = new IntersectionObserver(([entry]) => {
-      visible = Boolean(entry?.isIntersecting);
-      if (visible && !frame) {
-        last = 0;
-        frame = requestAnimationFrame(tick);
-      }
-    });
-    observer.observe(canvases[0]!);
-    return () => {
-      observer.disconnect();
-      cancelAnimationFrame(frame);
-    };
-  }, []);
-
-  return (
-    <div className="wm-swarm">
-      <figure>
-        <canvas ref={openRef} aria-hidden="true" />
-        <figcaption>{copy.open}</figcaption>
-      </figure>
-      <figure>
-        <canvas ref={namedRef} aria-hidden="true" />
-        <figcaption>{copy.named}</figcaption>
-      </figure>
-    </div>
-  );
-}
-
 // True once the element has been a third on screen. It stays true.
 function useSeen<T extends Element>() {
   const ref = useRef<T>(null);
@@ -375,7 +200,7 @@ export function LandingPage() {
       <section className="wm-section">
         <p className="wm-label">{LANDING.gate.label}</p>
         <h2 className="wm-h2">{LANDING.gate.title}</h2>
-        <Swarm />
+        <LandingSwarm />
         <p className="wm-caption">{LANDING.gate.caption}</p>
       </section>
     </div>
