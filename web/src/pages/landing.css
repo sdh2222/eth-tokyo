@@ -545,10 +545,12 @@ body:has(.wm-landing) {
   gap: 10px;
 }
 
-/* Partner marks sit at cap height beside the name, in their own brand colours. */
+/* Partner marks sit at cap height beside the name, in their own brand colours. The box is
+   square so the names line up whatever the mark's shape. */
 .wm-footer-logo {
-  width: auto;
+  width: 22px;
   height: 22px;
+  object-fit: contain;
 }
 
 .wm-footer-small {
