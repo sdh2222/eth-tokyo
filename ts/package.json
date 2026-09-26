@@ -24,6 +24,7 @@
     "oracle:walk": "tsx src/scripts/walk-oracle.ts",
     "bot": "tsx src/bot/index.ts",
     "keeper": "tsx src/bot/index.ts watch",
+    "api": "tsx src/bot/serve.ts",
     "demo": "tsx src/scripts/demo.ts",
     "e2e": "tsx src/dev/e2e.ts",
     "fixture": "tsx src/dev/fixture.ts",

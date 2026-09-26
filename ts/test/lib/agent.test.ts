@@ -13,6 +13,7 @@ import {
   parseLiveSpread,
   quoteFromRecords,
 } from "../../src/lib/book.js";
+import { dnsEncode } from "../../src/lib/encode.js";
 
 const resolver = "0x00000000000000000000000000000000000000a1" as const;
 const terms = { sellBps: 3, buyBps: 10, cap: 50n * 10n ** 18n };
@@ -32,7 +33,7 @@ describe("agent writes", () => {
   it("plans desk.spread and desk.stats for the agent to sign", () => {
     const writes = planAgentWrites({
       resolver,
-      name: "dao-treasury-a.eth",
+      name: "mm-a.clients.dao-treasury-a.eth",
       spread,
       terms,
       writtenAt: 1_700_000_000n,
@@ -68,6 +69,7 @@ describe("agent writes", () => {
       data: writes.stats.data,
     });
     expect(writes.spread.to).toBe(resolver);
+    expect(data.args[0]).toBe(dnsEncode("mm-a.clients.dao-treasury-a.eth"));
     expect(data.args[1]).toBe("desk.spread");
     expect(text.args[1]).toBe("desk.stats");
     expect(text.args[2]).toBe(
@@ -80,7 +82,7 @@ describe("agent writes", () => {
     expect(() =>
       planAgentWrites({
         resolver,
-        name: "dao-treasury-a.eth",
+        name: "mm-a.clients.dao-treasury-a.eth",
         spread: { ...spread, sellBps: 4 },
         terms,
         writtenAt: 1_700_000_000n,

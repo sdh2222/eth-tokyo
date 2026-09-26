@@ -43,7 +43,14 @@ export type DeskBook = {
   policy: string;
   quote: DeskQuote | null;
   agent: { name: string; addr: Address };
-  names: { name: string; addr: Address; expiry: bigint; live: boolean }[];
+  names: {
+    name: string;
+    addr: Address;
+    expiry: bigint;
+    live: boolean;
+    terms: AgentTerms | null;
+    spread: (AgentSpread & { live: boolean }) | null;
+  }[];
 };
 
 export type AgentWrite = {
@@ -92,13 +99,14 @@ export function encodeAgentSpread(s: AgentSpread): Hex {
 }
 
 /** Text for desk.stats. The screen reads this. The router does not. */
-export function encodeAgentStats(s: AgentStats): string {
+export function encodeAgentStats(s: AgentStats, note?: string): string {
   return JSON.stringify({
     version: 1,
     sellBps: s.sellBps,
     buyBps: s.buyBps,
     validUntil: Number(s.validUntil),
     writtenAt: Number(s.writtenAt),
+    ...(note ? { note } : {}),
   });
 }
 
@@ -115,7 +123,7 @@ export function agentSpreadFits(live: AgentSpread, terms: AgentTerms): boolean {
 
 /**
  * Unsigned resolver writes. The Safe's agent signs both. This function does not send them.
- * `name` is the desk name the records sit on.
+ * `name` is the counterparty name the records sit on.
  */
 export function planAgentWrites(a: {
   resolver: Address;
@@ -123,6 +131,7 @@ export function planAgentWrites(a: {
   spread: AgentSpread;
   terms: AgentTerms;
   writtenAt: bigint;
+  note?: string;
 }): { spread: AgentWrite; stats: AgentWrite } {
   if (!agentSpreadFits(a.spread, a.terms)) {
     throw new Error("agent spread is outside the Safe's widths");
@@ -131,7 +140,10 @@ export function planAgentWrites(a: {
     throw new Error("agent spread is already expired");
   }
   const dns = dnsEncode(a.name);
-  const stats = encodeAgentStats({ ...a.spread, writtenAt: a.writtenAt });
+  const stats = encodeAgentStats(
+    { ...a.spread, writtenAt: a.writtenAt },
+    a.note,
+  );
   return {
     spread: {
       to: a.resolver,
