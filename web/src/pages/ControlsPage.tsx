@@ -3,12 +3,11 @@ import { Link } from "react-router-dom";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
-import { useDeskPort, useDeskState, useLiveStrategy } from "../hooks/useDesk";
-import { formatHash, formatWeth } from "../lib/format";
+import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Card, Empty, Header, Metric, Metrics, Page, Status } from "../ui/v";
+import { Card, Empty, Header, Note, Page } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
-import { programLines } from "./ProgramPage";
 
 // Controls (IA: "What does it take to change or stop the desk?"). Vercel-style: Change (the
 // one primary) and Stop in the header, the metrics card, then the program and the checks, then
@@ -31,7 +30,6 @@ function closesIn(deadline: number, now: number): string {
 }
 
 export function ControlsPage() {
-  const port = useDeskPort();
   const live = useLiveStrategy();
   const strategy = live.data ?? null;
   const desk = useDeskState(strategy);
@@ -72,7 +70,6 @@ export function ControlsPage() {
   const agentAddr = book.data?.agent.addr;
   const oracleOk = agentAddr !== undefined && agentAddr.toLowerCase() !== ORACLE_OWNER.toLowerCase();
   const oneLive = strategy.warning !== "MULTIPLE_LIVE";
-  const lines = programLines(port, strategy);
 
   const rows: ChangeRow[] = [
     {
@@ -121,7 +118,12 @@ export function ControlsPage() {
     <Page>
       <Header
         title="Controls"
-        description={book.data?.name ?? "The desk"}
+        description={
+          <>
+            {`${book.data?.name ?? "The desk"} · closes ${closesIn(deadline, now)} · `}
+            <Link to="/program">See the program</Link>
+          </>
+        }
         actions={
           <>
             <Link className="v-btn" to={CHANGE_HREF}>
@@ -134,55 +136,11 @@ export function ControlsPage() {
         }
       />
 
-      <Card flush>
-        <Metrics>
-          <Metric label="Desk" value={<Status tone="green">Live</Status>} />
-          <Metric label="Closes" value={closesIn(deadline, now)} />
-          <Metric label="Shipped in block" value={strategy.shippedAt.block.toLocaleString("en-US")} />
-          <Metric
-            label="Strategy"
-            value={
-              <span className="v-mono" title={strategy.strategyHash}>
-                {formatHash(strategy.strategyHash)}
-              </span>
-            }
-          />
-        </Metrics>
-      </Card>
-
-      <div className="v-grid">
-        <Card
-          className="v-col-7"
-          title="Program"
-          actions={
-            <Link className="v-btn v-btn-secondary" to="/program">
-              See the program
-            </Link>
-          }
-        >
-          <ol className="v-stack v-stack-8">
-            {lines.map((line, index) => (
-              <li key={line}>
-                <span className="v-muted v-num">{`${index + 1}.`}</span> {line}
-              </li>
-            ))}
-          </ol>
-        </Card>
-
-        <Card className="v-col-5" title="Checks">
-          <div className="v-stack v-stack-24">
-            {checks.map((check) => (
-              <div key={check.id} className="v-stack v-stack-4">
-                <div className="v-row v-between">
-                  <span>{check.label}</span>
-                  <Status tone={check.ok ? "green" : "red"}>{check.ok ? "Passes" : "Fails"}</Status>
-                </div>
-                <span className="v-muted">{check.ok ? check.pass : check.fail}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      {checks
+        .filter((check) => !check.ok)
+        .map((check) => (
+          <Note key={check.id} tone="red">{`${check.label}: ${check.fail}`}</Note>
+        ))}
 
       <Card
         title="What changes how"

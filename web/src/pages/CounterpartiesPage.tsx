@@ -1,16 +1,14 @@
-import { Fragment, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import sepoliaConfig from "@config";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useImperativeAlertDialog } from "@astryxdesign/core/AlertDialog";
 import { formatUnits } from "viem";
-import { formatWadUsd, nameQuote, shortName, type AgentWrite, type DeskBook, type NameQuote } from "../desk/book";
+import { nameQuote, shortName, type DeskBook, type NameQuote } from "../desk/book";
 import { CLIENT_SUFFIX } from "../ens/names";
-import { useAgentWrites, writeFor } from "../hooks/useAgentWrites";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
-import { formatAddr, formatHash, formatWeth } from "../lib/format";
-import { formatWhen } from "../lib/time";
-import { Badge, Card, Dl, Empty, Header, Metric, Metrics, Page, Status, type Tone } from "../ui/v";
+import { useLiveStrategy } from "../hooks/useDesk";
+import { formatAddr, formatWeth } from "../lib/format";
+import { Badge, Card, Empty, Header, Page, type Tone } from "../ui/v";
+import { DotSlider } from "../ui/slider";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Counterparties (IA: "Who can trade with my desk, and on what terms?"). Main's flow (PR #34):
@@ -20,11 +18,10 @@ import { SafeDialog } from "./open/SafeDialog";
 // Cut off shows one confirm sentence first (SC-05).
 
 const SAFE_WALLET = "Safe{Wallet}";
-const COLUMNS = 8;
 
-type NameStatus = "Live" | "Expired" | "Cut off";
+type NameStatus = "Live" | "Ready" | "Expired" | "Cut off";
 
-const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Expired: "red", "Cut off": "gray" };
+const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Ready: "gray", Expired: "red", "Cut off": "gray" };
 
 type Terms = DeskBook["names"][number]["terms"];
 type Spread = DeskBook["names"][number]["spread"];
@@ -44,18 +41,20 @@ type NameRow = {
 type Draft = { sell: string; buy: string; cap: string };
 type Proposal = { isOpen: boolean; title: string; description: string };
 
-// Widths as ask / bid around the mid, e.g. "+3 / −10 bp".
+// Widths as bid / ask around the mid, e.g. "−10 / +3 bp" (the Dashboard's order).
 function widths(sellBps: number, buyBps: number): string {
-  return `+${sellBps} / −${buyBps} bp`;
+  return `−${buyBps} / +${sellBps} bp`;
 }
 
-function toRows(book: DeskBook, now: number): NameRow[] {
+// With no desk open a name that passes the gate is Ready, not Live: nothing can fill yet.
+function toRows(book: DeskBook, now: number, deskOpen: boolean): NameRow[] {
   return book.names.map((entry) => {
     const expiry = Number(entry.expiry);
     const expired = expiry > 0 && expiry <= now;
-    const status: NameStatus = expired ? "Expired" : entry.live ? "Live" : "Cut off";
+    const status: NameStatus = expired ? "Expired" : !entry.live ? "Cut off" : deskOpen ? "Live" : "Ready";
     let reason = "Its address is the wallet, it has terms, and it has not expired.";
-    if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
+    if (status === "Ready") reason = "It passes the gate and can fill once a desk is open.";
+    else if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
     else if (status === "Cut off" && !entry.terms) reason = "The name has no valid desk.terms.";
     else if (status === "Cut off") reason = "Its address or resolver does not pass the gate.";
     return {
@@ -95,8 +94,7 @@ function Expiry({ seconds }: { seconds: number }) {
 
 function TermsEditor({
   row,
-  write,
-  now,
+  saved,
   draft,
   onDraft,
   onSave,
@@ -104,8 +102,7 @@ function TermsEditor({
   onCutOff,
 }: {
   row: NameRow;
-  write: AgentWrite | undefined;
-  now: number;
+  saved: Draft;
   draft: Draft;
   onDraft: (draft: Draft) => void;
   onSave: () => void;
@@ -114,94 +111,60 @@ function TermsEditor({
 }) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isDraftValid(draft)) onSave();
+    if (isDraftValid(draft) && !unchanged) onSave();
   }
+
+  const unchanged = draft.sell === saved.sell && draft.buy === saved.buy && Number(draft.cap) === Number(saved.cap);
 
   return (
     <div className="v-stack v-stack-24">
-      <div className="v-grid">
-        <div className="v-col-6">
-          <Dl
-            items={[
-              ["ENS name", row.name],
-              ["Can trade", row.reason],
-              ["Address", <span className="v-mono">{formatAddr(row.addr)}</span>],
-              ["Expires", <Expiry seconds={row.expiry} />],
-            ]}
-          />
-        </div>
-        <div className="v-col-6">
-          <Dl
-            items={[
-              ["Agent's last write", write ? formatWhen(write.writtenAt, now) : "No write yet"],
-              ...(write?.tier ? ([["Tier", write.tier]] as const) : []),
-              ...(write?.note ? ([["Note", write.note]] as const) : []),
-              ...(write?.fillTx
-                ? ([
-                    [
-                      "After fill",
-                      <Link className="v-mono" to={`/fills/${write.fillTx}`}>
-                        {formatHash(write.fillTx)}
-                      </Link>,
-                    ],
-                  ] as const)
-                : []),
-            ]}
-          />
-        </div>
-      </div>
-
-      <details className="v-details">
-        <summary>Show raw</summary>
-        <div className="v-code">
-          <div>{`addr ${row.addr}`}</div>
-          <div>{`expiry ${row.expiry > 0 ? String(row.expiry) : "none"}`}</div>
-        </div>
-      </details>
+      <p className="v-muted">
+        <span className="v-mono">{formatAddr(row.addr)}</span>
+        {" · expires "}
+        <Expiry seconds={row.expiry} />
+        {row.status === "Live" ? "" : ` · ${row.reason}`}
+      </p>
 
       <form className="v-stack" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
-        <div className="v-row">
-          <label className="v-field">
-            <span>Sell width (bp)</span>
-            <input
-              className="v-input"
-              type="number"
-              inputMode="numeric"
-              min={0}
+        <div className="v-grid">
+          <div className="v-col-4">
+            <DotSlider
+              label="Bid width"
+              value={Number(draft.buy) || 0}
+              min={1}
+              max={25}
               step={1}
-              value={draft.sell}
-              onChange={(event) => onDraft({ ...draft, sell: event.target.value })}
+              display={`−${Number(draft.buy) || 0} bp`}
+              onChange={(next) => onDraft({ ...draft, buy: String(next) })}
             />
-          </label>
-          <label className="v-field">
-            <span>Buy width (bp)</span>
-            <input
-              className="v-input"
-              type="number"
-              inputMode="numeric"
-              min={0}
+          </div>
+          <div className="v-col-4">
+            <DotSlider
+              label="Ask width"
+              value={Number(draft.sell) || 0}
+              min={1}
+              max={25}
               step={1}
-              value={draft.buy}
-              onChange={(event) => onDraft({ ...draft, buy: event.target.value })}
+              display={`+${Number(draft.sell) || 0} bp`}
+              onChange={(next) => onDraft({ ...draft, sell: String(next) })}
             />
-          </label>
-          <label className="v-field">
-            <span>Cap per fill (WETH)</span>
-            <input
-              className="v-input"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
-              value={draft.cap}
-              onChange={(event) => onDraft({ ...draft, cap: event.target.value })}
+          </div>
+          <div className="v-col-4">
+            <DotSlider
+              label="Cap per fill"
+              value={Number(draft.cap) || 0}
+              min={1}
+              max={100}
+              step={1}
+              display={`${Number(draft.cap) || 0} WETH`}
+              onChange={(next) => onDraft({ ...draft, cap: String(next) })}
             />
-          </label>
+          </div>
         </div>
         <div className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</div>
         <div className="v-row v-between">
           <div className="v-row v-row-8">
-            <button type="submit" className="v-btn" disabled={!isDraftValid(draft)}>
+            <button type="submit" className="v-btn" disabled={!isDraftValid(draft) || unchanged}>
               Save terms
             </button>
             <button type="button" className="v-btn v-btn-tertiary" onClick={onCancel}>
@@ -220,11 +183,21 @@ function TermsEditor({
 export function CounterpartiesPage() {
   const book = useBook();
   const now = useClock();
-  const writes = useAgentWrites();
+  const strategy = useLiveStrategy();
   const alert = useImperativeAlertDialog();
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ sell: "", buy: "", cap: "" });
   const [proposal, setProposal] = useState<Proposal>({ isOpen: false, title: "", description: "" });
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // The editor is a card under the table, so on a phone it can sit below the fold: bring it
+  // into view and put focus on its first control when a name opens.
+  useEffect(() => {
+    if (openId === null) return;
+    const editor = editorRef.current;
+    editor?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    editor?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  }, [openId]);
 
   function toggle(row: NameRow) {
     if (openId === row.id) {
@@ -239,7 +212,7 @@ export function CounterpartiesPage() {
     setProposal({
       isOpen: true,
       title: "Edit terms",
-      description: `New terms for ${row.name}: sell ${draft.sell.trim()} bp · buy ${draft.buy.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
+      description: `New terms for ${row.name}: bid −${draft.buy.trim()} bp · ask +${draft.sell.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
     });
   }
 
@@ -270,23 +243,13 @@ export function CounterpartiesPage() {
   }
 
   const b = book.data;
-  const rows = toRows(b, now);
-  const liveCount = rows.filter((row) => row.status === "Live").length;
-  const agentCount = rows.filter((row) => row.status === "Live" && row.quote?.source === "agent").length;
-  const fence = b.terms;
+  const noDesk = !strategy.isLoading && !strategy.data;
+  const rows = toRows(b, now, !noDesk);
+  const openRow = rows.find((row) => row.id === openId) ?? null;
 
   return (
     <Page>
       <Header title="Counterparties" description={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
-
-      <Card flush>
-        <Metrics>
-          <Metric label="Can trade" value={`${liveCount} of ${rows.length}`} hint="Names that pass the gate now." />
-          <Metric label="Names on an agent spread" value={`${agentCount} of ${rows.length}`} />
-          <Metric label="Terms fence" value={fence ? widths(fence.sellBps, fence.buyBps) : "—"} hint={fence ? undefined : "No terms"} />
-          <Metric label="Cap per fill" value={fence ? formatWeth(fence.cap) : "—"} />
-        </Metrics>
-      </Card>
 
       <Card title="Client names" flush footer={<span>Adding a counterparty is an ENS change made by the Safe.</span>}>
         {rows.length === 0 ? (
@@ -300,9 +263,7 @@ export function CounterpartiesPage() {
                   <th>Status</th>
                   <th>Terms</th>
                   <th>Widths now</th>
-                  <th className="v-right">Bid</th>
-                  <th className="v-right">Ask</th>
-                  <th>Valid until</th>
+                  <th>Expires</th>
                   <th className="v-right">
                     <span className="v-sr">Edit</span>
                   </th>
@@ -311,61 +272,44 @@ export function CounterpartiesPage() {
               <tbody>
                 {rows.map((row) => {
                   const isOpen = openId === row.id;
-                  const panelId = `terms-${row.id.replace(/\./g, "-")}`;
                   const q = row.status === "Live" ? row.quote : null;
                   return (
-                    <Fragment key={row.id}>
-                      <tr>
-                        <td>{shortName(row.name)}</td>
-                        <td>
-                          <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
-                        </td>
-                        <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
-                        <td>
-                          {q ? (
-                            <span className="v-row v-row-8">
-                              <span>{widths(q.sellBps, q.buyBps)}</span>
-                              {q.source === "agent" ? <Badge tone="blue">Agent spread</Badge> : <Badge>Terms</Badge>}
-                            </span>
-                          ) : (
-                            <span className="v-muted">—</span>
-                          )}
-                        </td>
-                        <td className="v-right">{q ? `$${formatWadUsd(q.bid)}` : "—"}</td>
-                        <td className="v-right">{q ? `$${formatWadUsd(q.ask)}` : "—"}</td>
-                        <td className={row.spread?.live ? undefined : "v-muted"}>
-                          {row.spread ? formatWhen(Number(row.spread.validUntil), now) : "—"}
-                        </td>
-                        <td className="v-right">
-                          <button
-                            type="button"
-                            className="v-btn v-btn-secondary"
-                            aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
-                            aria-expanded={isOpen}
-                            aria-controls={isOpen ? panelId : undefined}
-                            onClick={() => toggle(row)}
-                          >
-                            {isOpen ? "Close" : "Edit"}
-                          </button>
-                        </td>
-                      </tr>
-                      {isOpen ? (
-                        <tr id={panelId}>
-                          <td className="v-expand" colSpan={COLUMNS}>
-                            <TermsEditor
-                              row={row}
-                              write={writeFor(writes.data, row.name)}
-                              now={now}
-                              draft={draft}
-                              onDraft={setDraft}
-                              onSave={() => saveTerms(row)}
-                              onCancel={() => setOpenId(null)}
-                              onCutOff={() => cutOff(row)}
-                            />
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
+                    <tr key={row.id} data-active={isOpen}>
+                      <td>
+                        <button type="button" className="v-link" aria-expanded={isOpen} aria-controls={isOpen ? "terms-editor" : undefined} onClick={() => toggle(row)}>
+                          {shortName(row.name)}
+                        </button>
+                      </td>
+                      <td>
+                        <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
+                      </td>
+                      <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
+                      <td>
+                        {q ? (
+                          <>
+                            {widths(q.sellBps, q.buyBps)}
+                            {q.source === "terms" ? <span className="v-muted"> · terms</span> : null}
+                          </>
+                        ) : (
+                          <span className="v-muted">—</span>
+                        )}
+                      </td>
+                      <td className="v-muted">
+                        <Expiry seconds={row.expiry} />
+                      </td>
+                      <td className="v-right">
+                        <button
+                          type="button"
+                          className="v-btn v-btn-secondary"
+                          aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
+                          aria-expanded={isOpen}
+                          aria-controls={isOpen ? "terms-editor" : undefined}
+                          onClick={() => toggle(row)}
+                        >
+                          {isOpen ? "Close" : "Edit"}
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -374,21 +318,21 @@ export function CounterpartiesPage() {
         )}
       </Card>
 
-      <Card title="How the gate checks a name">
-        <Dl
-          items={[
-            [<Status>Address</Status>, "Must match the wallet that signs the fill."],
-            [<Status>Expiry</Status>, "The name must not be expired."],
-            [
-              <Status>Resolver</Status>,
-              <>
-                {"Must be the desk's resolver, "}
-                <span className="v-mono">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
-              </>,
-            ],
-          ]}
-        />
-      </Card>
+      {openRow ? (
+        <div ref={editorRef} id="terms-editor">
+          <Card title={`Terms for ${shortName(openRow.name)}`}>
+            <TermsEditor
+              row={openRow}
+              saved={draftFrom(openRow.terms)}
+              draft={draft}
+              onDraft={setDraft}
+              onSave={() => saveTerms(openRow)}
+              onCancel={() => setOpenId(null)}
+              onCutOff={() => cutOff(openRow)}
+            />
+          </Card>
+        </div>
+      ) : null}
 
       <SafeDialog
         isOpen={proposal.isOpen}
