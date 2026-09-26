@@ -2,7 +2,7 @@ import type { DeskConfig } from "./config.js";
 
 const WAD = 10n ** 18n;
 
-/** Ask and bid on the oracle. Inventory does not scale the widths. */
+/** Ask and bid on the oracle. Inventory does not move the mid. */
 export function widthQuotes(
   pWad: bigint,
   _wWad: bigint,
