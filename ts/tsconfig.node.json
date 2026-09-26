@@ -1,8 +1,8 @@
 {
-  // Node-side code only: scripts, bot and dev may use Node APIs.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    "lib": ["es2022"]
   },
   "include": ["src/scripts", "src/bot", "src/dev"]
 }

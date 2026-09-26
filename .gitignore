@@ -3,6 +3,7 @@
 !.env.example
 node_modules/
 dist/
+api/data/
 contracts/out/
 contracts/cache/
 ts/dist/
@@ -10,3 +11,6 @@ ts/dist/
 *.pem
 *.key
 credentials.json
+# Klim test fonts. Local mockup only. Do not commit or distribute.
+web/public/fonts/compare/die-grotesk-*.woff2
+web/public/fonts/compare/klim/

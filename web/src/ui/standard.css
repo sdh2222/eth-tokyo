@@ -1,0 +1,332 @@
+/* The app standard: the Landing (claude/relaxed-gauss-w2ckxo, web/src/pages/landing.css)
+   taken as is. One app page is one Landing section: a mono label, one question or statement,
+   a row table, and a closing statement. Every value below is a Landing value; the few app
+   additions (danger button, status dot, input, choice, data table) are marked. Classes are
+   `wl-` so they never meet the Landing's own `wm-`. Imported into the `app` layer. */
+
+.wl-page {
+  --wl-ink: #111111;
+  --wl-white: #ffffff;
+  --wl-water: #0080bc;
+  --wl-strong: #0077af;
+  --wl-dot: #6ec1ea;
+  --wl-off: #d9d9d9;
+  --wl-rule: #e5e5e5;
+  --wl-mono: "LisaTerminal Paper", "Courier New", monospace;
+  /* The dither cells (web/src/ui/cells.tsx) read these. */
+  --wk-ink: var(--wl-ink);
+  --wk-dot: var(--wl-dot);
+  --wk-off: var(--wl-off);
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 0 96px;
+  color: var(--wl-ink);
+  font-family: "Die Grotesk C", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.wl-page p,
+.wl-page h1,
+.wl-page h2,
+.wl-page h3,
+.wl-page figure,
+.wl-page dl,
+.wl-page dd,
+.wl-page ul,
+.wl-page ol {
+  margin: 0;
+  font-family: inherit;
+}
+
+/* A Landing section. Sections on one page are 120 px apart (the Landing's section top). */
+.wl-section + .wl-section {
+  margin-top: 120px;
+}
+
+/* The mono label over the question (Landing .wm-label). Scoped under .wl-page so the reset's
+   p face does not win (the Landing uses !important for the same reason). */
+.wl-page .wl-label {
+  margin: 0 0 16px;
+  color: var(--wl-strong);
+  font-family: var(--wl-mono);
+  font-size: 16px;
+}
+
+/* The question or statement (Landing .wm-h2): the page's L1. */
+.wl-h2 {
+  max-width: 17em;
+  font-size: clamp(40px, 4.6vw, 64px);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+/* The row table (Landing .wm-compare / .wm-row): 72 px under the question. */
+.wl-rows {
+  margin-top: 72px;
+}
+
+.wl-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 1fr;
+  gap: 48px;
+  align-items: start;
+  padding: 24px 0;
+  border-top: 1px solid var(--wl-rule);
+}
+
+.wl-row-1 {
+  grid-template-columns: 220px 1fr;
+}
+
+.wl-row-head {
+  padding: 16px 0;
+  border-top: 1px solid var(--wl-ink);
+}
+
+.wl-row-label {
+  padding-top: 6px;
+  opacity: 0.6;
+}
+
+.wl-page .wl-panel-label {
+  font-family: var(--wl-mono);
+}
+
+.wl-value {
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.wl-ours {
+  color: var(--wl-strong);
+}
+
+/* A picture over its caption (Landing .wm-figure). */
+.wl-figure > figcaption {
+  margin-top: 12px;
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+/* The closing statement (Landing .wm-leak). */
+.wl-page .wl-statement {
+  max-width: 20em;
+  margin: 48px 0 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--wl-ink);
+  font-size: clamp(32px, 3.4vw, 48px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+/* A caption line (Landing .wm-caption). */
+.wl-page .wl-caption {
+  margin: 32px 0 0;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Actions (Landing .wm-actions, .wm-button, .wm-link). */
+.wl-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.wl-button {
+  border: 0;
+  border-radius: 0;
+  padding: 12px 16px;
+  background: var(--wl-ink);
+  color: var(--wl-white);
+  font: inherit;
+  font-size: 16px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.wl-button:hover {
+  background: var(--wl-strong);
+}
+
+.wl-button:disabled {
+  background: rgba(17, 17, 17, 0.28);
+  cursor: not-allowed;
+}
+
+/* App addition: the one destructive action (Stop the desk, Cut off). */
+.wl-button-danger,
+.wl-button-danger:hover {
+  background: var(--wl-white);
+  color: #e03131;
+  box-shadow: inset 0 0 0 1px #e03131;
+}
+
+.wl-link,
+.wl-page a {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--wl-ink);
+  font: inherit;
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.wl-page a.wl-button {
+  color: var(--wl-white);
+  text-decoration: none;
+}
+
+.wl-link:hover,
+.wl-page a:not(.wl-button):hover {
+  color: var(--wl-strong);
+}
+
+.wl-page a:focus-visible,
+.wl-button:focus-visible,
+.wl-link:focus-visible,
+.wl-choice:focus-visible,
+.wl-input:focus-visible {
+  outline: 2px solid var(--wl-ink);
+  outline-offset: 3px;
+}
+
+.wl-page .wl-mono {
+  font-family: var(--wl-mono);
+}
+
+.wl-quiet {
+  opacity: 0.6;
+}
+
+/* App addition: a status is a dot and a word, never colour alone. */
+.wl-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wl-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--wl-off);
+}
+
+.wl-status[data-tone="good"]::before { background: #2f9e44; }
+.wl-status[data-tone="warn"]::before { background: #f08c00; }
+.wl-status[data-tone="bad"]::before { background: #e03131; }
+
+/* App addition: a list table, in the row table's rules (ink head rule, mono head labels,
+   gray row rules, 24 px rows). */
+.wl-table-wrap {
+  position: relative;
+  overflow-x: auto;
+}
+
+.wl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.wl-table th {
+  padding: 16px 24px 16px 0;
+  border-top: 1px solid var(--wl-ink);
+  font-family: var(--wl-mono);
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.wl-table td {
+  padding: 24px 24px 24px 0;
+  border-top: 1px solid var(--wl-rule);
+  vertical-align: top;
+}
+
+.wl-table th:last-child,
+.wl-table td:last-child {
+  padding-right: 0;
+}
+
+.wl-table .wl-right {
+  text-align: right;
+}
+
+/* App addition: inputs and choices, in the same ink and rules. */
+.wl-input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--wl-ink);
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 0;
+  color: var(--wl-ink);
+  font: inherit;
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.wl-choices {
+  display: flex;
+  gap: 24px;
+}
+
+.wl-choice {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--wl-ink);
+  font: inherit;
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  opacity: 0.3;
+  cursor: pointer;
+}
+
+.wl-choice[aria-checked="true"] {
+  opacity: 1;
+}
+
+.wl-swatch {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  margin-right: 12px;
+}
+
+@media (max-width: 900px) {
+  .wl-row,
+  .wl-row-1 {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+  }
+
+  .wl-row-label,
+  .wl-row-head > :first-child {
+    grid-column: 1 / -1;
+  }
+}

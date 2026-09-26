@@ -208,6 +208,14 @@ const rows: Record<string, Omit<DeskError, "code" | "args">> = {
 const abi = [
   {
     type: "error",
+    name: "DeskPriceOracleStale",
+    inputs: [
+      { name: "updatedAt", type: "uint256" },
+      { name: "maxAge", type: "uint256" },
+    ],
+  },
+  {
+    type: "error",
     name: "EnsGateTakerMismatch",
     inputs: [
       { name: "expected", type: "address" },

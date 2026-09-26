@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: desk-api
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DESK_WATCH
+        value: "1"
