@@ -1,0 +1,12 @@
+---
+description: Use each Astryx component page as written, and stay current with this repo's latest pull request
+alwaysApply: true
+---
+
+# Astryx pages
+
+Before placing any `@astryxdesign/core` component, open its page and follow it. The page is the spec.
+
+- Docs: `https://astryx.atmeta.com/components/<Name>`. Each page has a Do list, a Don't list, and example code. Use those. Do not invent a prop, a layout, or a visual treatment the page does not show.
+- Library source to read: [facebook/astryx](https://github.com/facebook/astryx). Do and Don't live in `packages/core/src/<Component>/<Component>.doc.mjs` (`guidance: true` is Do, `guidance: false` is Don't). Examples live in `apps/storybook/stories/`. Do not treat that repository's pull requests as this product's state.
+- Product state: the latest pull request on [sdh2222/eth-tokyo](https://github.com/sdh2222/eth-tokyo/pulls). Read it before a screen change. The catalog and the last check are in `docs/design/astryx.md`.
