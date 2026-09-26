@@ -8,6 +8,7 @@ import { useClock } from "../hooks/useClock";
 import { useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr } from "../lib/format";
 import { formatWhen } from "../lib/time";
+import { widthsFor } from "@desk/counterparty";
 import { readPolicy } from "../desk/policy";
 import { Badge, Card, Dl, Empty, Header, Page, Status, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
@@ -20,6 +21,16 @@ import { SafeDialog } from "./open/SafeDialog";
 
 // The keeper's note in words. The note reads "markout 2bp repeat 12 sizeUp true cut 1"
 // (ts/src/lib/counterparty.ts signNote); anything else is shown as written.
+// The size tiers in the keeper (localTier: up to 1 ETH tight, up to 10 ETH standard, else the
+// fence); their widths come from its widthsFor, so the table cannot drift from the code. The
+// keeper (ts/src/bot/react.ts) asks Jev for the tier and keeps Jev's pick at confidence 0.6 or
+// more (chooseTier), and writes each spread valid for 600 s.
+const TIERS: [string, "tight" | "standard" | "fence"][] = [
+  ["Fill up to 1 ETH", "tight"],
+  ["Fill up to 10 ETH", "standard"],
+  ["Larger fill", "fence"],
+];
+
 // Amber when the agent widened for a warning sign, green when it saw none.
 function humanWhy(write: AgentWrite): { text: string; tone?: Tone } {
   const size = write.tier === "tight" ? "Small fill" : write.tier === "standard" ? "Mid-size fill" : write.tier ? "Large fill" : "";
@@ -237,7 +248,7 @@ export function AgentPage() {
           className="v-col-7"
           title="Rules"
           flush
-          footer="Rewritten after each fill, for that counterparty only. Valid 10 minutes, always inside its terms."
+          footer="Jev picks the size tier when it is at least 60% sure, else the size rule does. Rewritten after each fill for that counterparty only, valid 10 minutes, always inside its terms."
         >
           <div className="v-table-wrap">
             <table className="v-table">
@@ -248,18 +259,15 @@ export function AgentPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>Fill up to 1 ETH</td>
-                  <td className="v-right">−4 / +1 bp</td>
-                </tr>
-                <tr>
-                  <td>Fill up to 10 ETH</td>
-                  <td className="v-right">−8 / +2 bp</td>
-                </tr>
-                <tr>
-                  <td>Larger fill</td>
-                  <td className="v-right">Its terms</td>
-                </tr>
+                {TIERS.map(([when, tier]) => {
+                  const w = widthsFor(tier);
+                  return (
+                    <tr key={tier}>
+                      <td>{when}</td>
+                      <td className="v-right">{`−${w.buyBps} / +${w.sellBps} bp`}</td>
+                    </tr>
+                  );
+                })}
                 {reading.lines.map(([when, then], index) => {
                   const isNow = reading.step !== null && ((index === 0 && above) || (index === 1 && below));
                   return (

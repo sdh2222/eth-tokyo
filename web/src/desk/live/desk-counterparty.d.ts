@@ -12,6 +12,7 @@ declare module "@desk/counterparty" {
   export function inventoryStep(policy: string): InventoryStep | null;
   export function suspicionStep(policy: string): SuspicionRule | null;
   export function localTier(facts: { live: boolean; sizeWeth: bigint }): Tier;
+  export function widthsFor(tier: Tier): { sellBps: number; buyBps: number };
   export function suspicionCut(policy: string, signs: FillSigns): number;
   export function signNote(signs: FillSigns, cutBps: number): string;
   export function spreadFor(

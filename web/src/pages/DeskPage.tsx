@@ -9,11 +9,11 @@ import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
 import { Badge, Card, Empty, Header, Metric, Metrics, Page, Status } from "../ui/v";
+import { PRICE_WINDOW_SECONDS } from "../desk/window";
 
 // Dashboard: is the desk live, what does each counterparty pay now, what is in the Safe,
 // and what just traded. Numbers only; how the agent sets widths is on the Risk agent page.
 
-const WINDOW_SECONDS = 600;
 
 function FillRow({ fill, now }: { fill: FillRecord; now: number }) {
   return (
@@ -71,7 +71,7 @@ export function DeskPage() {
   }
 
   const updatedAt = Number(b.oracle.updatedAt);
-  const windowLeft = updatedAt > now ? 0 : updatedAt + WINDOW_SECONDS - now;
+  const windowLeft = updatedAt > now ? 0 : updatedAt + PRICE_WINDOW_SECONDS - now;
   const midWad = b.oracle.answer * 10n ** 10n;
   const weth = desk.data?.safeWallet.weth;
   const usdc = desk.data?.safeWallet.usdc;

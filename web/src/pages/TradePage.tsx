@@ -27,6 +27,7 @@ import { useQuote } from "../hooks/useQuote";
 import { DotSlider } from "../ui/slider";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
 import { Badge, Card, Dl, Empty, Header, Note, Page, Status, type Tone } from "../ui/v";
+import { PRICE_WINDOW_SECONDS } from "../desk/window";
 
 // Trade (IA: "Can I trade now, at what price, and how much?"). Vercel-style: the header says
 // who trades and whether they can, a refusal is one Note above the grid, then the Order card
@@ -38,7 +39,6 @@ type Refusal = { title: string; hint: string };
 type Action = { label: string; run: () => void };
 
 const MODE_LIVE = import.meta.env.VITE_DESK_MODE === "live";
-const WINDOW_SECONDS = 600;
 const ZERO = "0x0000000000000000000000000000000000000000";
 const SOURCE_LABEL: Record<NonNullable<DeskBook["quote"]>["source"], string> = {
   spread: "Agent spread",
@@ -144,7 +144,7 @@ export function TradePage() {
 
   const b = book.data;
   const updatedAt = Number(b.oracle.updatedAt);
-  const windowLeft = updatedAt > now ? 0 : updatedAt + WINDOW_SECONDS - now;
+  const windowLeft = updatedAt > now ? 0 : updatedAt + PRICE_WINDOW_SECONDS - now;
   const entry = address
     ? b.names.find((name) => name.addr.toLowerCase() === address.toLowerCase() || name.name === label)
     : undefined;
