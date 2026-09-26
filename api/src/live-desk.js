@@ -17,10 +17,11 @@ function str(value) {
 export async function liveSnapshot() {
   const cfg = loadConfig(configPath());
   const client = createPublicClient({ chain: sepolia, transport: http(RPC) });
-  const { findLiveStrategy } = await import("../../ts/src/lib/client/strategies.ts");
+  const { findStrategies } = await import("../../ts/src/lib/client/strategies.ts");
   const { readDeskState } = await import("../../ts/src/lib/client/state.ts");
   const { readFills } = await import("../../ts/src/lib/client/fills.ts");
-  const strategy = await findLiveStrategy({ client, cfg });
+  const found = await findStrategies({ client, cfg });
+  const strategy = found.filter((row) => row.live).at(-1) ?? found.at(-1) ?? null;
   if (!strategy) return { strategy: null, state: null, fills: [] };
   const state = await readDeskState({ client, cfg }, strategy);
   const fills = await readFills({ client, cfg }, strategy);

@@ -1,6 +1,6 @@
 import type { DeskState, FillRecord, StrategyInfo } from "./types";
 
-const API = "http://127.0.0.1:8787";
+const API = "https://desk-api-latest.onrender.com";
 
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API}${path}`);
@@ -9,7 +9,7 @@ async function getJson<T>(path: string): Promise<T> {
       code: "NO_CONFIG",
       args: {},
       title: "Desk API is not running",
-      hint: "Start the API on 127.0.0.1:8787.",
+      hint: "The desk API did not respond.",
       severity: "config" as const,
     };
   }

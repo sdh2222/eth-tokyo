@@ -173,7 +173,7 @@ export function createLivePort(): DeskPort {
     },
     async quoteFor(_ctx, _strategy, q) {
       try {
-        const response = await fetch("http://127.0.0.1:8787/v1/quote", {
+        const response = await fetch("https://desk-api-latest.onrender.com/v1/quote", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
