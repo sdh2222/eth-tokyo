@@ -116,7 +116,8 @@ export function VerifyPage() {
             <Window title="Recompute" meta={`${steps.length} steps`}>
               {steps.map((step, index) => (
                 <div key={`${index}:${step.label}`} className="wm-window-line">
-                  <span>{`${index + 1}. ${step.label}: ${step.formula} = ${step.value}`}</span>
+                  <span>{`${index + 1}. ${step.label}`}</span>
+                  <span>{`${step.formula} = ${step.value}`}</span>
                 </div>
               ))}
             </Window>
@@ -164,7 +165,8 @@ export function VerifyPage() {
               <Window title="Fill event">
                 {rawEvent(fill).map(([key, value]) => (
                   <div key={key} className="wm-window-line">
-                    <span>{`${key}: ${value}`}</span>
+                    <span>{key}</span>
+                    <span>{value}</span>
                   </div>
                 ))}
               </Window>

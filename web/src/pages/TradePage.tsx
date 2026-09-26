@@ -254,7 +254,7 @@ export function TradePage() {
                 }}
               />
               {!parsed.ok && parsed.reason === "decimals" ? (
-                <span className="wm-note" role="alert">
+                <span className="wm-error" role="alert">
                   {TOO_MANY_DECIMALS}
                 </span>
               ) : null}
