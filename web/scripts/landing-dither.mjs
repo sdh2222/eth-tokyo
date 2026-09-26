@@ -6,8 +6,13 @@
 //            (a folder of numbered PNG frames, for example from `ffmpeg -i clip.mp4 frames/%03d.png`,
 //            becomes one looping animated PNG)
 //
-// Options: --width=1600 (CSS px) --dot=2 (CSS px per dot) --method=atkinson|bayer|stipple
-//          --color=#6ec1ea --gamma=1 --contrast=1 --fps=8 --invert (dots for light instead of dark)
+// Options: --width=1600 (CSS px) --dot=2 (CSS px per dot) --method=atkinson|bayer|stipple|blue
+//          --color=#6ec1ea --gamma=1 --contrast=1 --floor=0 --fps=8 --invert (dots for light instead of dark)
+//
+// For frames, use a fixed threshold (blue, bayer or stipple). Atkinson carries error from dot
+// to dot, so a small change anywhere reshuffles the dots everywhere and the picture boils.
+// --floor clears coverage under that value to white, which keeps the clean cloud edges that
+// Atkinson gives without its flicker.
 
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -33,6 +38,7 @@ const GAMMA = Number(args.gamma ?? 1);
 const CONTRAST = Number(args.contrast ?? 1);
 const FPS = Number(args.fps ?? 8);
 const INVERT = args.invert === "true";
+const FLOOR = Number(args.floor ?? 0);
 
 function hexToRgb(hex) {
   const n = Number.parseInt(hex.replace("#", ""), 16);
@@ -123,7 +129,8 @@ function toCoverage({ width, height, lum }, cols, rows) {
       let v = sum / ((y1 - y0) * (x1 - x0));
       v = INVERT ? v : 1 - v;
       v = Math.min(1, Math.max(0, (v - 0.5) * CONTRAST + 0.5));
-      out[y * cols + x] = v ** GAMMA;
+      v = v ** GAMMA;
+      out[y * cols + x] = v < FLOOR ? 0 : v;
     }
   }
   return out;
@@ -198,7 +205,95 @@ function stipple(cov, cols, rows) {
   return bits;
 }
 
-const METHODS = { atkinson, bayer, stipple };
+// Void-and-cluster blue noise: an even scatter with no visible grid or diagonal.
+function blueNoiseMask(size, sigma) {
+  const count = size * size;
+  const kernel = new Float64Array(count);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = Math.min(x, size - x);
+      const dy = Math.min(y, size - y);
+      kernel[y * size + x] = Math.exp(-(dx * dx + dy * dy) / (2 * sigma * sigma));
+    }
+  }
+  const energy = new Float64Array(count);
+  const on = new Uint8Array(count);
+  const toggle = (i, sign) => {
+    const px = i % size;
+    const py = (i / size) | 0;
+    for (let y = 0; y < size; y += 1) {
+      const ky = ((y - py + size) % size) * size;
+      for (let x = 0; x < size; x += 1) energy[y * size + x] += sign * kernel[ky + ((x - px + size) % size)];
+    }
+  };
+  const extreme = (wantOn, pickMax) => {
+    let best = -1;
+    let bestE = pickMax ? -Infinity : Infinity;
+    for (let i = 0; i < count; i += 1) {
+      if (on[i] !== wantOn) continue;
+      if (pickMax ? energy[i] > bestE : energy[i] < bestE) {
+        bestE = energy[i];
+        best = i;
+      }
+    }
+    return best;
+  };
+  let seed = 7;
+  const rand = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const initial = Math.floor(count / 10);
+  for (let placed = 0; placed < initial; ) {
+    const i = Math.floor(rand() * count);
+    if (on[i]) continue;
+    on[i] = 1;
+    toggle(i, 1);
+    placed += 1;
+  }
+  for (;;) {
+    const cluster = extreme(1, true);
+    on[cluster] = 0;
+    toggle(cluster, -1);
+    const gap = extreme(0, false);
+    on[gap] = 1;
+    toggle(gap, 1);
+    if (gap === cluster) break;
+  }
+  const rank = new Float32Array(count);
+  const start = Uint8Array.from(on);
+  const startEnergy = Float64Array.from(energy);
+  for (let r = initial - 1; r >= 0; r -= 1) {
+    const cluster = extreme(1, true);
+    on[cluster] = 0;
+    toggle(cluster, -1);
+    rank[cluster] = r;
+  }
+  on.set(start);
+  energy.set(startEnergy);
+  for (let r = initial; r < count; r += 1) {
+    const gap = extreme(0, false);
+    on[gap] = 1;
+    toggle(gap, 1);
+    rank[gap] = r;
+  }
+  return rank.map((r) => (r + 0.5) / count);
+}
+
+let blueMask = null;
+function blue(cov, cols, rows) {
+  const size = 64;
+  blueMask ??= blueNoiseMask(size, 1.5);
+  const bits = new Uint8Array(cols * rows);
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      bits[y * cols + x] = cov[y * cols + x] > blueMask[(y % size) * size + (x % size)] ? 1 : 0;
+    }
+  }
+  return bits;
+}
+
+const METHODS = { atkinson, bayer, stipple, blue };
 
 // ---------- PNG / APNG encode (1-bit palette, index 0 transparent) ----------
 

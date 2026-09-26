@@ -108,6 +108,16 @@ body:has(.wm-landing) {
   image-rendering: pixelated;
 }
 
+/* The still paints first; the moving picture fades in over it once it has loaded. */
+.wm-sky .wm-sky-moving {
+  opacity: 0;
+  transition: opacity 400ms ease-out;
+}
+
+.wm-sky .wm-sky-moving[data-loaded="true"] {
+  opacity: 1;
+}
+
 .wm-hero-text {
   position: relative;
   display: flex;
@@ -232,6 +242,29 @@ body:has(.wm-landing) {
 
 .wm-cell-off {
   fill: #d9d9d9;
+}
+
+.wm-cell-on {
+  opacity: 0;
+  transform: translateY(-8px);
+  transform-box: fill-box;
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out;
+}
+
+.wm-compare[data-seen="true"] .wm-cell-on {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-cell-on,
+  .wm-sky .wm-sky-moving {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 .wm-timeline-dump .wm-cell-on {

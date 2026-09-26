@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LANDING } from "../copy/en";
 import "./landing.css";
@@ -20,9 +21,19 @@ function Timeline({ kind }: { kind: "dump" | "fills" }) {
       const on = row >= ROWS - filled;
       const x = col * STEP;
       const y = row * STEP;
+      // The dump lands in one beat, bottom row first. The fills arrive column by column.
+      const delay = kind === "dump" ? (ROWS - row) * 24 : col * 70 + (ROWS - row) * 20;
       cells.push(
         on ? (
-          <rect key={`${col}-${row}`} className="wm-cell-on" x={x} y={y} width={CELL} height={CELL} />
+          <rect
+            key={`${col}-${row}`}
+            className="wm-cell-on"
+            x={x}
+            y={y}
+            width={CELL}
+            height={CELL}
+            style={{ transitionDelay: `${delay}ms` }}
+          />
         ) : (
           <rect key={`${col}-${row}`} className="wm-cell-off" x={x + 4} y={y + 4} width={2} height={2} />
         ),
@@ -58,7 +69,29 @@ function ComparePanel({ side, kind }: { side: "today" | "ours"; kind: "dump" | "
   );
 }
 
+// True once the element has been a third on screen. It stays true.
+function useSeen<T extends Element>() {
+  const ref = useRef<T>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || seen) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setSeen(true);
+      },
+      { threshold: 0.33 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [seen]);
+  return [ref, seen] as const;
+}
+
 export function LandingPage() {
+  const [skyLoaded, setSkyLoaded] = useState(false);
+  const [compareRef, compareSeen] = useSeen<HTMLDivElement>();
+
   return (
     <div className="wm-landing">
       <header className="wm-top">
@@ -73,10 +106,19 @@ export function LandingPage() {
       </header>
 
       <section className="wm-hero">
-        <picture className="wm-sky" aria-hidden="true">
-          <source srcSet="/landing/hero-dither-still.png" media="(prefers-reduced-motion: reduce)" />
-          <img src="/landing/hero-dither.png" alt="" />
-        </picture>
+        <div className="wm-sky" aria-hidden="true">
+          <img src="/landing/hero-dither-still.png" alt="" />
+          <picture>
+            <source srcSet="/landing/hero-dither-still.png" media="(prefers-reduced-motion: reduce)" />
+            <img
+              className="wm-sky-moving"
+              src="/landing/hero-dither.png"
+              alt=""
+              data-loaded={skyLoaded}
+              onLoad={() => setSkyLoaded(true)}
+            />
+          </picture>
+        </div>
         <div className="wm-hero-text">
           <h1 className="wm-headline">{LANDING.headline}</h1>
           <p className="wm-via">{LANDING.via}</p>
@@ -94,7 +136,7 @@ export function LandingPage() {
       <section id="how" className="wm-section">
         <p className="wm-label">{LANDING.compare.label}</p>
         <h2 className="wm-h2">{LANDING.compare.title}</h2>
-        <div className="wm-compare">
+        <div className="wm-compare" ref={compareRef} data-seen={compareSeen}>
           <ComparePanel side="today" kind="dump" />
           <ComparePanel side="ours" kind="fills" />
         </div>
