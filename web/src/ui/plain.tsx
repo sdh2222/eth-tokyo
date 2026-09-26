@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 export type Tone = "neutral" | "success" | "warning" | "danger" | "accent";
 
 export function Page({ children }: { children: ReactNode }) {
-  return <div className="wm-page">{children}</div>;
+  return <div className="wk-page">{children}</div>;
 }
 
 export function PageHead({
@@ -21,13 +21,13 @@ export function PageHead({
   actions?: ReactNode;
 }) {
   return (
-    <header className="wm-head">
-      <div className="wm-head-text">
-        {kicker ? <p className="wm-kicker">{kicker}</p> : null}
-        <h1 className="wm-title">{title}</h1>
-        {lede ? <p className="wm-lede">{lede}</p> : null}
+    <header className="wk-head">
+      <div className="wk-head-text">
+        {kicker ? <p className="wk-kicker">{kicker}</p> : null}
+        <h1 className="wk-title">{title}</h1>
+        {lede ? <p className="wk-lede">{lede}</p> : null}
       </div>
-      {actions ? <div className="wm-row wm-row-24">{actions}</div> : null}
+      {actions ? <div className="wk-row wk-row-24">{actions}</div> : null}
     </header>
   );
 }
@@ -44,9 +44,9 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className={className ? `wm-section ${className}` : "wm-section"}>
-      <div className="wm-section-head">
-        <h2 className="wm-section-title">{title}</h2>
+    <section className={className ? `wk-section ${className}` : "wk-section"}>
+      <div className="wk-section-head">
+        <h2 className="wk-section-title">{title}</h2>
         {aside}
       </div>
       {children}
@@ -56,29 +56,29 @@ export function Section({
 
 export function Stat({ label, value, note }: { label: ReactNode; value: ReactNode; note?: ReactNode }) {
   return (
-    <div className="wm-stat">
-      <span className="wm-stat-label">{label}</span>
-      <span className="wm-stat-value">{value}</span>
-      {note ? <span className="wm-muted">{note}</span> : null}
+    <div className="wk-stat">
+      <span className="wk-stat-label">{label}</span>
+      <span className="wk-stat-value">{value}</span>
+      {note ? <span className="wk-muted">{note}</span> : null}
     </div>
   );
 }
 
 export function Window({ title, meta, children }: { title: ReactNode; meta?: ReactNode; children: ReactNode }) {
   return (
-    <div className="wm-window">
-      <div className="wm-window-bar">
+    <div className="wk-window">
+      <div className="wk-window-bar">
         <span>{title}</span>
         {meta ? <span>{meta}</span> : null}
       </div>
-      <div className="wm-window-body">{children}</div>
+      <div className="wk-window-body">{children}</div>
     </div>
   );
 }
 
 export function Pill({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <span className="wm-pill" data-tone={tone}>
+    <span className="wk-pill" data-tone={tone}>
       {children}
     </span>
   );
@@ -86,7 +86,7 @@ export function Pill({ tone = "neutral", children }: { tone?: Tone; children: Re
 
 export function Facts({ items }: { items: readonly (readonly [ReactNode, ReactNode])[] }) {
   return (
-    <dl className="wm-facts">
+    <dl className="wk-facts">
       {items.map(([label, value], index) => (
         <FactRow key={index} label={label} value={value} />
       ))}
@@ -106,33 +106,52 @@ function FactRow({ label, value }: { label: ReactNode; value: ReactNode }) {
 export function Bar({ label, value, mark, markLabel }: { label: string; value: number; mark?: number; markLabel?: string }) {
   const clamp = (n: number) => Math.max(0, Math.min(100, n));
   return (
-    <div className="wm-stack wm-stack-8">
-      <div className="wm-row wm-between">
-        <span className="wm-label">{label}</span>
-        <span className="wm-stat-value">{`${value.toFixed(1)}%`}</span>
+    <div className="wk-stack wk-stack-8">
+      <div className="wk-row wk-between">
+        <span className="wk-label">{label}</span>
+        <span className="wk-stat-value">{`${value.toFixed(1)}%`}</span>
       </div>
-      <div className="wm-bar" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}>
-        <div className="wm-bar-fill" style={{ width: `${clamp(value)}%` }} />
-        {mark !== undefined ? <div className="wm-bar-mark" style={{ left: `${clamp(mark)}%` }} /> : null}
+      <div className="wk-bar" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}>
+        <div className="wk-bar-fill" style={{ width: `${clamp(value)}%` }} />
+        {mark !== undefined ? <div className="wk-bar-mark" style={{ left: `${clamp(mark)}%` }} /> : null}
       </div>
-      {markLabel ? <span className="wm-muted">{markLabel}</span> : null}
+      {markLabel ? <span className="wk-muted">{markLabel}</span> : null}
     </div>
   );
 }
 
-export function Empty({ title, action }: { title: ReactNode; action?: ReactNode }) {
+// An empty state. `picture` adds the dither clouds (SC-13: only "No desk is open" and
+// "No fills yet").
+export function Empty({ title, action, picture }: { title: ReactNode; action?: ReactNode; picture?: boolean }) {
   return (
-    <div className="wm-empty">
+    <div className="wk-empty">
+      {picture ? (
+        <div className="wk-empty-picture" aria-hidden="true">
+          <img src="/app/empty-clouds.png" alt="" width={1280} height={550} />
+        </div>
+      ) : null}
       <p>{title}</p>
       {action}
     </div>
   );
 }
 
+// A dot and a word, for anything that is not a status (checks, notes).
+export function Dot({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) {
+  return (
+    <span className="wk-dot" data-tone={tone}>
+      {children}
+    </span>
+  );
+}
+
 export function Callout({ tone = "neutral", children, action }: { tone?: Tone; children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="wm-callout" data-tone={tone} role={tone === "danger" ? "alert" : undefined}>
-      <div className="wm-stack wm-stack-4">{children}</div>
+    <div className="wk-callout" data-tone={tone} role={tone === "danger" ? "alert" : undefined}>
+      <div className="wk-row wk-row-8">
+        <span className="wk-dot" data-tone={tone} aria-hidden="true" />
+        <div className="wk-stack wk-stack-4">{children}</div>
+      </div>
       {action}
     </div>
   );

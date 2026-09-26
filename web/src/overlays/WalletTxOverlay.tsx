@@ -61,15 +61,15 @@ export function WalletTxOverlay({
     <Dialog isOpen onOpenChange={(open) => (open ? undefined : onClose())} width={640}>
       <Page>
         <DialogHeader title={title} subtitle="Signed from your own wallet" onOpenChange={() => onClose()} />
-        <div className="wm-stack">
+        <div className="wk-stack">
           <p>{kind === "approve" ? APPROVE_COPY : FILL_COPY}</p>
           <Window title="Transaction" meta={shown === "result" ? "Confirmed" : shown === "pending" ? "Pending" : "Sepolia"}>
-            <div className="wm-window-line">
+            <div className="wk-window-line">
               <span>TO</span>
               <span>{tx.to}</span>
             </div>
             {hash && explorer ? (
-              <div className="wm-window-line">
+              <div className="wk-window-line">
                 <span>TX</span>
                 <a href={explorer} target="_blank" rel="noreferrer">
                   {hash}
@@ -77,20 +77,20 @@ export function WalletTxOverlay({
               </div>
             ) : null}
           </Window>
-          {shown === "wallet" ? <p className="wm-muted">Confirm in your wallet.</p> : null}
-          {shown === "pending" ? <p className="wm-muted">Waiting for the transaction to land.</p> : null}
+          {shown === "wallet" ? <p className="wk-muted">Confirm in your wallet.</p> : null}
+          {shown === "pending" ? <p className="wk-muted">Waiting for the transaction to land.</p> : null}
         </div>
-        <div className="wm-row wm-between">
-          <button type="button" className="wm-link" onClick={onClose}>
+        <div className="wk-row wk-between">
+          <button type="button" className="wk-link" onClick={onClose}>
             Close
           </button>
           {shown === "review" || shown === "wallet" ? (
-            <button type="button" className="wm-btn" onClick={submit} disabled={shown === "wallet"}>
+            <button type="button" className="wk-btn" onClick={submit} disabled={shown === "wallet"}>
               {shown === "wallet" ? "Waiting for your wallet" : "Continue"}
             </button>
           ) : null}
           {shown === "result" && hash && kind === "fill" ? (
-            <Link className="wm-btn" to={`/fills/${hash}`} onClick={onClose}>
+            <Link className="wk-btn" to={`/fills/${hash}`} onClick={onClose}>
               {VERIFY_FILL}
             </Link>
           ) : null}

@@ -49,7 +49,7 @@ function formatDate(seconds: number): string {
 function FieldError({ message }: { message: string | undefined }) {
   if (!message) return null;
   return (
-    <span className="wm-row wm-row-8" role="alert">
+    <span className="wk-row wk-row-8" role="alert">
       <Pill tone="danger">Fix</Pill>
       {message}
     </span>
@@ -148,7 +148,7 @@ export function OpenPage() {
         <Callout
           tone="accent"
           action={
-            <Link className="wm-link" to="/controls">
+            <Link className="wk-link" to="/controls">
               Go to Controls
             </Link>
           }
@@ -158,9 +158,9 @@ export function OpenPage() {
         </Callout>
       ) : null}
 
-      <div className="wm-grid">
-        <nav className="wm-span-3" aria-label="Open a desk progress">
-          <ol className="wm-steps">
+      <div className="wk-grid">
+        <nav className="wk-span-3" aria-label="Open a desk progress">
+          <ol className="wk-steps">
             {STEPS.map((s, i) => {
               const hasError = Object.keys(shownErrors(i)).length > 0;
               return (
@@ -171,7 +171,7 @@ export function OpenPage() {
                     data-done={i < step ? "true" : undefined}
                     onClick={() => goTo(i)}
                   >
-                    <span className="wm-num">{i + 1}</span>
+                    <span className="wk-num">{i + 1}</span>
                     <span>{s.label}</span>
                     {hasError ? <Pill tone="danger">Fix</Pill> : null}
                   </button>
@@ -181,9 +181,9 @@ export function OpenPage() {
           </ol>
         </nav>
 
-        <div className="wm-span-9 wm-stack wm-stack-24">
+        <div className="wk-span-9 wk-stack wk-stack-24">
           <Section title={`${step + 1}. ${current.label}`}>
-            <p className="wm-muted">{current.description}</p>
+            <p className="wk-muted">{current.description}</p>
 
             {step === 0 && (
               <>
@@ -223,17 +223,17 @@ export function OpenPage() {
                     ["Fill window", `10 minutes after each oracle update (${WINDOW_BLOCKS} blocks)`],
                   ]}
                 />
-                <p className="wm-note">The program fixes these. Changing them means reopening the desk.</p>
+                <p className="wk-note">The program fixes these. Changing them means reopening the desk.</p>
               </>
             )}
 
             {step === 2 && (
               <>
-                <div className="wm-grid">
-                  <label className="wm-field wm-span-6">
+                <div className="wk-grid">
+                  <label className="wk-field wk-span-6">
                     <span>WETH</span>
                     <input
-                      className="wm-input"
+                      className="wk-input"
                       type="number"
                       inputMode="decimal"
                       min={0}
@@ -242,14 +242,14 @@ export function OpenPage() {
                       aria-invalid={currentErrors.weth ? true : undefined}
                     />
                     {safeWeth !== null && !currentErrors.weth ? (
-                      <span className="wm-muted">{`The Safe holds ${safeWeth.toLocaleString("en-US")} WETH.`}</span>
+                      <span className="wk-muted">{`The Safe holds ${safeWeth.toLocaleString("en-US")} WETH.`}</span>
                     ) : null}
                     <FieldError message={currentErrors.weth} />
                   </label>
-                  <label className="wm-field wm-span-6">
+                  <label className="wk-field wk-span-6">
                     <span>USDC</span>
                     <input
-                      className="wm-input"
+                      className="wk-input"
                       type="number"
                       inputMode="decimal"
                       min={0}
@@ -258,28 +258,28 @@ export function OpenPage() {
                       aria-invalid={currentErrors.usdc ? true : undefined}
                     />
                     {safeUsdc !== null && !currentErrors.usdc ? (
-                      <span className="wm-muted">{`The Safe holds ${safeUsdc.toLocaleString("en-US")} USDC.`}</span>
+                      <span className="wk-muted">{`The Safe holds ${safeUsdc.toLocaleString("en-US")} USDC.`}</span>
                     ) : null}
                     <FieldError message={currentErrors.usdc} />
                   </label>
-                  <label className="wm-field wm-span-6">
+                  <label className="wk-field wk-span-6">
                     <span>ETH target</span>
-                    <input className="wm-input" value={`${TARGET_BPS / 100}%`} readOnly />
-                    <span className="wm-muted">
+                    <input className="wk-input" value={`${TARGET_BPS / 100}%`} readOnly />
+                    <span className="wk-muted">
                       The desk stops selling ETH at or below this share. The program fixes it.
                     </span>
                   </label>
                 </div>
                 {ethShare !== null ? (
-                  <div className="wm-stack wm-stack-4">
-                    <span className="wm-label">ETH share at the oracle mid</span>
-                    <span className="wm-big">
-                      <span className="wm-mark">{formatBpsShare(Math.round(ethShare * 10_000))}</span>
+                  <div className="wk-stack wk-stack-4">
+                    <span className="wk-label">ETH share at the oracle mid</span>
+                    <span className="wk-big">
+                      <span className="wk-mark">{formatBpsShare(Math.round(ethShare * 10_000))}</span>
                     </span>
-                    <span className="wm-muted">{`The target is ${formatBpsShare(TARGET_BPS)}. Tokens stay in the Safe until a fill.`}</span>
+                    <span className="wk-muted">{`The target is ${formatBpsShare(TARGET_BPS)}. Tokens stay in the Safe until a fill.`}</span>
                   </div>
                 ) : (
-                  <p className="wm-note">Tokens stay in the Safe until a fill.</p>
+                  <p className="wk-note">Tokens stay in the Safe until a fill.</p>
                 )}
               </>
             )}
@@ -289,8 +289,8 @@ export function OpenPage() {
                 {names.length === 0 ? (
                   <Empty title={`No client names yet. Counterparties trade under ${sepoliaConfig.ens.suffix}.`} />
                 ) : (
-                  <div className="wm-table-wrap">
-                    <table className="wm-table">
+                  <div className="wk-table-wrap">
+                    <table className="wk-table">
                       <thead>
                         <tr>
                           <th>Name</th>
@@ -303,7 +303,7 @@ export function OpenPage() {
                         {names.map((row) => (
                           <tr key={row.id}>
                             <td>{row.name}</td>
-                            <td className="wm-num">{formatAddr(row.addr)}</td>
+                            <td className="wk-num">{formatAddr(row.addr)}</td>
                             <td>{formatDate(row.expiry)}</td>
                             <td>
                               <Pill tone={row.live ? "success" : "danger"}>{row.live ? "Can trade" : "Can't trade"}</Pill>
@@ -314,26 +314,26 @@ export function OpenPage() {
                     </table>
                   </div>
                 )}
-                <p className="wm-note">Adding or removing a name takes one Safe signature later. The desk stays open.</p>
+                <p className="wk-note">Adding or removing a name takes one Safe signature later. The desk stays open.</p>
               </>
             )}
 
             {step === 4 && (
-              <div className="wm-grid">
-                <label className="wm-field wm-span-6">
+              <div className="wk-grid">
+                <label className="wk-field wk-span-6">
                   <span>Policy</span>
                   <textarea
-                    className="wm-input"
+                    className="wk-input"
                     rows={5}
                     value={policy}
                     onChange={(e) => setPolicyDraft(e.target.value)}
                   />
-                  <span className="wm-muted">
+                  <span className="wk-muted">
                     The Safe writes this to desk.policy on the desk name. The agent reads it; the router does not.
                   </span>
                 </label>
-                <div className="wm-span-6 wm-stack">
-                  <span className="wm-label">Terms fence</span>
+                <div className="wk-span-6 wk-stack">
+                  <span className="wk-label">Terms fence</span>
                   <Facts
                     items={[
                       ["Sell width", b?.terms ? `${b.terms.sellBps} bp` : "—"],
@@ -342,7 +342,7 @@ export function OpenPage() {
                       ["Agent", b?.agent.name ?? "—"],
                     ]}
                   />
-                  <p className="wm-note">
+                  <p className="wk-note">
                     The agent moves the spread inside this fence. The terms change with one Safe signature.
                   </p>
                 </div>
@@ -367,7 +367,7 @@ export function OpenPage() {
                     ["Deadline", `${sepoliaConfig.desk.strategyTtlDays} days after shipping`],
                   ]}
                 />
-                <p className="wm-note">
+                <p className="wk-note">
                   {deskIsOpen
                     ? "One Safe transaction docks the live desk and ships this program to Aqua. Tokens stay in the Safe until a fill."
                     : "One Safe transaction ships this program to Aqua. Tokens stay in the Safe until a fill."}
@@ -376,16 +376,16 @@ export function OpenPage() {
             )}
           </Section>
 
-          <div className="wm-row wm-between wm-footer-bar">
+          <div className="wk-row wk-between wk-footer-bar">
             <button
               type="button"
-              className="wm-link"
+              className="wk-link"
               disabled={step === 0}
               onClick={() => setStep((s) => Math.max(0, s - 1))}
             >
               Back
             </button>
-            <button type="button" className="wm-btn" onClick={goNext}>
+            <button type="button" className="wk-btn" onClick={goNext}>
               {isLastStep ? "Propose to Safe" : "Continue"}
             </button>
           </div>

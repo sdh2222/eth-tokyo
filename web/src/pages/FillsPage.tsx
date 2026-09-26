@@ -39,14 +39,14 @@ function FillRow({ fill, now }: { fill: FillRecord; now: number }) {
   const buys = buysEth(fill);
   return (
     <tr>
-      <td className="wm-muted">{formatWhen(fill.blockTime, now)}</td>
+      <td className="wk-muted">{formatWhen(fill.blockTime, now)}</td>
       <td>
         <Link to={`/fills/${fill.tx}`}>{formatHash(fill.tx)}</Link>
       </td>
       <td>{fill.name}</td>
-      <td className={buys ? "wm-ask" : "wm-bid"}>{buys ? "Bought ETH" : "Sold ETH"}</td>
-      <td className="wm-right">{formatWeth(buys ? fill.amountOut : fill.amountIn)}</td>
-      <td className="wm-right">{`$${formatWadUsd(fillPrice(fill))}`}</td>
+      <td className={buys ? "wk-ask" : "wk-bid"}>{buys ? "Bought ETH" : "Sold ETH"}</td>
+      <td className="wk-right">{formatWeth(buys ? fill.amountOut : fill.amountIn)}</td>
+      <td className="wk-right">{`$${formatWadUsd(fillPrice(fill))}`}</td>
     </tr>
   );
 }
@@ -95,7 +95,7 @@ export function FillsPage() {
     <Empty
       title="No fills yet. Counterparties fill from the Trade page."
       action={
-        <Link className="wm-link" to="/trade">
+        <Link className="wk-link" to="/trade">
           Trade
         </Link>
       }
@@ -110,7 +110,7 @@ export function FillsPage() {
       <Empty
         title="No fills match these filters."
         action={
-          <button type="button" className="wm-link" onClick={reset}>
+          <button type="button" className="wk-link" onClick={reset}>
             Reset
           </button>
         }
@@ -121,7 +121,7 @@ export function FillsPage() {
       <Empty
         title="No fills yet. Your fills appear here after you fill from the Trade page."
         action={
-          <Link className="wm-link" to="/trade">
+          <Link className="wk-link" to="/trade">
             Trade
           </Link>
         }
@@ -136,20 +136,20 @@ export function FillsPage() {
         lede={mine ? "Every fill your wallet made against this desk." : "What traded, with whom, at what price."}
       />
 
-      <div className="wm-stats">
+      <div className="wk-stats">
         <Stat label="Fills" value={String(filtered.length)} />
         <Stat label={mine ? "ETH you bought" : "ETH bought by counterparties"} value={formatWeth(bought)} />
         <Stat label={mine ? "ETH you sold" : "ETH sold by counterparties"} value={formatWeth(sold)} />
         <Stat label="USDC volume" value={formatUsdc(usdc)} />
       </div>
 
-      <div className="wm-grid">
-        <Section title={mine ? "Your fills" : "All fills"} className="wm-span-12">
-          <div className="wm-row wm-row-24 wm-row-end" role="group" aria-label="Fill filters">
+      <div className="wk-grid">
+        <Section title={mine ? "Your fills" : "All fills"} className="wk-span-12">
+          <div className="wk-row wk-row-24 wk-row-end" role="group" aria-label="Fill filters">
             {mine ? null : (
-              <label className="wm-field">
+              <label className="wk-field">
                 <span>Counterparty</span>
-                <select className="wm-input" value={mm ?? ""} onChange={(event) => set({ mm: event.target.value || null, page: null })}>
+                <select className="wk-input" value={mm ?? ""} onChange={(event) => set({ mm: event.target.value || null, page: null })}>
                   <option value="">All counterparties</option>
                   {names.map((name) => (
                     <option key={name} value={name}>
@@ -159,10 +159,10 @@ export function FillsPage() {
                 </select>
               </label>
             )}
-            <label className="wm-field">
+            <label className="wk-field">
               <span>Side</span>
               <select
-                className="wm-input"
+                className="wk-input"
                 value={side}
                 onChange={(event) => set({ side: event.target.value === "all" ? null : event.target.value, page: null })}
               >
@@ -173,7 +173,7 @@ export function FillsPage() {
                 ))}
               </select>
             </label>
-            <button type="button" className="wm-link" onClick={reset} disabled={!isFiltered}>
+            <button type="button" className="wk-link" onClick={reset} disabled={!isFiltered}>
               Reset
             </button>
           </div>
@@ -181,16 +181,16 @@ export function FillsPage() {
           {rows.length === 0 ? (
             empty
           ) : (
-            <div className="wm-table-wrap">
-              <table className="wm-table">
+            <div className="wk-table-wrap">
+              <table className="wk-table">
                 <thead>
                   <tr>
                     <th>Time</th>
                     <th>Fill</th>
                     <th>Counterparty</th>
                     <th>Side</th>
-                    <th className="wm-right">Size</th>
-                    <th className="wm-right">Price</th>
+                    <th className="wk-right">Size</th>
+                    <th className="wk-right">Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -203,14 +203,14 @@ export function FillsPage() {
           )}
 
           {filtered.length > PAGE_SIZE ? (
-            <nav className="wm-row wm-row-24" aria-label="Pages">
-              <span className="wm-muted wm-num">
+            <nav className="wk-row wk-row-24" aria-label="Pages">
+              <span className="wk-muted wk-num">
                 {`${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`}
               </span>
-              <button type="button" className="wm-link" disabled={page <= 1} onClick={() => set({ page: page - 1 <= 1 ? null : String(page - 1) })}>
+              <button type="button" className="wk-link" disabled={page <= 1} onClick={() => set({ page: page - 1 <= 1 ? null : String(page - 1) })}>
                 Previous
               </button>
-              <button type="button" className="wm-link" disabled={page >= pages} onClick={() => set({ page: String(page + 1) })}>
+              <button type="button" className="wk-link" disabled={page >= pages} onClick={() => set({ page: String(page + 1) })}>
                 Next
               </button>
             </nav>

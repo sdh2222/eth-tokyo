@@ -24,9 +24,9 @@ export function SafeDialog({
     <Dialog isOpen={isOpen} onOpenChange={onOpenChange} width={640}>
       <Page>
         <DialogHeader title={title} subtitle={`2 of 3 Safe owners sign in ${SAFE_WALLET}`} onOpenChange={onOpenChange} />
-        <div className="wm-stack">
+        <div className="wk-stack">
           <p>{description}</p>
-          <p className="wm-muted">
+          <p className="wk-muted">
             {`Nothing is sent from this page. An owner proposes the transaction in ${SAFE_WALLET}, and it lands once two of the three owners have signed.`}
           </p>
           <Window title="Safe" meta="Sepolia">
@@ -34,11 +34,11 @@ export function SafeDialog({
             <div>{`SIGNERS\u00a0 2 of 3 owners`}</div>
           </Window>
         </div>
-        <div className="wm-row wm-between">
-          <button type="button" className="wm-link" onClick={() => onOpenChange(false)}>
+        <div className="wk-row wk-between">
+          <button type="button" className="wk-link" onClick={() => onOpenChange(false)}>
             Close
           </button>
-          <a className="wm-btn" href={SAFE_URL} target="_blank" rel="noreferrer">
+          <a className="wk-btn" href={SAFE_URL} target="_blank" rel="noreferrer">
             {`Open the Safe in ${SAFE_WALLET}`}
           </a>
         </div>

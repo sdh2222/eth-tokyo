@@ -112,16 +112,16 @@ function TermsEditor({
   }
 
   return (
-    <div className="wm-grid">
-      <div className="wm-span-5 wm-stack">
+    <div className="wk-grid">
+      <div className="wk-span-5 wk-stack">
         <Facts
           items={[
             ["Can trade", row.reason],
-            ["Address", <span className="wm-num">{formatAddr(row.addr)}</span>],
+            ["Address", <span className="wk-num">{formatAddr(row.addr)}</span>],
             ["Terms now", row.terms],
           ]}
         />
-        <details className="wm-raw">
+        <details className="wk-raw">
           <summary>Show raw</summary>
           <Window title="ENS records" meta={row.name}>
             <div>{`addr ${row.addr}`}</div>
@@ -130,12 +130,12 @@ function TermsEditor({
         </details>
       </div>
 
-      <form className="wm-span-7 wm-stack wm-stack-24" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
-        <div className="wm-grid">
-          <label className="wm-field wm-span-4">
+      <form className="wk-span-7 wk-stack wk-stack-24" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
+        <div className="wk-grid">
+          <label className="wk-field wk-span-4">
             <span>Sell width (bp)</span>
             <input
-              className="wm-input"
+              className="wk-input"
               type="number"
               inputMode="numeric"
               min={0}
@@ -144,10 +144,10 @@ function TermsEditor({
               onChange={(event) => onDraft({ ...draft, sell: event.target.value })}
             />
           </label>
-          <label className="wm-field wm-span-4">
+          <label className="wk-field wk-span-4">
             <span>Buy width (bp)</span>
             <input
-              className="wm-input"
+              className="wk-input"
               type="number"
               inputMode="numeric"
               min={0}
@@ -156,10 +156,10 @@ function TermsEditor({
               onChange={(event) => onDraft({ ...draft, buy: event.target.value })}
             />
           </label>
-          <label className="wm-field wm-span-4">
+          <label className="wk-field wk-span-4">
             <span>Cap per fill (WETH)</span>
             <input
-              className="wm-input"
+              className="wk-input"
               type="number"
               inputMode="decimal"
               min={0}
@@ -169,17 +169,17 @@ function TermsEditor({
             />
           </label>
         </div>
-        <p className="wm-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</p>
-        <div className="wm-row wm-between">
-          <div className="wm-row wm-row-24">
-            <button type="submit" className="wm-btn" disabled={!isDraftValid(draft)}>
+        <p className="wk-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</p>
+        <div className="wk-row wk-between">
+          <div className="wk-row wk-row-24">
+            <button type="submit" className="wk-btn" disabled={!isDraftValid(draft)}>
               Save terms
             </button>
-            <button type="button" className="wm-link" onClick={onCancel}>
+            <button type="button" className="wk-link" onClick={onCancel}>
               Cancel
             </button>
           </div>
-          <button type="button" className="wm-btn wm-btn-danger" onClick={onCutOff}>
+          <button type="button" className="wk-btn wk-btn-danger" onClick={onCutOff}>
             Cut off
           </button>
         </div>
@@ -250,7 +250,7 @@ export function CounterpartiesPage() {
     <Page>
       <PageHead kicker={b.name} title="Counterparties" lede={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
 
-      <div className="wm-stats">
+      <div className="wk-stats">
         <Stat label="Can trade" value={`${liveCount} of ${rows.length}`} note="Names that pass the gate now." />
         {b.terms ? (
           <>
@@ -263,18 +263,18 @@ export function CounterpartiesPage() {
         )}
       </div>
 
-      <div className="wm-grid">
-        <Section title="Client book" className="wm-span-12">
+      <div className="wk-grid">
+        <Section title="Client book" className="wk-span-12">
           {rows.length === 0 ? (
             <Empty title={`No counterparties yet. The Safe adds a name under ${CLIENT_SUFFIX} with an address, terms and an expiry.`} />
           ) : (
-            <div className="wm-table-wrap">
-              <table className="wm-table">
+            <div className="wk-table-wrap">
+              <table className="wk-table">
                 <thead>
                   <tr>
                     <th>Name</th>
                     <th>Status</th>
-                    <th className="wm-right" aria-label="Edit" />
+                    <th className="wk-right" aria-label="Edit" />
                   </tr>
                 </thead>
                 <tbody>
@@ -285,11 +285,11 @@ export function CounterpartiesPage() {
                       <Fragment key={row.id}>
                         <tr data-selected={isOpen ? "true" : undefined}>
                           <td>
-                            <div className="wm-stack wm-stack-4">
-                              <span className="wm-label">
+                            <div className="wk-stack wk-stack-4">
+                              <span className="wk-label">
                                 <NameText name={row.name} />
                               </span>
-                              <span className="wm-muted wm-num">
+                              <span className="wk-muted wk-num">
                                 {row.expiry > 0 ? "Expires " : null}
                                 <Expiry seconds={row.expiry} />
                               </span>
@@ -298,10 +298,10 @@ export function CounterpartiesPage() {
                           <td>
                             <Pill tone={row.status === "Live" ? "success" : "danger"}>{row.status}</Pill>
                           </td>
-                          <td className="wm-right">
+                          <td className="wk-right">
                             <button
                               type="button"
-                              className="wm-link"
+                              className="wk-link"
                               aria-expanded={isOpen}
                               aria-controls={isOpen ? panelId : undefined}
                               onClick={() => toggle(row)}
@@ -331,16 +331,16 @@ export function CounterpartiesPage() {
               </table>
             </div>
           )}
-          <p className="wm-muted">Adding a counterparty is an ENS change made by the Safe.</p>
-          <details className="wm-raw">
+          <p className="wk-muted">Adding a counterparty is an ENS change made by the Safe.</p>
+          <details className="wk-raw">
             <summary>How the gate checks a name</summary>
-            <ul className="wm-list">
+            <ul className="wk-list">
               <li>The name&apos;s address must match the wallet that signs the fill.</li>
               <li>The name must not be expired.</li>
               <li>
                 <span>
                   {"The name's resolver must be the desk's resolver, "}
-                  <span className="wm-num">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
+                  <span className="wk-num">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
                 </span>
               </li>
             </ul>

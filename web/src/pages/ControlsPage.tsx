@@ -49,7 +49,7 @@ export function ControlsPage() {
         <Empty
           title="No desk is open. No program is shipped to Aqua; open a desk from the Safe to start quoting."
           action={
-            <Link className="wm-link" to="/open">
+            <Link className="wk-link" to="/open">
               Open a desk
             </Link>
           }
@@ -112,38 +112,38 @@ export function ControlsPage() {
     <Page>
       <PageHead title="Controls" lede="What it takes to change or stop the desk." />
 
-      <div className="wm-grid">
+      <div className="wk-grid">
         <Section
           title="Live now"
-          className="wm-span-12"
+          className="wk-span-12"
           aside={
-            <Link className="wm-link" to="/program">
+            <Link className="wk-link" to="/program">
               See the program
             </Link>
           }
         >
-          <div className="wm-stats">
+          <div className="wk-stats">
             <Stat label="Desk" value="Live" note={`Shipped in block ${strategy.shippedAt.block.toLocaleString("en-US")}.`} />
             <Stat label="Closes" value={formatDay(deadline)} note={`At ${formatTime(deadline)}.`} />
             <Stat label="Checks" value={`${passed} of ${checks.length} pass`} note="Listed below." />
             <Stat label="Strategy hash" value={formatHash(strategy.strategyHash)} note="What the Safe signed." />
           </div>
-          <div className="wm-row wm-row-24">
-            <Link className="wm-btn" to={CHANGE_HREF}>
+          <div className="wk-row wk-row-24">
+            <Link className="wk-btn" to={CHANGE_HREF}>
               Change
             </Link>
-            <button type="button" className="wm-btn wm-btn-danger" onClick={() => setIsStopAsked(true)}>
+            <button type="button" className="wk-btn wk-btn-danger" onClick={() => setIsStopAsked(true)}>
               Stop the desk
             </button>
           </div>
-          <p className="wm-muted">
+          <p className="wk-muted">
             Change docks this program and ships a new one in one Safe transaction. Stop docks it.
           </p>
         </Section>
 
-        <Section title="What changes how" className="wm-span-12">
-          <div className="wm-table-wrap">
-            <table className="wm-table">
+        <Section title="What changes how" className="wk-span-12">
+          <div className="wk-table-wrap">
+            <table className="wk-table">
               <thead>
                 <tr>
                   <th>How</th>
@@ -157,7 +157,7 @@ export function ControlsPage() {
                     <td>{row.how}</td>
                     <td>{row.what}</td>
                     <td>
-                      <Link className="wm-link" to={row.href}>
+                      <Link className="wk-link" to={row.href}>
                         {row.linkLabel}
                       </Link>
                     </td>
@@ -168,13 +168,13 @@ export function ControlsPage() {
           </div>
         </Section>
 
-        <Section title="Checks" className="wm-span-12">
-          <ul className="wm-list">
+        <Section title="Checks" className="wk-span-12">
+          <ul className="wk-list">
             {checks.map((check) => (
               <li key={check.id}>
-                <span className="wm-stack wm-stack-4">
+                <span className="wk-stack wk-stack-4">
                   <span>{check.label}</span>
-                  <span className="wm-muted">{check.ok ? check.pass : check.fail}</span>
+                  <span className="wk-muted">{check.ok ? check.pass : check.fail}</span>
                 </span>
                 <Pill tone={check.ok ? "success" : "danger"}>{check.ok ? "Passes" : "Fails"}</Pill>
               </li>

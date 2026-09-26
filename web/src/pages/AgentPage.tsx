@@ -68,24 +68,24 @@ export function AgentPage() {
     <Page>
       <PageHead kicker={b.agent.name} title="Risk agent" lede="What spread is the agent setting, and inside which limits?" />
 
-      <div className="wm-grid">
-        <Section title="Live spread" className="wm-span-12" aside={<Pill tone={state.tone}>{state.label}</Pill>}>
+      <div className="wk-grid">
+        <Section title="Live spread" className="wk-span-12" aside={<Pill tone={state.tone}>{state.label}</Pill>}>
           {b.spread ? (
             <>
-              <div className="wm-quote">
-                <div className="wm-stack wm-stack-4">
-                  <span className="wm-label">Sell width</span>
-                  <span className="wm-big">
-                    <span className="wm-mark">{`${b.spread.sellBps} bp`}</span>
+              <div className="wk-quote">
+                <div className="wk-stack wk-stack-4">
+                  <span className="wk-label">Sell width</span>
+                  <span className="wk-big">
+                    <span className="wk-mark">{`${b.spread.sellBps} bp`}</span>
                   </span>
-                  {b.terms ? <span className="wm-muted">{`Limit ${b.terms.sellBps} bp`}</span> : null}
+                  {b.terms ? <span className="wk-muted">{`Limit ${b.terms.sellBps} bp`}</span> : null}
                 </div>
-                <div className="wm-stack wm-stack-4">
-                  <span className="wm-label">Buy width</span>
-                  <span className="wm-big">
-                    <span className="wm-mark">{`${b.spread.buyBps} bp`}</span>
+                <div className="wk-stack wk-stack-4">
+                  <span className="wk-label">Buy width</span>
+                  <span className="wk-big">
+                    <span className="wk-mark">{`${b.spread.buyBps} bp`}</span>
                   </span>
-                  {b.terms ? <span className="wm-muted">{`Limit ${b.terms.buyBps} bp`}</span> : null}
+                  {b.terms ? <span className="wk-muted">{`Limit ${b.terms.buyBps} bp`}</span> : null}
                 </div>
               </div>
               <Facts
@@ -100,7 +100,7 @@ export function AgentPage() {
           ) : (
             <p>{`The agent has not written desk.spread on ${b.name}.`}</p>
           )}
-          <p className="wm-muted">
+          <p className="wk-muted">
             {b.spread?.live
               ? "Both counterparties pay these widths until the time above."
               : termsWidths
@@ -109,13 +109,13 @@ export function AgentPage() {
           </p>
         </Section>
 
-        <Section title="Policy" className="wm-span-12">
+        <Section title="Policy" className="wk-span-12">
           <Window title="desk.policy" meta={b.name}>
             <p>{b.policy || "The Safe has not written a policy yet."}</p>
           </Window>
-          <p className="wm-muted">Plain English the Safe writes. The agent follows it.</p>
-          <div className="wm-row">
-            <button type="button" className="wm-btn" onClick={() => setIsPolicyOpen(true)}>
+          <p className="wk-muted">Plain English the Safe writes. The agent follows it.</p>
+          <div className="wk-row">
+            <button type="button" className="wk-btn" onClick={() => setIsPolicyOpen(true)}>
               Edit policy
             </button>
           </div>
@@ -123,9 +123,9 @@ export function AgentPage() {
 
         <Section
           title="Fence"
-          className="wm-span-12"
+          className="wk-span-12"
           aside={
-            <Link className="wm-link" to="/counterparties">
+            <Link className="wk-link" to="/counterparties">
               See counterparties
             </Link>
           }
@@ -141,42 +141,42 @@ export function AgentPage() {
           ) : (
             <p>No terms: the client names disagree or are missing.</p>
           )}
-          <p className="wm-muted">A spread counts only inside these terms. Otherwise the quote uses the terms.</p>
+          <p className="wk-muted">A spread counts only inside these terms. Otherwise the quote uses the terms.</p>
         </Section>
 
-        <Section title="Identity and permissions" className="wm-span-12">
+        <Section title="Identity and permissions" className="wk-span-12">
           <Facts
             items={[
               ["ENS name", b.agent.name],
               [
                 "Address",
-                <a className="wm-link" href={`${sepoliaConfig.explorer}/address/${b.agent.addr}`} target="_blank" rel="noreferrer">
+                <a className="wk-link" href={`${sepoliaConfig.explorer}/address/${b.agent.addr}`} target="_blank" rel="noreferrer">
                   {formatAddr(b.agent.addr)}
                 </a>,
               ],
             ]}
           />
-          <details className="wm-raw">
+          <details className="wk-raw">
             <summary>Show raw</summary>
             <Window title="Agent" meta={b.agent.name}>
               <div>{`addr ${b.agent.addr}`}</div>
             </Window>
           </details>
-          <div className="wm-grid">
-            <div className="wm-span-6 wm-stack wm-stack-8">
-              <h3 className="wm-label">Can write</h3>
-              <ul className="wm-list">
+          <div className="wk-grid">
+            <div className="wk-span-6 wk-stack wk-stack-8">
+              <h3 className="wk-label">Can write</h3>
+              <ul className="wk-list">
                 {CAN_WRITE.map(([record, what]) => (
                   <li key={record}>
                     <span>{record}</span>
-                    <span className="wm-muted">{what}</span>
+                    <span className="wk-muted">{what}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="wm-span-6 wm-stack wm-stack-8">
-              <h3 className="wm-label">Cannot</h3>
-              <ul className="wm-list">
+            <div className="wk-span-6 wk-stack wk-stack-8">
+              <h3 className="wk-label">Cannot</h3>
+              <ul className="wk-list">
                 {CANNOT.map((item) => (
                   <li key={item}>{item}</li>
                 ))}

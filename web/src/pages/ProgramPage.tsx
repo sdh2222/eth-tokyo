@@ -86,7 +86,7 @@ export function ProgramPage() {
         <Empty
           title="No program is live. The Safe has not shipped a desk program to Aqua."
           action={
-            <Link className="wm-link" to="/open">
+            <Link className="wk-link" to="/open">
               Open a desk
             </Link>
           }
@@ -111,25 +111,25 @@ export function ProgramPage() {
     <Page>
       <PageHead title="Program" lede="What the Safe signed and shipped to Aqua." />
 
-      <div className="wm-grid">
-        <Section title="In plain English" className="wm-span-12">
-          <ol className="wm-list">
+      <div className="wk-grid">
+        <Section title="In plain English" className="wk-span-12">
+          <ol className="wk-list">
             {lines.map((line, index) => (
               <li key={line}>
                 <span>
-                  <span className="wm-label wm-num">{`${index + 1}.`}</span> {line}
+                  <span className="wk-label wk-num">{`${index + 1}.`}</span> {line}
                 </span>
               </li>
             ))}
           </ol>
         </Section>
 
-        <Section title="Instructions" className="wm-span-7">
+        <Section title="Instructions" className="wk-span-7">
           {rows.length === 0 ? (
             <Empty title="No instructions in this program. The program bytes are empty." />
           ) : (
-            <div className="wm-table-wrap">
-              <table className="wm-table">
+            <div className="wk-table-wrap">
+              <table className="wk-table">
                 <thead>
                   <tr>
                     <th>Opcode</th>
@@ -140,9 +140,9 @@ export function ProgramPage() {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id} data-selected={hovered === row.id} {...hover(row.id)}>
-                      <td className="wm-num">{row.opcode}</td>
+                      <td className="wk-num">{row.opcode}</td>
                       <td>{row.does}</td>
-                      <td className="wm-num" title={row.args}>
+                      <td className="wk-num" title={row.args}>
                         {shortArgs(row.args)}
                       </td>
                     </tr>
@@ -153,18 +153,18 @@ export function ProgramPage() {
           )}
         </Section>
 
-        <Section title="Raw bytes" className="wm-span-5">
+        <Section title="Raw bytes" className="wk-span-5">
           <Window title="Program bytes" meta={`${byteCount} bytes`}>
             <span>0x</span>
             {rows.map((row) => (
-              <span key={row.id} className={hovered === row.id ? "wm-mark" : undefined} {...hover(row.id)}>
+              <span key={row.id} className={hovered === row.id ? "wk-mark" : undefined} {...hover(row.id)}>
                 {row.bytes}
               </span>
             ))}
           </Window>
         </Section>
 
-        <Section title="Signature" className="wm-span-12">
+        <Section title="Signature" className="wk-span-12">
           <Window title="Signed by the Safe" meta="Sepolia">
             <div>{`${pad("STRATEGY HASH")} ${strategy.strategyHash}`}</div>
             <div>{`${pad("SHIPPED IN")} block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</div>

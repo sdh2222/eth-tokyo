@@ -226,24 +226,24 @@ export function TradePage() {
     <Page>
       <PageHead kicker={b.name} title="Trade" lede="WETH/USDC at the oracle mid plus the desk's widths." />
 
-      <div className="wm-grid">
-        <Section title="Order" className="wm-span-5">
-          <div className="wm-stack wm-stack-24">
-            <div className="wm-field">
+      <div className="wk-grid">
+        <Section title="Order" className="wk-span-5">
+          <div className="wk-stack wk-stack-24">
+            <div className="wk-field">
               <span id="trade-side">Side</span>
-              <div className="wm-chips" role="radiogroup" aria-labelledby="trade-side">
-                <button type="button" className="wm-chip" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
+              <div className="wk-chips" role="radiogroup" aria-labelledby="trade-side">
+                <button type="button" className="wk-chip" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
                   {BUY_ETH}
                 </button>
-                <button type="button" className="wm-chip" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
+                <button type="button" className="wk-chip" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
                   {SELL_ETH}
                 </button>
               </div>
             </div>
-            <label className="wm-field">
+            <label className="wk-field">
               <span>Amount · ETH</span>
               <input
-                className="wm-input"
+                className="wk-input"
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder={ENTER_AMOUNT}
@@ -254,7 +254,7 @@ export function TradePage() {
                 }}
               />
               {!parsed.ok && parsed.reason === "decimals" ? (
-                <span className="wm-error" role="alert">
+                <span className="wk-error" role="alert">
                   {TOO_MANY_DECIMALS}
                 </span>
               ) : null}
@@ -266,12 +266,12 @@ export function TradePage() {
                 ["Your limits", b.terms ? `Up to ${formatEth(b.terms.cap)} per fill` : "No terms on the client names"],
               ]}
             />
-            <details className="wm-raw">
+            <details className="wk-raw">
               <summary>{SLIPPAGE}</summary>
-              <label className="wm-field">
+              <label className="wk-field">
                 <span>Slippage · bps</span>
                 <input
-                  className="wm-input"
+                  className="wk-input"
                   type="number"
                   min={0}
                   max={500}
@@ -282,7 +282,7 @@ export function TradePage() {
                     setSlippage(next === "" ? null : Math.min(500, Math.max(0, Math.round(Number(next)))));
                   }}
                 />
-                <span className="wm-muted">The fill reverts if the price moves more than this.</span>
+                <span className="wk-muted">The fill reverts if the price moves more than this.</span>
               </label>
             </details>
           </div>
@@ -290,31 +290,31 @@ export function TradePage() {
 
         <Section
           title="Live quote"
-          className="wm-span-7"
-          aside={<span className="wm-label">{windowLeft > 0 ? `Window ${formatCountdown(windowLeft)}` : "Window closed"}</span>}
+          className="wk-span-7"
+          aside={<span className="wk-label">{windowLeft > 0 ? `Window ${formatCountdown(windowLeft)}` : "Window closed"}</span>}
         >
           {b.quote ? (
             <>
-              <div className="wm-quote">
-                <div className="wm-stack wm-stack-4">
-                  <span className="wm-label">Ask · you buy ETH</span>
-                  <span className="wm-big">
-                    {side === "buy" ? <span className="wm-mark">{`$${formatWadUsd(b.quote.ask)}`}</span> : `$${formatWadUsd(b.quote.ask)}`}
+              <div className="wk-quote">
+                <div className="wk-stack wk-stack-4">
+                  <span className="wk-label">Ask · you buy ETH</span>
+                  <span className="wk-big">
+                    {side === "buy" ? <span className="wk-mark">{`$${formatWadUsd(b.quote.ask)}`}</span> : `$${formatWadUsd(b.quote.ask)}`}
                   </span>
                 </div>
-                <div className="wm-stack wm-stack-4">
-                  <span className="wm-label">Bid · you sell ETH</span>
-                  <span className="wm-big">
-                    {side === "sell" ? <span className="wm-mark">{`$${formatWadUsd(b.quote.bid)}`}</span> : `$${formatWadUsd(b.quote.bid)}`}
+                <div className="wk-stack wk-stack-4">
+                  <span className="wk-label">Bid · you sell ETH</span>
+                  <span className="wk-big">
+                    {side === "sell" ? <span className="wk-mark">{`$${formatWadUsd(b.quote.bid)}`}</span> : `$${formatWadUsd(b.quote.bid)}`}
                   </span>
                 </div>
               </div>
               <Window title="Quote" meta={SOURCE_LABEL[b.quote.source].toLowerCase()}>
-                <div className="wm-window-line">
+                <div className="wk-window-line">
                   <span>{`PRICE · ${side === "buy" ? BUY_ETH : SELL_ETH}`}</span>
-                  <span className="wm-mark">{price}</span>
+                  <span className="wk-mark">{price}</span>
                 </div>
-                <div className="wm-window-line">
+                <div className="wk-window-line">
                   <span>QUOTE</span>
                   <span>{priceNote}</span>
                 </div>
@@ -328,7 +328,7 @@ export function TradePage() {
               tone={refusalTone}
               action={
                 refusalAction ? (
-                  <button type="button" className="wm-link" onClick={refusalAction.run}>
+                  <button type="button" className="wk-link" onClick={refusalAction.run}>
                     {refusalAction.label}
                   </button>
                 ) : null
@@ -338,10 +338,10 @@ export function TradePage() {
               {refusal.hint ? <span>{refusal.hint}</span> : null}
             </Callout>
           ) : null}
-          <div className="wm-row wm-row-24">
+          <div className="wk-row wk-row-24">
             <button
               type="button"
-              className="wm-btn"
+              className="wk-btn"
               disabled={blocked !== null}
               aria-describedby={blocked !== null ? "trade-blocked" : undefined}
               onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
@@ -349,20 +349,20 @@ export function TradePage() {
               {needsApproval ? APPROVE_ROUTER : FILL}
             </button>
             {expiredQuote && refusalAction?.label !== REFRESH_QUOTE ? (
-              <button type="button" className="wm-link" onClick={() => void quote.refetch()}>
+              <button type="button" className="wk-link" onClick={() => void quote.refetch()}>
                 {REFRESH_QUOTE}
               </button>
             ) : null}
             {blocked !== null ? (
-              <span id="trade-blocked" className="wm-muted">
+              <span id="trade-blocked" className="wk-muted">
                 {blocked}
               </span>
             ) : null}
           </div>
         </Section>
 
-        <Section title={`${TRADING_AS} ${entry?.name ?? (label || "no wallet")}`} className="wm-span-12">
-          <div className="wm-stats">
+        <Section title={`${TRADING_AS} ${entry?.name ?? (label || "no wallet")}`} className="wk-span-12">
+          <div className="wk-stats">
             <Stat label="Status" value={canTrade ? "Can trade" : "Can't trade"} note={tradeReason} />
             <Stat
               label="Price window"

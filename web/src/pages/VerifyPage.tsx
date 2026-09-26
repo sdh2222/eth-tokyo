@@ -96,26 +96,26 @@ export function VerifyPage() {
             : "Was this fill priced by the rule?"
         }
         actions={
-          <button type="button" className="wm-link" onClick={copyLink} aria-live="polite">
+          <button type="button" className="wk-link" onClick={copyLink} aria-live="polite">
             {copied ? "Link copied" : "Copy link"}
           </button>
         }
       />
 
-      <div className="wm-grid">
-        <Section title="Verdict" className="wm-span-12">
+      <div className="wk-grid">
+        <Section title="Verdict" className="wk-span-12">
           <Callout tone={verdict.tone}>
-            <span className="wm-big">{verdict.title}</span>
+            <span className="wk-big">{verdict.title}</span>
             <span>{verdict.hint}</span>
           </Callout>
         </Section>
 
         {fill && steps.length > 0 ? (
-          <Section title="Recompute" className="wm-span-12">
-            <p className="wm-muted">Every fill emits its inputs, so anyone can recompute the price and amounts.</p>
+          <Section title="Recompute" className="wk-span-12">
+            <p className="wk-muted">Every fill emits its inputs, so anyone can recompute the price and amounts.</p>
             <Window title="Recompute" meta={`${steps.length} steps`}>
               {steps.map((step, index) => (
-                <div key={`${index}:${step.label}`} className="wm-window-line">
+                <div key={`${index}:${step.label}`} className="wk-window-line">
                   <span>{`${index + 1}. ${step.label}`}</span>
                   <span>{`${step.formula} = ${step.value}`}</span>
                 </div>
@@ -125,17 +125,17 @@ export function VerifyPage() {
         ) : null}
 
         {fill ? (
-          <Section title="The trade" className="wm-span-12">
-            <div className="wm-quote">
-              <div className="wm-stack wm-stack-4">
-                <span className="wm-label">Oracle mid</span>
-                <span className="wm-big">
-                  <span className="wm-mark">{`$${formatWadUsd(fill.midWad)}`}</span>
+          <Section title="The trade" className="wk-span-12">
+            <div className="wk-quote">
+              <div className="wk-stack wk-stack-4">
+                <span className="wk-label">Oracle mid</span>
+                <span className="wk-big">
+                  <span className="wk-mark">{`$${formatWadUsd(fill.midWad)}`}</span>
                 </span>
               </div>
-              <div className="wm-stack wm-stack-4">
-                <span className="wm-label">Spread</span>
-                <span className="wm-big">{`${fill.spreadBps} bp`}</span>
+              <div className="wk-stack wk-stack-4">
+                <span className="wk-label">Spread</span>
+                <span className="wk-big">{`${fill.spreadBps} bp`}</span>
               </div>
             </div>
             <Facts
@@ -160,11 +160,11 @@ export function VerifyPage() {
                 ],
               ]}
             />
-            <details className="wm-raw">
+            <details className="wk-raw">
               <summary>Raw event</summary>
               <Window title="Fill event">
                 {rawEvent(fill).map(([key, value]) => (
-                  <div key={key} className="wm-window-line">
+                  <div key={key} className="wk-window-line">
                     <span>{key}</span>
                     <span>{value}</span>
                   </div>
