@@ -5,6 +5,7 @@ import { buysEth, fillEth, fillPrice } from "../desk/fills";
 import type { FillRecord } from "../desk/types";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
+import { useConnectWallet } from "../hooks/useConnectWallet";
 import { useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
@@ -59,6 +60,7 @@ export function FillsPage() {
   const side: SideFilter = sideParam === "buy" || sideParam === "sell" ? sideParam : "all";
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1);
   const { address } = useAccount();
+  const wallet = useConnectWallet();
   const book = useBook();
   const now = useClock();
   const strategy = useLiveStrategy();
@@ -97,7 +99,17 @@ export function FillsPage() {
   if (fills.isLoading) {
     empty = <Empty title="Reading the fills…" />;
   } else if (mine && !address) {
-    empty = <Empty title="Connect a wallet" description="My fills lists the fills your wallet made on the Trade page." />;
+    empty = (
+      <Empty
+        title="Connect a wallet"
+        description={wallet.problem ?? "My fills lists the fills your wallet made on the Trade page."}
+        action={
+          <button type="button" className="v-btn" onClick={wallet.connectWallet}>
+            Connect wallet
+          </button>
+        }
+      />
+    );
   } else if (all.length > 0 && isFiltered) {
     empty = (
       <Empty

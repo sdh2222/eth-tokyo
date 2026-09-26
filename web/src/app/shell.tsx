@@ -66,11 +66,12 @@ function Shell({ children }: { children: ReactNode }) {
           }
           endContent={<WalletControl />}
         />
-        <div className="watermark-role-row" role="radiogroup" aria-label="Role">
+        <div className="watermark-role-row" role="group" aria-label="Role">
           {ROLES.map((item) => (
             <Button
               key={item}
               label={ROLE_WORD[item]}
+              aria-pressed={item === role}
               variant={item === role ? "primary" : "ghost"}
               onClick={() => {
                 setRole(item);

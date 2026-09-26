@@ -13,6 +13,7 @@ import {
   TOO_MANY_DECIMALS,
   YOU_PAY,
   YOU_RECEIVE,
+  CONNECT_WALLET,
 } from "../copy/en";
 import { ERRORS } from "../copy/errors";
 import { formatEth, formatWadUsd, nameQuote, type DeskBook } from "../desk/book";
@@ -20,6 +21,7 @@ import { emptyConfig } from "../desk/fixture/state";
 import { useBook } from "../hooks/useBook";
 import { useWalletLabel } from "../hooks/useCanAct";
 import { formatCountdown, useClock } from "../hooks/useClock";
+import { useConnectWallet } from "../hooks/useConnectWallet";
 import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { DotSlider } from "../ui/slider";
@@ -87,6 +89,7 @@ function weiText(wei: bigint): string {
 
 export function TradePage() {
   const { address } = useAccount();
+  const wallet = useConnectWallet();
   const label = useWalletLabel();
   const book = useBook();
   const now = useClock();
@@ -214,7 +217,7 @@ export function TradePage() {
       : null;
   const fillWired = !MODE_LIVE || (swapTx !== null && swapTx.to.toLowerCase() !== ZERO);
   let blocked: string | null = null;
-  if (!address) blocked = "Connect a wallet to trade.";
+  if (!address) blocked = wallet.problem ?? "Connect a wallet to trade.";
   else if (refusal) blocked = refusal.title;
   else if (wei === null) blocked = `${ENTER_AMOUNT}.`;
   else if (!exact) blocked = "Waiting for a quote.";
@@ -269,15 +272,21 @@ export function TradePage() {
                 </span>
               ) : null}
               {blocked === null || blockedInNote ? <span /> : null}
-              <button
-                type="button"
-                className="v-btn v-btn-lg"
-                disabled={blocked !== null}
-                aria-describedby={blocked !== null ? "trade-blocked" : undefined}
-                onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
-              >
-                {needsApproval ? APPROVE_ROUTER : FILL}
-              </button>
+              {address ? (
+                <button
+                  type="button"
+                  className="v-btn v-btn-lg"
+                  disabled={blocked !== null}
+                  aria-describedby={blocked !== null ? "trade-blocked" : undefined}
+                  onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
+                >
+                  {needsApproval ? APPROVE_ROUTER : FILL}
+                </button>
+              ) : (
+                <button type="button" className="v-btn v-btn-lg" onClick={wallet.connectWallet}>
+                  {CONNECT_WALLET}
+                </button>
+              )}
             </>
           }
         >
