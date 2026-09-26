@@ -1,10 +1,11 @@
-import { Fragment, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useImperativeAlertDialog } from "@astryxdesign/core/AlertDialog";
 import { formatUnits } from "viem";
 import { nameQuote, shortName, type DeskBook, type NameQuote } from "../desk/book";
 import { CLIENT_SUFFIX } from "../ens/names";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
+import { useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr, formatWeth } from "../lib/format";
 import { Badge, Card, Empty, Header, Page, type Tone } from "../ui/v";
 import { DotSlider } from "../ui/slider";
@@ -17,11 +18,10 @@ import { SafeDialog } from "./open/SafeDialog";
 // Cut off shows one confirm sentence first (SC-05).
 
 const SAFE_WALLET = "Safe{Wallet}";
-const COLUMNS = 6;
 
-type NameStatus = "Live" | "Expired" | "Cut off";
+type NameStatus = "Live" | "Ready" | "Expired" | "Cut off";
 
-const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Expired: "red", "Cut off": "gray" };
+const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Ready: "gray", Expired: "red", "Cut off": "gray" };
 
 type Terms = DeskBook["names"][number]["terms"];
 type Spread = DeskBook["names"][number]["spread"];
@@ -46,13 +46,15 @@ function widths(sellBps: number, buyBps: number): string {
   return `−${buyBps} / +${sellBps} bp`;
 }
 
-function toRows(book: DeskBook, now: number): NameRow[] {
+// With no desk open a name that passes the gate is Ready, not Live: nothing can fill yet.
+function toRows(book: DeskBook, now: number, deskOpen: boolean): NameRow[] {
   return book.names.map((entry) => {
     const expiry = Number(entry.expiry);
     const expired = expiry > 0 && expiry <= now;
-    const status: NameStatus = expired ? "Expired" : entry.live ? "Live" : "Cut off";
+    const status: NameStatus = expired ? "Expired" : !entry.live ? "Cut off" : deskOpen ? "Live" : "Ready";
     let reason = "Its address is the wallet, it has terms, and it has not expired.";
-    if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
+    if (status === "Ready") reason = "It passes the gate and can fill once a desk is open.";
+    else if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
     else if (status === "Cut off" && !entry.terms) reason = "The name has no valid desk.terms.";
     else if (status === "Cut off") reason = "Its address or resolver does not pass the gate.";
     return {
@@ -92,6 +94,7 @@ function Expiry({ seconds }: { seconds: number }) {
 
 function TermsEditor({
   row,
+  saved,
   draft,
   onDraft,
   onSave,
@@ -99,6 +102,7 @@ function TermsEditor({
   onCutOff,
 }: {
   row: NameRow;
+  saved: Draft;
   draft: Draft;
   onDraft: (draft: Draft) => void;
   onSave: () => void;
@@ -107,8 +111,10 @@ function TermsEditor({
 }) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isDraftValid(draft)) onSave();
+    if (isDraftValid(draft) && !unchanged) onSave();
   }
+
+  const unchanged = draft.sell === saved.sell && draft.buy === saved.buy && Number(draft.cap) === Number(saved.cap);
 
   return (
     <div className="v-stack v-stack-24">
@@ -158,7 +164,7 @@ function TermsEditor({
         <div className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</div>
         <div className="v-row v-between">
           <div className="v-row v-row-8">
-            <button type="submit" className="v-btn" disabled={!isDraftValid(draft)}>
+            <button type="submit" className="v-btn" disabled={!isDraftValid(draft) || unchanged}>
               Save terms
             </button>
             <button type="button" className="v-btn v-btn-tertiary" onClick={onCancel}>
@@ -177,10 +183,21 @@ function TermsEditor({
 export function CounterpartiesPage() {
   const book = useBook();
   const now = useClock();
+  const strategy = useLiveStrategy();
   const alert = useImperativeAlertDialog();
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ sell: "", buy: "", cap: "" });
   const [proposal, setProposal] = useState<Proposal>({ isOpen: false, title: "", description: "" });
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // The editor is a card under the table, so on a phone it can sit below the fold: bring it
+  // into view and put focus on its first control when a name opens.
+  useEffect(() => {
+    if (openId === null) return;
+    const editor = editorRef.current;
+    editor?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    editor?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  }, [openId]);
 
   function toggle(row: NameRow) {
     if (openId === row.id) {
@@ -195,7 +212,7 @@ export function CounterpartiesPage() {
     setProposal({
       isOpen: true,
       title: "Edit terms",
-      description: `New terms for ${row.name}: sell ${draft.sell.trim()} bp · buy ${draft.buy.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
+      description: `New terms for ${row.name}: bid −${draft.buy.trim()} bp · ask +${draft.sell.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
     });
   }
 
@@ -226,7 +243,9 @@ export function CounterpartiesPage() {
   }
 
   const b = book.data;
-  const rows = toRows(b, now);
+  const noDesk = !strategy.isLoading && !strategy.data;
+  const rows = toRows(b, now, !noDesk);
+  const openRow = rows.find((row) => row.id === openId) ?? null;
 
   return (
     <Page>
@@ -253,57 +272,44 @@ export function CounterpartiesPage() {
               <tbody>
                 {rows.map((row) => {
                   const isOpen = openId === row.id;
-                  const panelId = `terms-${row.id.replace(/\./g, "-")}`;
                   const q = row.status === "Live" ? row.quote : null;
                   return (
-                    <Fragment key={row.id}>
-                      <tr>
-                        <td>{shortName(row.name)}</td>
-                        <td>
-                          <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
-                        </td>
-                        <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
-                        <td>
-                          {q ? (
-                            <>
-                              {widths(q.sellBps, q.buyBps)}
-                              {q.source === "terms" ? <span className="v-muted"> · terms</span> : null}
-                            </>
-                          ) : (
-                            <span className="v-muted">—</span>
-                          )}
-                        </td>
-                        <td className="v-muted">
-                          <Expiry seconds={row.expiry} />
-                        </td>
-                        <td className="v-right">
-                          <button
-                            type="button"
-                            className="v-btn v-btn-secondary"
-                            aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
-                            aria-expanded={isOpen}
-                            aria-controls={isOpen ? panelId : undefined}
-                            onClick={() => toggle(row)}
-                          >
-                            {isOpen ? "Close" : "Edit"}
-                          </button>
-                        </td>
-                      </tr>
-                      {isOpen ? (
-                        <tr id={panelId}>
-                          <td className="v-expand" colSpan={COLUMNS}>
-                            <TermsEditor
-                              row={row}
-                              draft={draft}
-                              onDraft={setDraft}
-                              onSave={() => saveTerms(row)}
-                              onCancel={() => setOpenId(null)}
-                              onCutOff={() => cutOff(row)}
-                            />
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
+                    <tr key={row.id} data-active={isOpen}>
+                      <td>
+                        <button type="button" className="v-link" aria-expanded={isOpen} aria-controls={isOpen ? "terms-editor" : undefined} onClick={() => toggle(row)}>
+                          {shortName(row.name)}
+                        </button>
+                      </td>
+                      <td>
+                        <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
+                      </td>
+                      <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
+                      <td>
+                        {q ? (
+                          <>
+                            {widths(q.sellBps, q.buyBps)}
+                            {q.source === "terms" ? <span className="v-muted"> · terms</span> : null}
+                          </>
+                        ) : (
+                          <span className="v-muted">—</span>
+                        )}
+                      </td>
+                      <td className="v-muted">
+                        <Expiry seconds={row.expiry} />
+                      </td>
+                      <td className="v-right">
+                        <button
+                          type="button"
+                          className="v-btn v-btn-secondary"
+                          aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
+                          aria-expanded={isOpen}
+                          aria-controls={isOpen ? "terms-editor" : undefined}
+                          onClick={() => toggle(row)}
+                        >
+                          {isOpen ? "Close" : "Edit"}
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -311,6 +317,22 @@ export function CounterpartiesPage() {
           </div>
         )}
       </Card>
+
+      {openRow ? (
+        <div ref={editorRef} id="terms-editor">
+          <Card title={`Terms for ${shortName(openRow.name)}`}>
+            <TermsEditor
+              row={openRow}
+              saved={draftFrom(openRow.terms)}
+              draft={draft}
+              onDraft={setDraft}
+              onSave={() => saveTerms(openRow)}
+              onCancel={() => setOpenId(null)}
+              onCutOff={() => cutOff(openRow)}
+            />
+          </Card>
+        </div>
+      ) : null}
 
       <SafeDialog
         isOpen={proposal.isOpen}

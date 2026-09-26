@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import sepoliaConfig from "@config";
 import { formatBpsShare, formatWadUsd } from "../desk/book";
+import { englishPolicy, POLICY_TEMPLATE, readPolicy } from "../desk/policy";
 import { FIXTURE_OWNERS } from "../desk/fixture/state";
 import { useBook } from "../hooks/useBook";
 import { useCanAct } from "../hooks/useCanAct";
@@ -31,20 +32,9 @@ const liveMode = import.meta.env.VITE_DESK_MODE === "live";
 // Fixture mode has no Safe balances until a desk is open; these match the fixture Safe.
 const FIXTURE_SAFE = { weth: 900, usdc: 400_000 };
 
-// The policy template main ships (ts/src/scripts/demo.ts, PR #34). The keeper parses its
-// inventory and suspicion sentences; POLICY_RULES says the same in English.
-const POLICY_TEMPLATE =
-  "이미 장부에 있는 상대는 게시된 약정보다 좁은 폭을 받을 수 있다. 크고 처음인 거래는 매도 3 bp, 매수 10 bp에 머문다. 그 약정 밖으로는 호가하지 않는다. 오라클 중간가는 움직이지 않는다. ETH 비중이 70%보다 높으면 에이전트는 고른 매도 폭에서 1 bp를 빼고 매수 폭에 1 bp를 더한다. 70%보다 낮으면 매도 폭에 1 bp를 더하고 매수 폭에서 1 bp를 뺀다. 매도 폭은 1 bp 아래로 내려가지 않고, 둘 다 그 이름의 약정 안에 둔다. 체결 뒤에 오라클이 그 이름에 유리하게 1 bp 이상 움직이거나, 같은 이름이 50블록 안에 다시 오거나, 이번 크기가 직전보다 크면 의심해서 고른 폭을 1 bp 깎는다.";
-
-const POLICY_RULES: [string, string][] = [
-  ["Above 70% ETH", "Sell −1 bp, buy +1 bp"],
-  ["Below 70% ETH", "Sell +1 bp, buy −1 bp"],
-  ["Floor", "Sell never below 1 bp; both widths stay inside that name's terms"],
-  [
-    "Suspicion",
-    "+1 bp on both widths when, after a fill, the oracle moved 1 bp or more in the taker's favour, the same name is back within 50 blocks, or the size is larger than last time",
-  ],
-];
+// Sell never goes below 1 bp and both widths stay inside the name's terms: a clamp in the
+// keeper's code (applyInventoryPolicy), not a sentence it reads, so it holds for any policy.
+const POLICY_FLOOR: [string, string] = ["Always", "Ask at least 1 bp; both widths inside that name's terms"];
 
 // The raw values the program is built from, one per line, labels padded for the mono face.
 const RAW_LINES: [string, string][] = [
@@ -65,10 +55,21 @@ function startStep(param: string | null): number {
   return Number.isInteger(n) && n >= 1 && n <= STEPS.length ? n - 1 : 0;
 }
 
-// An amount field's text: empty or invalid reads as 0, and amounts are never negative.
+// An amount field's text: empty reads as 0; anything that is not a plain positive number,
+// or has more decimals than the token, is an error rather than a silent 0.
 function amount(text: string): number {
   const n = Number(text);
   return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+function amountError(text: string, token: string, decimals: number, held: number | null): string | undefined {
+  const trimmed = text.trim();
+  if (trimmed === "") return undefined;
+  if (!/^\d*\.?\d*$/.test(trimmed) || trimmed === ".") return `Enter the ${token} as a positive number.`;
+  const fraction = trimmed.split(".")[1] ?? "";
+  if (fraction.length > decimals) return `${token} takes at most ${decimals} decimals.`;
+  if (held !== null && Number(trimmed) > held) return `More than the Safe holds (${held.toLocaleString("en-US")} ${token}).`;
+  return undefined;
 }
 
 function formatDate(seconds: number): string {
@@ -95,15 +96,20 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function OpenPage() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
 
   const book = useBook();
   const live = useLiveStrategy();
   const desk = useDeskState(live.data ?? null);
   const { isOwner } = useCanAct();
 
-  const [step, setStep] = useState(() => startStep(params.get("step")));
+  // The step lives in the URL (?step=N, 1-based), so a reload keeps it and the browser's Back
+  // goes to the previous step. A deep link (Controls' Change) opens on its step.
+  const step = startStep(params.get("step"));
+  const [cameWithStep] = useState(() => params.has("step"));
+  const setStep = (next: number) => setParams({ step: String(next + 1) });
   const [attempted, setAttempted] = useState<ReadonlySet<number>>(() => new Set());
+  const [visited, setVisited] = useState<ReadonlySet<number>>(() => new Set([step]));
   const [wethText, setWethText] = useState(String(FIXTURE_SAFE.weth));
   const [usdcText, setUsdcText] = useState(String(FIXTURE_SAFE.usdc));
   const [policyDraft, setPolicyDraft] = useState<string | null>(null);
@@ -114,6 +120,7 @@ export function OpenPage() {
   const b = book.data;
   // The live desk's policy when it has one, else the template main ships.
   const policy = policyDraft ?? (liveMode && b?.policy ? b.policy : POLICY_TEMPLATE);
+  const policyReading = readPolicy(policy);
   const safeWeth = desk.data
     ? Number(desk.data.safeWallet.weth / 10n ** 14n) / 10_000
     : liveMode
@@ -132,13 +139,15 @@ export function OpenPage() {
   // and the field errors all read it.
   const errorsByStep = useMemo<Array<Record<string, string>>>(() => {
     const inventory: Record<string, string> = {};
-    if (safeWeth !== null && weth > safeWeth)
-      inventory.weth = `The Safe holds ${safeWeth.toLocaleString("en-US")} WETH.`;
-    if (safeUsdc !== null && usdc > safeUsdc)
-      inventory.usdc = `The Safe holds ${safeUsdc.toLocaleString("en-US")} USDC.`;
-    if (weth <= 0 && usdc <= 0) inventory.weth = "Put WETH or USDC behind the desk.";
-    return [{}, {}, inventory, {}, {}, {}];
-  }, [safeUsdc, safeWeth, usdc, weth]);
+    const wethError = amountError(wethText, "WETH", 18, safeWeth);
+    const usdcError = amountError(usdcText, "USDC", 6, safeUsdc);
+    if (wethError) inventory.weth = wethError;
+    if (usdcError) inventory.usdc = usdcError;
+    if (!wethError && !usdcError && weth <= 0 && usdc <= 0) inventory.weth = "Put WETH or USDC behind the desk.";
+    const policyStep: Record<string, string> = {};
+    if (policy.trim() === "") policyStep.policy = "Write the policy the agent reads.";
+    return [{}, {}, inventory, {}, policyStep, {}];
+  }, [policy, safeUsdc, safeWeth, usdc, usdcText, weth, wethText]);
 
   const shownErrors = (index: number): Record<string, string> =>
     attempted.has(index) ? (errorsByStep[index] ?? {}) : {};
@@ -160,13 +169,14 @@ export function OpenPage() {
       setIsSafeOpen(true);
       return;
     }
-    if (Object.keys(errorsByStep[step] ?? {}).length === 0) setStep((s) => s + 1);
+    if (Object.keys(errorsByStep[step] ?? {}).length === 0) goTo(step + 1);
   };
 
-  const goTo = (index: number) => {
+  function goTo(index: number) {
     if (index > step) markAttempted(step);
+    setVisited((prev) => new Set(prev).add(step).add(index));
     setStep(index);
-  };
+  }
 
   const names: NameRow[] = (b?.names ?? []).map((name) => ({
     id: name.name,
@@ -191,7 +201,7 @@ export function OpenPage() {
     <Page>
       <Header title="Open a desk" description="One Safe transaction ships the desk. Nothing leaves the Safe until a fill." />
 
-      {deskIsOpen && !params.get("step") ? (
+      {deskIsOpen && !cameWithStep ? (
         <Note
           tone="amber"
           action={
@@ -221,7 +231,7 @@ export function OpenPage() {
                     )}
                     {hasError ? (
                       <Status tone="red">Fix</Status>
-                    ) : i < step ? (
+                    ) : i !== step && visited.has(i) ? (
                       <Status tone="green">Done</Status>
                     ) : null}
                   </li>
@@ -241,7 +251,7 @@ export function OpenPage() {
                 type="button"
                 className="v-btn v-btn-secondary"
                 disabled={step === 0}
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                onClick={() => goTo(Math.max(0, step - 1))}
               >
                 Back
               </button>
@@ -384,15 +394,31 @@ export function OpenPage() {
           {step === 4 && (
             <div className="v-grid">
               <label className="v-field v-col-6">
-                <span>Policy</span>
-                <textarea className="v-input" rows={10} value={policy} onChange={(e) => setPolicyDraft(e.target.value)} />
+                <span>Stored text · the agent reads its Korean sentences</span>
+                <textarea
+                  className="v-input"
+                  lang="ko"
+                  rows={10}
+                  value={policy}
+                  aria-invalid={currentErrors.policy ? true : undefined}
+                  onChange={(e) => setPolicyDraft(e.target.value)}
+                />
+                <FieldError message={currentErrors.policy} />
                 <span className="v-muted">
                   The Safe writes this to desk.policy on the desk name. The agent reads it; the router does not.
                 </span>
               </label>
               <div className="v-col-6 v-stack v-stack-24">
-                <Block title="How the agent reads this policy">
-                  <Dl items={POLICY_RULES} />
+                {englishPolicy(policy) ? (
+                  <Block title="In English">
+                    <p>{englishPolicy(policy)}</p>
+                  </Block>
+                ) : null}
+                <Block title="What the agent reads">
+                  <Dl items={[...policyReading.lines, POLICY_FLOOR]} />
+                  {policyReading.missing.map((rule) => (
+                    <span key={rule} className="v-muted">{`No ${rule} found: the agent keeps the tier widths for it.`}</span>
+                  ))}
                 </Block>
               </div>
             </div>
