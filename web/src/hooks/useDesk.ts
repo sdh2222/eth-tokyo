@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import sepoliaConfig from "@config";
-import { fetchApiDesk, fetchApiFills } from "../desk/api";
+import { fetchApiDesk } from "../desk/api";
 import { createPort } from "../desk/createPort";
 import { fixtureBlock } from "../desk/fixture";
 import { emptyConfig, FIXTURE_MMS, FIXTURE_OWNERS } from "../desk/fixture/state";
@@ -106,22 +106,22 @@ export function useDeskState(strategy: StrategyInfo | null) {
   return chain;
 }
 
-export function useFills(strategy: StrategyInfo | null) {
+// Fills come from the router's DeskFill logs in both modes. The Render API's indexer still
+// decodes the old DeskFill signature, so live mode reads the chain directly (every block).
+// Fills for the desk. The key moves with each block, so the last list is kept while the next
+// one loads. isLoading is true until a read has come back (the first block, the strategy
+// or the request itself may still be on its way), so pages don't paint "No fills yet" early.
+export function useFills(strategy: StrategyInfo | null, strategyLoading = false) {
   const desk = useDeskPort();
   const client = usePublicClient();
   const { block } = useBlock();
   const cfg = deskConfig();
-  const api = useQuery({
-    queryKey: ["v1", "fills"],
-    queryFn: fetchApiFills,
-    enabled: mode === "live",
-    refetchInterval: 15_000,
+  const query = useQuery({
+    queryKey: ["fills", mode, strategy?.strategyHash, block?.toString()],
+    queryFn: () => desk.readFills({ client, cfg }, mode === "live" ? undefined : (strategy ?? undefined)),
+    enabled: block !== undefined && (mode === "live" || strategy !== null),
+    placeholderData: keepPreviousData,
   });
-  const chain = useQuery({
-    queryKey: ["fills", strategy?.strategyHash, block?.toString()],
-    queryFn: () => desk.readFills({ client, cfg }, strategy ?? undefined),
-    enabled: mode !== "live" && strategy !== null && block !== undefined,
-  });
-  if (mode === "live") return api;
-  return chain;
+  const waiting = query.data === undefined && !query.isError && (mode === "live" || strategy !== null || strategyLoading);
+  return { ...query, isLoading: waiting };
 }

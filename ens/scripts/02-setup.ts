@@ -17,7 +17,7 @@ if (deskOwner.toLowerCase() !== treasury.toLowerCase()) throw new Error(`${DESK_
 const deskExpiry = await publicClient.readContract({ ...reg(ADDR.ethRegistry), functionName: 'findExpiry', args: [DESK_LABEL] })
 console.log(`setup ${DESK_NAME} (treasury ${treasury})`)
 
-// 1. Treasury resolver (proxy of PermissionedResolverImpl), with the default record's capPerFill = 0.
+// 1. Treasury resolver (proxy of PermissionedResolverImpl), with the default record's cap = 0.
 let d = loadDeployment()
 if (!d.resolver) {
   const { result } = await send(w, { ...deployProxyCall(resolverDeployArgs(treasury)), label: 'deploy treasury resolver' })

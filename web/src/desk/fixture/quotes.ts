@@ -1,9 +1,6 @@
-// 00 §6 qa 1 WETH. These constants are the only quote numbers the fixture returns.
-// mm-a s=20 ask 3991968000000000000000 buy in 3991968000 out 1000000000000000000
-// mm-a s=20 bid 3976032000000000000000 sell out 3976032000
-// mm-b s=25 ask 3993960000000000000000 buy in 3993960000
-// mm-b s=25 bid 3974040000000000000000 sell out 3974040000
+// Fixture quotes for the two live client names (mm-a, mm-b).
 import type { Address, QuoteOk } from "../types";
+import { fixtureAgentWrite } from "./agent";
 
 const WETH = 1000000000000000000n;
 const MM_A = "0x0000000000000000000000000000000000000005";
@@ -28,15 +25,39 @@ function row(
   };
 }
 
-const TABLE: Record<string, QuoteOk> = {
-  [`${MM_A}|buy|weth|${WETH}`]: row(3991968000n, WETH, 3991968000000000000000n, 20, 1),
-  [`${MM_A}|sell|weth|${WETH}`]: row(WETH, 3976032000n, 3976032000000000000000n, 20, 1),
-  [`${MM_B}|buy|weth|${WETH}`]: row(3993960000n, WETH, 3993960000000000000000n, 25, 0),
-  [`${MM_B}|sell|weth|${WETH}`]: row(WETH, 3974040000n, 3974040000000000000000n, 25, 0),
+// Main's rule (PR #34), the same one fixtureBook shows: each name is priced from its own
+// agent spread, ask = mid * (10000 + sell) / 10000 and bid = mid * (10000 - buy) / 10000, with
+// mid 4000; each name's widths are the agent write derived in agent.ts. Any amount quotes;
+// the 50 WETH cap is checked in state.ts.
+const MID_WAD = 4000n * WETH;
+const WRITE_A = fixtureAgentWrite("mm-a");
+const WRITE_B = fixtureAgentWrite("mm-b");
+const WIDTHS: Record<string, { sell: number; buy: number }> = {
+  [MM_A]: { sell: WRITE_A.sellBps, buy: WRITE_A.buyBps },
+  [MM_B]: { sell: WRITE_B.sellBps, buy: WRITE_B.buyBps },
 };
+const USDC_TO_WAD = 1000000000000n;
+export const FILL_CAP_WETH = 50n * WETH;
+
+function ceilDiv(a: bigint, b: bigint): bigint {
+  return (a + b - 1n) / b;
+}
 
 export function lookupQuote(mm: Address, side: "buy" | "sell", leg: "weth" | "usdc", amount: bigint): QuoteOk | null {
-  return TABLE[`${mm.toLowerCase()}|${side}|${leg}|${amount}`] ?? null;
+  const widths = WIDTHS[mm.toLowerCase()];
+  if (!widths || amount <= 0n) return null;
+  const ASK_WAD = (MID_WAD * BigInt(10000 + widths.sell)) / 10000n;
+  const BID_WAD = (MID_WAD * BigInt(10000 - widths.buy)) / 10000n;
+  const SELL_BPS = widths.sell;
+  const BUY_BPS = widths.buy;
+  if (side === "buy") {
+    // The counterparty buys ETH at the ask: USDC in, WETH out.
+    if (leg === "weth") return row(ceilDiv(amount * ASK_WAD, WETH * USDC_TO_WAD), amount, ASK_WAD, SELL_BPS, 1);
+    return row(amount, (amount * USDC_TO_WAD * WETH) / ASK_WAD, ASK_WAD, SELL_BPS, 1);
+  }
+  // The counterparty sells ETH at the bid: WETH in, USDC out.
+  if (leg === "weth") return row(amount, (amount * BID_WAD) / (WETH * USDC_TO_WAD), BID_WAD, BUY_BPS, 1);
+  return row(ceilDiv(amount * USDC_TO_WAD * WETH, BID_WAD), amount, BID_WAD, BUY_BPS, 1);
 }
 
 export const CAP_MM_A = 100000000000n;

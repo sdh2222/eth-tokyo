@@ -1,126 +1,193 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { ShowRaw } from "../components/ShowRaw";
-import { CHANGE_NOTE, CLOSE_EXCEPT, SEED_TWO, STOP, STOP_COPY } from "../copy/en";
-import { dockDesk, seedTwoDesks } from "../desk/fixture";
-import { emptyConfig, NOW } from "../desk/fixture/state";
-import { useDeskPort, useDeskState, useLiveStrategy } from "../hooks/useDesk";
-import { formatHash } from "../lib/format";
+import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { useBook } from "../hooks/useBook";
+import { useClock } from "../hooks/useClock";
+import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
+import { Card, Empty, Header, Note, Page } from "../ui/v";
+import { SafeDialog } from "./open/SafeDialog";
+
+// Controls (IA: "What does it take to change or stop the desk?"). Vercel-style: Change (the
+// one primary) and Stop in the header, the metrics card, then the program and the checks, then
+// "what changes how" (SC-21). Stop asks one sentence (AlertDialog), then the Safe dialog (SC-05).
+
+// The oracle owner, from docs/agent-design.md ("Live chain"). The agent must not be it.
+const ORACLE_OWNER = "0x1AC95a5e4CD739D01130f705f93D3bE070407c2b";
+const CHANGE_HREF = "/open?step=2";
+
+type ChangeRow = { id: string; how: string; what: string; linkLabel: string; href: string };
+type Check = { id: string; label: string; ok: boolean; pass: string; fail: string };
+
+// Time left on the program: hours and minutes inside a day, whole days after that.
+function closesIn(deadline: number, now: number): string {
+  const left = deadline - now;
+  if (left <= 0) return "Closed";
+  if (left < 86400) return formatWhen(deadline, now);
+  const days = Math.floor(left / 86400);
+  return `in ${days} ${days === 1 ? "day" : "days"}`;
+}
 
 export function ControlsPage() {
   const live = useLiveStrategy();
-  const state = useDeskState(live.data ?? null);
-  const port = useDeskPort();
-  const queryClient = useQueryClient();
-  const [askStop, setAskStop] = useState(false);
-  const [stopped, setStopped] = useState(false);
-  const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const lines = port.describeProgram({ deadline: 0n, salt: 0n, unknown: [] }, emptyConfig());
-  const strategy = live.data;
+  const strategy = live.data ?? null;
+  const desk = useDeskState(strategy);
+  const book = useBook();
+  const now = useClock();
+  const [isStopAsked, setIsStopAsked] = useState(false);
+  const [isSafeOpen, setIsSafeOpen] = useState(false);
 
-  function refresh() {
-    void queryClient.invalidateQueries({ queryKey: ["live"] });
+  if (live.isLoading) {
+    return (
+      <Page>
+        <Header title="Controls" description="Reading the desk…" />
+      </Page>
+    );
+  }
+  if (!strategy) {
+    return (
+      <Page>
+        <Header title="Controls" description="What it takes to change or stop the desk." />
+        <Card>
+          <Empty
+            picture
+            title="No desk is open"
+            description="There is nothing to change or stop. Opening a desk ships the program to Aqua in one Safe transaction."
+            action={
+              <Link className="v-btn" to="/open">
+                Open a desk
+              </Link>
+            }
+          />
+        </Card>
+      </Page>
+    );
   }
 
-  if (stopped || !strategy) {
-    return <p className="text-body">Not open</p>;
-  }
+  const deadline = desk.data?.deadline ?? Number(strategy.decoded.deadline);
+  const terms = book.data?.terms ?? null;
+  const agentAddr = book.data?.agent.addr;
+  const oracleOk = agentAddr !== undefined && agentAddr.toLowerCase() !== ORACLE_OWNER.toLowerCase();
+  const oneLive = strategy.warning !== "MULTIPLE_LIVE";
+
+  const rows: ChangeRow[] = [
+    {
+      id: "agent",
+      how: "Agent moves it",
+      what: "Each counterparty's desk.spread and desk.stats, written after that counterparty's fills, inside that name's terms.",
+      linkLabel: "Risk agent",
+      href: "/agent",
+    },
+    {
+      id: "signature",
+      how: "One Safe signature",
+      what: terms
+        ? `Terms (sell ${terms.sellBps} bp, buy ${terms.buyBps} bp), cap (${formatWeth(terms.cap)}), names, policy, agent. The desk stays open.`
+        : "Terms, cap, names, policy, agent. The desk stays open.",
+      linkLabel: "Counterparties",
+      href: "/counterparties",
+    },
+    {
+      id: "reopen",
+      how: "Reopen the desk",
+      what: "Pair, oracle, 70% ETH target, 10-minute window, inventory, deadline.",
+      linkLabel: "Change",
+      href: CHANGE_HREF,
+    },
+  ];
+
+  const checks: Check[] = [
+    {
+      id: "oracle",
+      label: "Oracle owner is not the agent",
+      ok: oracleOk,
+      pass: "The agent can move the spread, not the price.",
+      fail: "Check the oracle owner before the next fill.",
+    },
+    {
+      id: "one-live",
+      label: "One program live",
+      ok: oneLive,
+      pass: "Aqua holds one live program for this Safe.",
+      fail: "More than one program is live. Stop the extra one.",
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-h1">Controls</h1>
-        <p className="text-body text-muted">
-          {state.data ? formatWhen(state.data.deadline, now) : "—"} · {formatHash(strategy.strategyHash)}
-        </p>
-      </header>
-      <ol className="grid gap-3">
-        {lines.map((line, index) => (
-          <li key={line} className="flex gap-4 rounded-card border border-border bg-surface p-5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-surface text-small text-text">
-              {index + 1}
-            </span>
-            <p className="text-body">{line}</p>
-          </li>
+    <Page>
+      <Header
+        title="Controls"
+        description={
+          <>
+            {`${book.data?.name ?? "The desk"} · closes ${closesIn(deadline, now)} · `}
+            <Link to="/program">See the program</Link>
+          </>
+        }
+        actions={
+          <>
+            <Link className="v-btn" to={CHANGE_HREF}>
+              Change
+            </Link>
+            <button type="button" className="v-btn v-btn-error" onClick={() => setIsStopAsked(true)}>
+              Stop the desk
+            </button>
+          </>
+        }
+      />
+
+      {checks
+        .filter((check) => !check.ok)
+        .map((check) => (
+          <Note key={check.id} tone="red">{`${check.label}: ${check.fail}`}</Note>
         ))}
-      </ol>
-      <ShowRaw summary={lines.join(" ")}>
-        <pre className="num">{strategy.program}</pre>
-      </ShowRaw>
-      <div className="flex flex-wrap items-center gap-4 rounded-card border border-border bg-surface p-5">
-      <Link className="text-body" to="/open?step=3">
-        Change
-      </Link>
-      <p className="text-body text-muted">{CHANGE_NOTE}</p>
-      </div>
-      <button type="button" className="text-body" onClick={() => setAskStop(true)}>
-        {STOP}
-      </button>
-      {askStop ? (
-        <div className="rounded-card bg-surface p-5">
-          <p className="text-body">{STOP_COPY}</p>
-          <button
-            type="button"
-            className="text-body"
-            onClick={() => {
-              port.planDock({ client: null, cfg: emptyConfig() }, strategy.strategyHash);
-              dockDesk();
-              setStopped(true);
-              refresh();
-            }}
-          >
-            Confirm
-          </button>
+
+      <Card
+        title="What changes how"
+        flush
+        footer="Change docks this program and ships a new one in one Safe transaction. Stop docks it."
+      >
+        <div className="v-table-wrap">
+          <table className="v-table">
+            <thead>
+              <tr>
+                <th>How</th>
+                <th>What it changes</th>
+                <th>Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.how}</td>
+                  <td>{row.what}</td>
+                  <td>
+                    <Link to={row.href}>{row.linkLabel}</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ) : null}
-      {strategy.warning === "MULTIPLE_LIVE" ? (
-        <div className="rounded-card bg-danger p-5 text-onfocus">
-          <p className="text-body">{strategy.strategyHash}</p>
-          <button
-            type="button"
-            className="text-body"
-            onClick={() => {
-              port.planMultiSend([port.planDock({ client: null, cfg: emptyConfig() }, strategy.strategyHash)]);
-              dockDesk();
-              refresh();
-            }}
-          >
-            {CLOSE_EXCEPT}
-          </button>
-        </div>
-      ) : null}
-      {import.meta.env.DEV ? (
-        <button
-          type="button"
-          className="text-body"
-          onClick={() => {
-            seedTwoDesks();
-            refresh();
-          }}
-        >
-          {SEED_TWO}
-        </button>
-      ) : null}
-      <div className="overflow-x-auto rounded-card border border-border px-5">
-      <table>
-        <tbody>
-          <tr>
-            <td>Oracle price</td>
-            <td>Deployer</td>
-          </tr>
-          <tr>
-            <td>Agent spread</td>
-            <td>Risk agent</td>
-          </tr>
-          <tr>
-            <td>Terms and names</td>
-            <td>Treasury, on ENS</td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-    </div>
+      </Card>
+
+      <AlertDialog
+        isOpen={isStopAsked}
+        onOpenChange={setIsStopAsked}
+        title="Stop the desk?"
+        description="Counterparties can't trade until a new desk opens. Tokens stay in the Safe."
+        actionLabel="Stop the desk"
+        onAction={() => {
+          setIsStopAsked(false);
+          setIsSafeOpen(true);
+        }}
+      />
+      <SafeDialog
+        isOpen={isSafeOpen}
+        onOpenChange={setIsSafeOpen}
+        title="Stop the desk"
+        description="This proposal docks the live program on Aqua. Counterparties can't trade until a new desk opens. Tokens stay in the Safe."
+      />
+    </Page>
   );
 }

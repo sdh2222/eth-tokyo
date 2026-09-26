@@ -180,6 +180,41 @@ contract DeskPriceTest is Test {
         resolver.setData(dnsName, "desk.spread", abi.encode(uint8(1), uint16(40), uint64(block.timestamp + 1000)));
         _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
 
+        bytes memory desk = DeskArgs.dnsEncode("desk.eth");
+        resolver.setData(
+            desk, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8), uint64(block.timestamp + 1000))
+        );
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+
+        resolver.setData(
+            dnsName, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8), uint64(block.timestamp + 1000))
+        );
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_000_800_000);
+        _cell(900e18, 400_000e6, false, true, 1e18, 3_996_800_000);
+        resolver.setData(dnsName, "desk.spread", abi.encode(uint8(1), uint16(40), uint64(block.timestamp + 1000)));
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+
+        resolver.setData(
+            dnsName, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8), uint64(block.timestamp + 1000))
+        );
+        vm.recordLogs();
+        harness.run(priceArgs, taker, true, address(usdc), address(weth), 400_000e6, 900e18, 1000e6, false);
+        logs = vm.getRecordedLogs();
+        (,,,,,, sell, buy,) = abi.decode(
+            logs[logs.length - 1].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint16, uint256)
+        );
+        assertEq(sell, 2);
+        assertEq(buy, 8);
+
+        resolver.setData(
+            dnsName, "desk.spread", abi.encode(uint8(1), uint16(4), uint16(8), uint64(block.timestamp + 1000))
+        );
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+        resolver.setData(dnsName, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8), uint64(block.timestamp)));
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+        resolver.setData(dnsName, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8)));
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+
         resolver.setData(dnsName, "desk.terms", _terms(3, 10, 1e18));
         harness.run(priceArgs, taker, false, address(usdc), address(weth), 400_000e6, 900e18, 1e18, true);
         vm.expectRevert(

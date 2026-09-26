@@ -2,7 +2,7 @@
    "Tailwind v3 coexistence" snippet: reset lowest, Tailwind preflight layered below
    astryx-base, the built watermark theme on top, Tailwind utilities unlayered so the
    old pages keep working until they are rebuilt. */
-@layer reset, tw-preflight, legacy, astryx-base, astryx-theme;
+@layer reset, tw-preflight, legacy, astryx-base, astryx-theme, app;
 
 @import "@astryxdesign/core/reset.css";
 @import "@astryxdesign/core/astryx.css";
@@ -10,6 +10,10 @@
 @import "./fonts.css";
 @import "./tokens.css" layer(legacy);
 @import "./legacy.css" layer(legacy);
+@import "../app/shell.css" layer(app);
+@import "../ui/plain.css" layer(app);
+@import "../ui/standard.css" layer(app);
+@import "../ui/v.css" layer(app);
 
 @layer tw-preflight {
   @tailwind base;

@@ -1,0 +1,12 @@
+{
+  "name": "branch-names",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/**"],
+      "exclude": ["refs/heads/main", "refs/heads/aqua/**", "refs/heads/ens/**", "refs/heads/docs/**", "refs/heads/design/**"]
+    }
+  },
+  "rules": [{ "type": "creation" }]
+}

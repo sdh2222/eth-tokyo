@@ -49,5 +49,8 @@ export function useQuote(input: {
     return () => window.clearInterval(timer);
   }, [query.dataUpdatedAt]);
 
-  return { ...query, secondsLeft: left };
+  // While the debounced inputs catch up (400 ms), the last quote belongs to the old side or
+  // amount: hide it rather than show, say, a buy quote under Sell ETH.
+  const settling = input.amount !== amount || input.side !== side || input.leg !== leg || input.mm !== mm;
+  return { ...query, data: settling ? undefined : query.data, secondsLeft: left };
 }

@@ -2,6 +2,22 @@ import type { DeskConfig } from "./config.js";
 
 const WAD = 10n ** 18n;
 
+/** Ask and bid on the oracle. Inventory does not move the mid. */
+export function widthQuotes(
+  pWad: bigint,
+  _wWad: bigint,
+  _wStarWad: bigint,
+  sSellBps: number,
+  sBuyBps: number,
+): { askWad: bigint; bidWad: bigint } {
+  const sell = BigInt(sSellBps);
+  const buy = BigInt(sBuyBps);
+  return {
+    askWad: (pWad * (10_000n + sell)) / 10_000n,
+    bidWad: buy >= 10_000n ? 0n : (pWad * (10_000n - buy)) / 10_000n,
+  };
+}
+
 export interface PriceInput {
   baseBal: bigint;
   quoteBal: bigint;
@@ -40,8 +56,14 @@ export function priceMirror(input: PriceInput): PriceResult {
   const wStar = BigInt(d.wStarBps) * 10n ** 14n;
   const baseIsIn = input.side === "sell";
   const sellStopped = !baseIsIn && wWad <= wStar;
-  const askWad = (pWad * BigInt(10_000 + input.sSellBps)) / 10_000n;
-  const bidWad = (pWad * BigInt(10_000 - input.sBuyBps)) / 10_000n;
+  const { askWad, bidWad } = widthQuotes(
+    pWad,
+    wWad,
+    wStar,
+    input.sSellBps,
+    input.sBuyBps,
+  );
+  const rWad = pWad;
   const price = baseIsIn ? bidWad : askWad;
   let amountIn: bigint;
   let amountOut: bigint;
@@ -64,7 +86,7 @@ export function priceMirror(input: PriceInput): PriceResult {
     amountIn,
     amountOut,
     wWad,
-    rWad: pWad,
+    rWad,
     askWad,
     bidWad,
     sSellBps: input.sSellBps,

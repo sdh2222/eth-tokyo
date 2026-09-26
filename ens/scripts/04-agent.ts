@@ -69,7 +69,7 @@ if (agentWallet && (await publicClient.getBalance({ address: agent })) < parseEt
 
 // 4. The boundary. Without the agent's key, the allowed write is simulated from its address instead of sent.
 const validUntil = (await publicClient.getBlock()).timestamp + 3600n
-const allowed = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_SPREAD, encodeSpread({ spreadBps: 40, validUntil })] as const }
+const allowed = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_SPREAD, encodeSpread({ sellBps: 2, buyBps: 8, validUntil })] as const }
 if (agentWallet) {
   await send(agentWallet, { ...allowed, label: `agent writes ${KEY_SPREAD} on ${target}` })
 } else {
@@ -78,7 +78,7 @@ if (agentWallet) {
   console.log(`  ✓ agent can write ${KEY_SPREAD} (simulated from ${agent}; its key stays with its lane)`)
 }
 
-const deniedTerms = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_TERMS, encodeTerms({ tierBps: 1, capPerFill: 10n ** 12n })] as const }
+const deniedTerms = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_TERMS, encodeTerms({ sSellBps: 3, sBuyBps: 10, cap: 50n * 10n ** 18n })] as const }
 const deniedAddr = { ...R, functionName: 'setAddress' as const, args: [dnsEncode(target), COIN_TYPE_ETH, agent as Hex] as const }
 for (const [what, call] of [[`${KEY_TERMS}`, deniedTerms], ['addr', deniedAddr]] as const) {
   const reason = await revertName(() => publicClient.simulateContract({ account: agent, ...call } as never))

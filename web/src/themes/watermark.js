@@ -18,8 +18,8 @@ export const watermarkTheme = {
   __built: true,
   tokens: {
     "--color-neutral": "light-dark(#1B1B1F1A, #E2E2E833)",
-    "--color-background-surface": "#F3F3F3",
-    "--color-background-body": "#B7E4F8",
+    "--color-background-surface": "#FFFFFF",
+    "--color-background-body": "#FFFFFF",
     "--color-overlay": "light-dark(#1B1B1F66, #1B1B1F99)",
     "--color-overlay-hover": "light-dark(#1B1B1F0D, #FFFFFF0D)",
     "--color-overlay-pressed": "light-dark(#1B1B1F1A, #FFFFFF1A)",
@@ -27,12 +27,12 @@ export const watermarkTheme = {
     "--color-text-primary": "#111111",
     "--color-text-secondary": "light-dark(#46464F, #AAAAB5)",
     "--color-text-disabled": "light-dark(#8F909A, #5D5E67)",
-    "--color-text-accent": "var(--color-accent)",
-    "--color-icon-accent": "var(--color-accent)",
+    "--color-text-accent": "#111111",
+    "--color-icon-accent": "#111111",
     "--color-icon-primary": "#111111",
     "--color-icon-secondary": "light-dark(#46464F, #AAAAB5)",
     "--color-icon-disabled": "light-dark(#8F909A, #5D5E67)",
-    "--color-background-card": "#FFFFFF",
+    "--color-background-card": "#F3F3F3",
     "--color-background-popover": "#FFFFFF",
     "--color-background-inverted": "light-dark(#1B1B1F, #FCFCFF)",
     "--color-border": "light-dark(#1B1B1F1A, #F0F0F61A)",
@@ -41,161 +41,40 @@ export const watermarkTheme = {
     "--color-track": "light-dark(#AAAAB5, #46464F)",
     "--color-shadow": "light-dark(#0000001A, #0000004D)",
     "--color-tint-hover": "light-dark(black, white)",
-    "--font-size-4xs": "0.375rem",
-    "--font-size-3xs": "0.5rem",
-    "--font-size-2xs": "0.5625rem",
-    "--font-size-xs": "0.6875rem",
-    "--font-size-sm": "0.8125rem",
-    "--font-size-base": "1rem",
-    "--font-size-lg": "1.1875rem",
-    "--font-size-xl": "1.4375rem",
-    "--font-size-2xl": "1.75rem",
-    "--font-size-3xl": "2.0625rem",
-    "--font-size-4xl": "2.5rem",
-    "--font-size-5xl": "3rem",
-    "--text-heading-1-size": "var(--font-size-2xl)",
-    "--text-heading-1-weight": "var(--font-weight-semibold)",
-    "--text-heading-1-leading": "1.4286",
-    "--text-heading-2-size": "var(--font-size-xl)",
-    "--text-heading-2-weight": "var(--font-weight-semibold)",
-    "--text-heading-2-leading": "1.3913",
-    "--text-heading-3-size": "var(--font-size-lg)",
-    "--text-heading-3-weight": "var(--font-weight-semibold)",
-    "--text-heading-3-leading": "1.4737",
-    "--text-heading-4-size": "var(--font-size-base)",
-    "--text-heading-4-weight": "var(--font-weight-semibold)",
-    "--text-heading-4-leading": "1.5",
-    "--text-heading-5-size": "var(--font-size-sm)",
-    "--text-heading-5-weight": "var(--font-weight-semibold)",
-    "--text-heading-5-leading": "1.5385",
-    "--text-heading-6-size": "var(--font-size-xs)",
-    "--text-heading-6-weight": "var(--font-weight-semibold)",
-    "--text-heading-6-leading": "1.4545",
-    "--text-body-size": "var(--font-size-base)",
-    "--text-body-weight": "var(--font-weight-normal)",
-    "--text-body-leading": "1.5",
-    "--text-large-size": "var(--font-size-lg)",
-    "--text-large-weight": "var(--font-weight-semibold)",
-    "--text-large-leading": "1.4737",
-    "--text-label-size": "var(--font-size-base)",
-    "--text-label-weight": "var(--font-weight-medium)",
-    "--text-label-leading": "1.5",
-    "--text-code-size": "var(--font-size-base)",
-    "--text-code-weight": "var(--font-weight-normal)",
-    "--text-code-leading": "1.5",
-    "--text-supporting-size": "var(--font-size-sm)",
-    "--text-supporting-weight": "var(--font-weight-normal)",
-    "--text-supporting-leading": "1.5385",
-    "--text-display-1-size": "var(--font-size-5xl)",
-    "--text-display-1-weight": "var(--font-weight-normal)",
-    "--text-display-1-leading": "1.25",
-    "--text-display-2-size": "var(--font-size-4xl)",
-    "--text-display-2-weight": "var(--font-weight-normal)",
-    "--text-display-2-leading": "1.3",
-    "--text-display-3-size": "var(--font-size-3xl)",
-    "--text-display-3-weight": "var(--font-weight-normal)",
-    "--text-display-3-leading": "1.2121",
     "--font-family-body": "\"Die Grotesk C\", system-ui, sans-serif",
     "--font-family-heading": "\"Die Grotesk C\", system-ui, sans-serif",
-    "--color-accent": "#111111",
-    "--color-on-accent": "#FFFFFF",
+    "--color-accent": "#B7E4F8",
+    "--color-on-accent": "#111111",
     "--font-weight-semibold": "500",
-    "--font-weight-bold": "500"
+    "--font-weight-bold": "500",
+    "--text-heading-1-size": "32px",
+    "--text-heading-1-leading": "0.8125",
+    "--text-heading-2-size": "24px",
+    "--text-heading-2-leading": "1.5",
+    "--text-heading-3-size": "20px",
+    "--text-heading-3-leading": "1.2",
+    "--text-heading-4-size": "16px",
+    "--text-heading-4-leading": "1.5",
+    "--text-body-size": "16px",
+    "--text-body-leading": "1.5",
+    "--text-large-size": "20px",
+    "--text-large-leading": "1.2",
+    "--text-label-size": "16px",
+    "--text-label-leading": "1.5",
+    "--text-supporting-size": "16px",
+    "--text-supporting-leading": "1.5",
+    "--text-code-size": "16px",
+    "--text-display-1-size": "96px",
+    "--text-display-1-leading": "0.8",
+    "--text-display-2-size": "64px",
+    "--text-display-2-leading": "0.8",
+    "--text-display-3-size": "24px",
+    "--text-display-3-leading": "1.5"
   },
   components: {
     "heading": {
-      "level:1": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-heading-1-size)",
-        "fontWeight": "var(--text-heading-1-weight)",
-        "lineHeight": "var(--text-heading-1-leading)"
-      },
-      "level:2": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-heading-2-size)",
-        "fontWeight": "var(--text-heading-2-weight)",
-        "lineHeight": "var(--text-heading-2-leading)"
-      },
-      "level:3": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-heading-3-size)",
-        "fontWeight": "var(--text-heading-3-weight)",
-        "lineHeight": "var(--text-heading-3-leading)"
-      },
-      "level:4": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-heading-4-size)",
-        "fontWeight": "var(--text-heading-4-weight)",
-        "lineHeight": "var(--text-heading-4-leading)"
-      },
-      "level:5": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-heading-5-size)",
-        "fontWeight": "var(--text-heading-5-weight)",
-        "lineHeight": "var(--text-heading-5-leading)"
-      },
-      "level:6": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-heading-6-size)",
-        "fontWeight": "var(--text-heading-6-weight)",
-        "lineHeight": "var(--text-heading-6-leading)"
-      },
-      "type:display-1": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-display-1-size)",
-        "lineHeight": "var(--text-display-1-leading)"
-      },
-      "type:display-2": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-display-2-size)",
-        "lineHeight": "var(--text-display-2-leading)"
-      },
-      "type:display-3": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-display-3-size)",
-        "lineHeight": "var(--text-display-3-leading)"
-      }
-    },
-    "text": {
-      "type:body": {
-        "fontFamily": "var(--font-family-body)",
-        "fontSize": "var(--text-body-size)",
-        "lineHeight": "var(--text-body-leading)"
-      },
-      "type:large": {
-        "fontFamily": "var(--font-family-body)",
-        "fontSize": "var(--text-large-size)",
-        "lineHeight": "var(--text-large-leading)"
-      },
-      "type:label": {
-        "fontFamily": "var(--font-family-body)",
-        "fontSize": "var(--text-label-size)",
-        "lineHeight": "var(--text-label-leading)"
-      },
-      "type:code": {
-        "fontFamily": "var(--font-family-code)",
-        "fontSize": "var(--text-code-size)",
-        "lineHeight": "var(--text-code-leading)"
-      },
-      "type:supporting": {
-        "fontFamily": "var(--font-family-body)",
-        "fontSize": "var(--text-supporting-size)",
-        "lineHeight": "var(--text-supporting-leading)"
-      },
-      "type:display-1": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-display-1-size)",
-        "lineHeight": "var(--text-display-1-leading)"
-      },
-      "type:display-2": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-display-2-size)",
-        "lineHeight": "var(--text-display-2-leading)"
-      },
-      "type:display-3": {
-        "fontFamily": "var(--font-family-heading)",
-        "fontSize": "var(--text-display-3-size)",
-        "lineHeight": "var(--text-display-3-leading)"
+      "base": {
+        "letterSpacing": "-0.03em"
       }
     }
   },
@@ -227,10 +106,6 @@ export const watermarkTheme = {
   },
   __axes: {
     "typography": {
-      "scale": {
-        "base": 16,
-        "ratio": 1.2
-      },
       "body": {
         "family": "Die Grotesk C",
         "fallbacks": "system-ui, sans-serif"

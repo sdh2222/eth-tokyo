@@ -10,10 +10,8 @@ import { OpenPage } from "../pages/OpenPage";
 import { LandingPage } from "../pages/LandingPage";
 import { TradePage } from "../pages/TradePage";
 import { Kit } from "../pages/dev/Kit";
-import { ShellPreview } from "../pages/dev/ShellPreview";
-import { ShellRow } from "../pages/dev/ShellRow";
-import { ShellAstryx } from "../pages/dev/ShellAstryx";
 import { Foundation } from "../pages/dev/Foundation";
+import { Standard } from "../pages/dev/Standard";
 import { AppFrame } from "./shell";
 
 export function AppRouter() {
@@ -31,10 +29,8 @@ export function AppRouter() {
         <Route path="/program" element={<ProgramPage />} />
         <Route path="/agent" element={<AgentPage />} />
         {import.meta.env.DEV ? <Route path="/dev/kit" element={<Kit />} /> : null}
-        {import.meta.env.DEV ? <Route path="/dev/shell" element={<ShellPreview />} /> : null}
-        {import.meta.env.DEV ? <Route path="/dev/shell/row" element={<ShellRow />} /> : null}
-        {import.meta.env.DEV ? <Route path="/dev/shell/astryx" element={<ShellAstryx />} /> : null}
         {import.meta.env.DEV ? <Route path="/dev/foundation" element={<Foundation />} /> : null}
+        {import.meta.env.DEV ? <Route path="/dev/standard" element={<Standard />} /> : null}
         <Route path="*" element={<Navigate to="/desk" replace />} />
       </Routes>
     </AppFrame>

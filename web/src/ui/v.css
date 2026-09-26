@@ -1,0 +1,755 @@
+/* The app kit, modelled one to one on Vercel's Geist system (the reference the team chose:
+   "Linear / Vercel style"). White page, bordered cards (1 px #ebebeb, 12 px radius), 14 px
+   body, 13 px gray labels, 24 px page title, compact tables, 32 px buttons with a 6 px
+   radius, pill badges. Kept from watermark: the Die Grotesk C face, ink and water blue,
+   and the dither cells for charts. Classes are `v-`. Imported into the `app` layer. */
+
+.v-page {
+  /* The watermark palette, four colours and nothing else: ENS blue #0080bc, light blue
+     #cce6f2 (ENS blue at 20% on white; the palette's #cee1e8 read grey), dark blue #011a25,
+     white #f6f6f6. Secondary text is dark blue at 66% and 48%
+     on white; borders stay a neutral gray. States use the palette too: in force is light
+     blue, a warning is a dark blue outline, a stop is dark blue filled. */
+  --v-blue: #0080bc;
+  --v-light: #cce6f2;
+  --v-dark: #011a25;
+  --v-white: #f6f6f6;
+  --v-bg: #ffffff;
+  --v-bg-2: var(--v-white);
+  --v-gray-1: #eef1f2;
+  --v-border: #e6e9ea;
+  --v-border-strong: #cfd5d8;
+  --v-text: var(--v-dark);
+  --v-text-2: #57686f;
+  --v-text-3: #859196;
+  --v-accent: var(--v-blue);
+  --v-accent-bg: var(--v-light);
+  --v-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+  /* The dither cells (web/src/ui/cells.tsx) read these. */
+  --wk-ink: var(--v-text);
+  --wk-dot: var(--v-blue);
+  --wk-off: #dcdcdc;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--v-text);
+  font-family: "Die Grotesk C", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/compare/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Element reset at class weight (:where adds none), so .v-title and the other kit classes,
+   which come later in this file, still win. */
+.v-page :where(h1, h2, h3, p, dl, dd, ul, ol, figure) {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.v-page .v-card-title {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* Page header: 24/32 title, 14 px gray description, actions on the right. */
+.v-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--v-border);
+}
+
+.v-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.v-title {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.v-desc,
+.v-muted {
+  color: var(--v-text-2);
+}
+
+.v-faint {
+  color: var(--v-text-3);
+}
+
+.v-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Layout. */
+.v-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.v-col-3 { grid-column: span 3; }
+.v-col-4 { grid-column: span 4; }
+.v-col-5 { grid-column: span 5; }
+.v-col-6 { grid-column: span 6; }
+.v-col-7 { grid-column: span 7; }
+.v-col-8 { grid-column: span 8; }
+.v-col-9 { grid-column: span 9; }
+.v-col-12 { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .v-grid > * {
+    grid-column: 1 / -1;
+  }
+}
+
+.v-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.v-stack-4 { gap: 4px; }
+.v-stack-8 { gap: 8px; }
+.v-stack-24 { gap: 24px; }
+.v-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.v-row-4 { gap: 4px; }
+.v-row-8 { gap: 8px; }
+.v-between { justify-content: space-between; }
+.v-num { font-variant-numeric: tabular-nums; }
+.v-page .v-mono { font-family: var(--v-mono); font-size: 13px; }
+
+/* Card: white, 1 px border, 12 px radius. Header and footer are separated by a border;
+   the footer sits on the 200 gray. */
+.v-card {
+  background: var(--v-bg);
+  border: 1px solid var(--v-border);
+  border-radius: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.v-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 64px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--v-border);
+}
+
+.v-card-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.v-card-body {
+  padding: 24px;
+}
+
+.v-card-body-flush {
+  padding: 0;
+}
+
+.v-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--v-bg-2);
+  border-top: 1px solid var(--v-border);
+  color: var(--v-text-2);
+}
+
+/* Metric: 13 px gray label over a 24/32 figure (32/40 for the page's one headline figure). */
+.v-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.v-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 24px;
+  border-right: 1px solid var(--v-border);
+  min-width: 0;
+}
+
+.v-metric:last-child {
+  border-right: 0;
+}
+
+.v-label {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--v-text-2);
+}
+
+.v-figure {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.v-figure-lg {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table: 13 px gray head on the 200 gray, 14 px rows at 48 px, 1 px row borders. */
+.v-table-wrap {
+  position: relative;
+  overflow-x: auto;
+}
+
+.v-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.v-table th {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--v-bg-2);
+  border-bottom: 1px solid var(--v-border);
+  color: var(--v-text-2);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.v-table td {
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--v-border);
+  white-space: nowrap;
+}
+
+.v-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.v-table tbody tr:hover td {
+  background: var(--v-bg-2);
+}
+
+.v-table th:first-child,
+.v-table td:first-child {
+  padding-left: 24px;
+}
+
+.v-table th:last-child,
+.v-table td:last-child {
+  padding-right: 24px;
+}
+
+.v-table .v-right {
+  text-align: right;
+}
+
+/* Key and value list, Geist style: gray key, primary value. */
+.v-dl {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) minmax(0, 1fr);
+  gap: 12px 24px;
+}
+
+.v-dl dt {
+  color: var(--v-text-2);
+}
+
+.v-dl dd {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Buttons: 32 px, 6 px radius, 14/20 500. Primary is ink, secondary is bordered white,
+   tertiary is text only, error is red. */
+.v-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--v-text);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.v-btn:hover {
+  background: #0d3547;
+}
+
+.v-btn-lg {
+  height: 40px;
+  padding: 0 16px;
+}
+
+.v-btn-secondary {
+  background: var(--v-bg);
+  border-color: var(--v-border);
+  color: var(--v-text);
+}
+
+.v-btn-secondary:hover {
+  background: var(--v-bg-2);
+  border-color: var(--v-border-strong);
+}
+
+.v-btn-tertiary {
+  background: transparent;
+  color: var(--v-text);
+}
+
+.v-btn-tertiary:hover {
+  background: var(--v-gray-1);
+}
+
+/* A stop (Stop the desk, Cut off): a dark blue outline, so it sits apart from the neutral
+   secondary buttons without a new colour. The confirm dialog carries the weight. */
+.v-btn-error {
+  background: var(--v-bg);
+  border-color: var(--v-dark);
+  color: var(--v-dark);
+}
+
+.v-btn-error:hover {
+  background: var(--v-light);
+}
+
+.v-btn:disabled {
+  background: var(--v-gray-1);
+  border-color: var(--v-border);
+  color: var(--v-text-3);
+  cursor: not-allowed;
+}
+
+.v-page a.v-btn {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.v-page a.v-btn-secondary,
+.v-page a.v-btn-tertiary {
+  color: var(--v-text);
+}
+
+/* Links: watermark water blue, underline on hover, so anything that navigates reads as
+   clickable. */
+.v-page a:not(.v-btn),
+.v-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--v-accent);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.v-page a:not(.v-btn):hover,
+.v-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.v-page a:focus-visible,
+.v-btn:focus-visible,
+.v-link:focus-visible,
+.v-input:focus-visible,
+.v-seg button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(1, 26, 37, 0.35);
+}
+
+/* Badge: a 20 px pill, 12 px 500. Gray is a bordered pill; a tone is a tinted fill with
+   the tone's text (Geist badge), used only for a state: live, can't trade, expiring. */
+.v-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--v-border);
+  border-radius: 999px;
+  background: var(--v-bg);
+  color: var(--v-text-2);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.v-badge[data-tone="green"],
+.v-badge[data-tone="blue"] { border-color: transparent; background: var(--v-light); color: var(--v-dark); }
+.v-badge[data-tone="amber"] { border-color: var(--v-dark); background: var(--v-bg); color: var(--v-dark); }
+.v-badge[data-tone="red"] { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
+
+/* Status dot: 8 px dot and a 14 px label (Geist "Status"). */
+.v-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v-status::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v-text-3);
+}
+
+/* In force: ENS blue. Warning: a dark blue ring. Stopped: dark blue filled. */
+.v-status[data-tone="green"]::before,
+.v-status[data-tone="blue"]::before { background: var(--v-blue); }
+.v-status[data-tone="amber"]::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--v-dark); }
+.v-status[data-tone="red"]::before { background: var(--v-dark); }
+
+/* Inputs: 36 px, 6 px radius, 1 px border. */
+.v-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v-field > span:first-child {
+  font-size: 13px;
+  color: var(--v-text-2);
+}
+
+.v-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--v-border);
+  border-radius: 6px;
+  background: var(--v-bg);
+  color: var(--v-text);
+  font: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+textarea.v-input {
+  height: auto;
+  min-height: 120px;
+  padding: 8px 12px;
+  resize: vertical;
+}
+
+/* A field error: dark blue, 500, after a dark blue ring (the palette's warning mark). */
+.v-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--v-dark);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.v-error::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--v-dark);
+}
+
+/* Segmented control (Geist "Switch"): gray track, white selected option. */
+.v-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--v-gray-1);
+}
+
+.v-seg button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--v-text-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.v-seg button[aria-checked="true"] {
+  background: var(--v-bg);
+  color: var(--v-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Note (Geist "Note"): a bordered strip. A tone tints the ground and the border and puts a
+   dot of that tone before the text; the text stays ink. */
+.v-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border: 1px solid var(--v-border);
+  border-radius: 6px;
+  background: var(--v-bg-2);
+}
+
+.v-note[data-tone] > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v-note[data-tone] > span:first-child::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--v-text-3);
+}
+
+/* Tones stay light: in force is a light blue ground, a warning or a stop a white ground with
+   a border (dark blue for a stop). An icon, not a dot, leads the text (Note in v.tsx). */
+.v-note[data-tone="green"],
+.v-note[data-tone="blue"] { border-color: transparent; background: var(--v-light); }
+.v-note[data-tone="amber"] { border-color: var(--v-border-strong); background: var(--v-bg); }
+.v-note[data-tone="red"] { border-color: var(--v-dark); background: var(--v-bg); }
+.v-note[data-tone] > span:first-child::before { display: none; }
+.v-note-icon { flex: 0 0 auto; width: 16px; height: 16px; color: var(--v-dark); }
+.v-note[data-tone="green"] .v-note-icon,
+.v-note[data-tone="blue"] .v-note-icon { color: var(--v-blue); }
+
+/* Verify's verdict card: tinted green when the recompute matches, red when it does not. */
+.v-card.v-verdict-green { border-color: transparent; background: var(--v-light); }
+.v-card.v-verdict-red { border-color: var(--v-dark); background: var(--v-bg); }
+
+/* Empty state: the dither clouds, one line, one action, centred in a card. */
+.v-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.v-picture {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+}
+
+.v-picture[data-height="160"] { height: 160px; }
+.v-picture[data-height="200"] { height: 200px; }
+
+.v-picture img {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+/* Details disclosure. */
+.v-details summary {
+  cursor: pointer;
+  color: var(--v-text-2);
+}
+
+.v-details[open] summary {
+  margin-bottom: 12px;
+}
+
+/* A code block for raw values: Geist Mono 13 px on the 200 gray. */
+.v-code {
+  padding: 12px 16px;
+  border: 1px solid var(--v-border);
+  border-radius: 6px;
+  background: var(--v-bg-2);
+  font-family: var(--v-mono);
+  font-size: 13px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.v-bid,
+.v-ask { color: var(--v-text); }
+
+.v-sr {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Controls in a card head match the 32 px buttons. */
+.v-card-head .v-input {
+  width: auto;
+  height: 32px;
+}
+
+/* An expanded table row (an editor under a row): wraps text, gray ground, card padding. */
+.v-table td.v-expand {
+  height: auto;
+  padding: 24px;
+  background: var(--v-bg-2);
+  white-space: normal;
+}
+
+.v-table tbody tr:hover td.v-expand {
+  background: var(--v-bg-2);
+}
+
+/* Small additions the pages asked for. */
+.v-strong { font-weight: 500; }
+.v-metric .v-mono { font-size: inherit; letter-spacing: 0; }
+.v-page ol.v-ol { list-style: decimal; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.v-page ul.v-ul { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+[data-active="true"] { background: var(--v-accent-bg); }
+/* An open table row (the one being edited): a quiet ground and an ENS blue edge, so the
+   row's own light blue badges still read. */
+.v-table tr[data-active="true"] { background: none; }
+.v-table tr[data-active="true"] td { background: var(--v-bg-2); }
+.v-table tr[data-active="true"] td:first-child { box-shadow: inset 2px 0 0 var(--v-blue); }
+@media (max-width: 600px) {
+  .v-dl { grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); gap: 8px 16px; }
+}
+
+/* Dither cells in the kit: an "on" unit is a round dot, not a square block (the dotted
+   track the team pointed at), so a chart reads as texture rather than a bar. */
+.v-page .wk-cell-on {
+  rx: 5px;
+}
+
+.v-page .wk-cell-mark {
+  rx: 1px;
+}
+
+.v-page .wk-cell-fence {
+  rx: 5px;
+  stroke: var(--v-text-3);
+}
+
+/* A table cell that may wrap (a reason, a note). */
+.v-table td.v-wrap {
+  min-width: 240px;
+  white-space: normal;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Dotted slider (web/src/ui/slider.tsx): a rounded gray track of dots that darken up to a
+   white handle; a transparent native range input on top does the work. */
+.v-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v-slider-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.v-slider-track {
+  position: relative;
+  height: 40px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: var(--v-gray-1);
+}
+
+.v-slider-track svg {
+  display: block;
+  width: calc(100% - 28px);
+  height: 100%;
+}
+
+/* Filled dots are water blue; the opacity ramp in slider.tsx takes them from sky pale to
+   deep at the handle. */
+.v-slider-dot-on {
+  fill: var(--v-accent);
+}
+
+.v-slider-dot {
+  fill: var(--v-text-3);
+}
+
+.v-slider-handle {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 28px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--v-border), 0 1px 3px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+.v-slider-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Keyboard focus rings the handle, not the track; a mouse drag shows no ring. */
+.v-slider-track:has(.v-slider-input:focus-visible) .v-slider-handle {
+  box-shadow: 0 0 0 1px var(--v-text), 0 0 0 4px rgba(1, 26, 37, 0.12);
+}

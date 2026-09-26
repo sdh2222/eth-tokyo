@@ -1,228 +1,171 @@
-import { EmptyState } from "../components/EmptyState";
-import { FillTable } from "../components/FillTable";
-import { QuoteBoard } from "../components/QuoteBoard";
-import { ShareBar } from "../components/ShareBar";
-import { Skeleton } from "../components/Skeleton";
-import { StatusBadge, type StatusKind } from "../components/StatusBadge";
-import { CLOSES_IN, UPDATED } from "../copy/en";
-import { NOW } from "../desk/fixture/state";
-import { useRole } from "../app/role";
-import { useCanAct } from "../hooks/useCanAct";
+import { Link } from "react-router-dom";
+import { formatBpsShare, formatWadUsd, nameQuote, shortName } from "../desk/book";
+import { buysEth, fillEth, fillPrice } from "../desk/fills";
+import type { FillRecord } from "../desk/types";
+import { useAgentWrites, writeFor } from "../hooks/useAgentWrites";
+import { useBook } from "../hooks/useBook";
+import { formatCountdown, useClock } from "../hooks/useClock";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
-import { useOracleRound } from "../hooks/useOracle";
-import { ERRORS } from "../copy/errors";
-import { useNavigate } from "react-router-dom";
-import { formatHash, formatShare, formatUsd, formatUsdc, formatWeth } from "../lib/format";
+import { formatHash, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
+import { Badge, Card, Empty, Header, Metric, Metrics, Page, Status } from "../ui/v";
+import { PRICE_WINDOW_SECONDS } from "../desk/window";
 
-const WAD = 10n ** 18n;
+// Dashboard: is the desk live, what does each counterparty pay now, what is in the Safe,
+// and what just traded. Numbers only; how the agent sets widths is on the Risk agent page.
+
+
+function FillRow({ fill, now }: { fill: FillRecord; now: number }) {
+  return (
+    <tr>
+      <td className="v-muted">{formatWhen(fill.blockTime, now)}</td>
+      <td>{fill.name}</td>
+      <td>{buysEth(fill) ? "Bought ETH" : "Sold ETH"}</td>
+      <td className="v-right">{formatWeth(fillEth(fill))}</td>
+      <td className="v-right">{`$${formatWadUsd(fillPrice(fill))}`}</td>
+      <td className="v-right">
+        <Link className="v-mono" to={`/fills/${fill.tx}`}>
+          {formatHash(fill.tx)}
+        </Link>
+      </td>
+    </tr>
+  );
+}
 
 export function DeskPage() {
-  const live = useLiveStrategy();
-  const oracle = useOracleRound();
-  const strategy = live.data ?? null;
-  const state = useDeskState(strategy);
-  const fills = useFills(strategy);
-  const { isOwner } = useCanAct();
-  const [role] = useRole();
-  const navigate = useNavigate();
+  const book = useBook();
+  const now = useClock();
+  const strategy = useLiveStrategy();
+  const desk = useDeskState(strategy.data ?? null);
+  const fills = useFills(strategy.data ?? null, strategy.isLoading);
+  const writes = useAgentWrites();
+  const b = book.data;
+  const live = Boolean(strategy.data);
 
-  if (live.isPending || (strategy !== null && state.isPending)) {
+  if (!b) {
     return (
-      <div className="flex flex-col gap-6">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-      </div>
+      <Page>
+        <Header title="Dashboard" description={book.isLoading ? "Reading the desk…" : "The desk could not be read. Check the Sepolia RPC and reload."} />
+      </Page>
     );
   }
 
-  if (live.isError || state.isError) {
-    const error = live.error ?? state.error;
-    const title =
-      error && typeof error === "object" && "title" in error && typeof error.title === "string"
-        ? error.title
-        : ERRORS.UNKNOWN?.title ?? "Something went wrong";
+  if (!live) {
     return (
-      <div className="flex flex-col gap-3">
-        <p className="text-body">{title}</p>
-        <button
-          type="button"
-          className="text-body"
-          onClick={() => {
-            void live.refetch();
-            void state.refetch();
-          }}
-        >
-          Retry
-        </button>
-      </div>
+      <Page>
+        <Header title="Dashboard" description={b.name} />
+        <Card>
+          <Empty
+            picture
+            title="No desk is open"
+            description="Opening a desk ships the program to Aqua in one Safe transaction."
+            action={
+              <Link className="v-btn" to="/open">
+                Open a desk
+              </Link>
+            }
+          />
+        </Card>
+      </Page>
     );
   }
 
-  const desk = state.data;
-  const liveMode = import.meta.env.VITE_DESK_MODE === "live";
-
-  if (!strategy || !desk) {
-    if (liveMode) {
-      return (
-        <div className="flex flex-col gap-8">
-          <header className="flex flex-col gap-2">
-            <h1 className="text-h1">Desk</h1>
-            <p className="max-w-3xl text-body text-muted">
-              The treasury is selling from this vault. Each named market maker gets a different price. Tokens stay in the Safe until a fill.
-            </p>
-          </header>
-          <StatusBadge kind="NotOpen" />
-          <section className="flex flex-col gap-3">
-            <h2 className="text-h3">In the vault</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <article className="rounded-card border border-border bg-surface p-5">
-                <p className="text-small text-muted">Oracle mid</p>
-                <p className="num text-h3">{oracle.data ? formatUsd(oracle.data.midWad) : "—"}</p>
-                {oracle.data ? (
-                  <p className={`text-small ${oracle.data.stale ? "text-danger" : "text-muted"}`}>
-                    {UPDATED} {formatWhen(oracle.data.updatedAt, Math.floor(Date.now() / 1000))}
-                    {oracle.data.stale ? " · stale" : ""}
-                  </p>
-                ) : null}
-              </article>
-              <article className="rounded-card border border-border bg-surface p-5">
-                <p className="text-small text-muted">ETH</p>
-                <p className="num text-h3">—</p>
-              </article>
-              <article className="rounded-card border border-border bg-surface p-5">
-                <p className="text-small text-muted">USDC</p>
-                <p className="num text-h3">—</p>
-              </article>
-              <article className="rounded-card border border-border bg-surface p-5 sm:col-span-2 lg:col-span-2">
-                <p className="text-small text-muted">ETH share</p>
-                <p className="num text-h3">—</p>
-              </article>
-            </div>
-          </section>
-          <section className="flex flex-col gap-3">
-            <h2 className="text-h3">Price for each market maker</h2>
-            <p className="num text-body">—</p>
-          </section>
-          <section className="flex flex-col gap-3">
-            <h2 className="text-h3">Recent fills</h2>
-            <p className="text-body">—</p>
-          </section>
-        </div>
-      );
-    }
-    return (
-      <div className="flex flex-col gap-5">
-        <StatusBadge kind="NotOpen" />
-        <EmptyState
-          sentence="No desk is open"
-          {...(role === "treasury" && isOwner
-            ? { action: { label: "Open a desk", onClick: () => navigate("/open") } }
-            : {})}
-        />
-      </div>
-    );
-  }
-
-  const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const midWad = liveMode ? desk?.pWad : (oracle.data?.midWad ?? desk?.pWad);
-  const updatedAt = liveMode ? desk?.oracleUpdatedAt : (oracle.data?.updatedAt ?? desk?.oracleUpdatedAt);
-  const oracleStale = liveMode ? (desk?.oracleStale ?? false) : (oracle.data?.stale ?? desk?.oracleStale ?? false);
-  const kind: StatusKind = oracleStale
-    ? "Stale"
-    : strategy?.live
-      ? "Live"
-      : strategy
-        ? "Stopped"
-        : "NotOpen";
-  const age = updatedAt !== undefined ? now - updatedAt : 0;
-  const aged = desk ? age > desk.maxStaleness / 2 : false;
-  const updatedClass = oracleStale ? "text-danger" : aged ? "text-warning" : "text-muted";
-
-  const targetPct = desk ? (desk.targetWad * 100n) / WAD : 0n;
-  const shareCaption = desk
-    ? `${formatShare(desk.wWad)} ETH · target ${targetPct}%`
-    : "";
+  const updatedAt = Number(b.oracle.updatedAt);
+  const windowLeft = updatedAt > now ? 0 : updatedAt + PRICE_WINDOW_SECONDS - now;
+  const midWad = b.oracle.answer * 10n ** 10n;
+  const weth = desk.data?.safeWallet.weth;
+  const usdc = desk.data?.safeWallet.usdc;
+  const rows = (fills.data ?? []).slice(0, 8);
 
   return (
-    <div className="flex flex-col gap-8">
-    <header className="flex flex-col gap-2">
-      <h1 className="text-h1">Desk</h1>
-      <p className="max-w-3xl text-body text-muted">
-        The treasury is selling from this vault. Each named market maker gets a different price. Tokens stay in the Safe until a fill.
-      </p>
-    </header>
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <StatusBadge kind={kind} />
-        {midWad !== undefined ? (
-          <p>
-            <span className="block text-small text-muted">Oracle mid</span>
-            <span className="num text-h2">{formatUsd(midWad)}</span>
-          </p>
-        ) : null}
-        {updatedAt !== undefined ? (
-          <span className={`text-small ${updatedClass}`}>
-            {UPDATED} {formatWhen(updatedAt, now)}
-          </span>
-        ) : null}
-      </div>
-      <div className="text-right text-small text-muted">
-        {strategy ? (
-          <button
-            type="button"
-            className="num text-small"
-            onClick={() => {
-              void navigator.clipboard.writeText(strategy.strategyHash);
-            }}
-          >
-            <span className="block text-muted">Program</span>
-            {formatHash(strategy.strategyHash)}
-          </button>
-        ) : null}
-        {strategy?.live && desk ? (
-          <p>
-            {CLOSES_IN} {formatWhen(desk.deadline, now)}
-          </p>
-        ) : null}
-      </div>
-    </div>
-    {desk ? (
-      <section className="flex flex-col gap-3">
-        <h2 className="text-h3">In the vault</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <article className="rounded-card border border-border bg-surface p-5">
-          <p className="text-small text-muted">ETH</p>
-          <p className="num text-h3">{formatWeth(desk.balances.weth)}</p>
-        </article>
-        <article className="rounded-card border border-border bg-surface p-5">
-          <p className="text-small text-muted">USDC</p>
-          <p className="num text-h3">{formatUsdc(desk.balances.usdc)}</p>
-        </article>
-        <article className="rounded-card border border-border bg-surface p-5 sm:col-span-2 lg:col-span-3">
-          <ShareBar shareWad={desk.wWad} targetWad={desk.targetWad} caption={shareCaption} />
-          <p className="mt-3 text-body">
-            In the Safe: {formatWeth(desk.safeWallet.weth)} · {formatUsdc(desk.safeWallet.usdc)}
-          </p>
-        </article>
-      </div>
-      </section>
-    ) : null}
-    {desk ? (
-      <section className="flex flex-col gap-3">
-        <h2 className="text-h3">Price for each market maker</h2>
-        <QuoteBoard mms={desk.mms} now={now} />
-      </section>
-    ) : null}
-    {desk ? (
-      <section className="flex flex-col gap-3">
-        <h2 className="text-h3">Recent fills</h2>
-        <div className="overflow-x-auto rounded-card border border-border px-5">
-          <FillTable fills={fills.data ?? []} weth="" midWad={desk.pWad} now={now} />
+    <Page>
+      <Header title="Dashboard" description={b.name} actions={<Badge tone="green">Live</Badge>} />
+
+      <Card flush>
+        <Metrics>
+          <Metric
+            label="Oracle mid"
+            value={`$${formatWadUsd(midWad)}`}
+            hint={
+              <Status tone={windowLeft > 60 ? "green" : windowLeft > 0 ? "amber" : "red"}>
+                {windowLeft > 0 ? `Fills open for ${formatCountdown(windowLeft)}` : "Fills closed until the next update"}
+              </Status>
+            }
+          />
+          <Metric label="ETH share" value={formatBpsShare(b.inventory.wBps)} hint={`Sells no ETH at ${formatBpsShare(b.inventory.wStarBps)}`} />
+          <Metric label="WETH in the Safe" value={weth !== undefined ? formatWeth(weth) : "—"} />
+          <Metric label="USDC in the Safe" value={usdc !== undefined ? formatUsdc(usdc) : "—"} />
+        </Metrics>
+      </Card>
+
+      <Card title="Prices now" flush>
+        <div className="v-table-wrap">
+          <table className="v-table">
+            <thead>
+              <tr>
+                <th>Counterparty</th>
+                <th className="v-right">Bid</th>
+                <th className="v-right">Ask</th>
+                <th className="v-right">Widths</th>
+                <th className="v-right">Set</th>
+              </tr>
+            </thead>
+            <tbody>
+              {b.names.map((name) => {
+                const q = nameQuote(b, name);
+                const write = writeFor(writes.data, name.name);
+                return (
+                  <tr key={name.name}>
+                    <td>{shortName(name.name)}</td>
+                    <td className="v-right">{q && name.live ? `$${formatWadUsd(q.bid)}` : "—"}</td>
+                    <td className="v-right">{q && name.live ? `$${formatWadUsd(q.ask)}` : "—"}</td>
+                    <td className="v-right v-muted">{q && name.live ? `−${q.buyBps} / +${q.sellBps} bp` : "Can't trade"}</td>
+                    <td className="v-right v-muted">
+                      {q?.source === "terms" ? "Terms" : write ? formatWhen(write.writtenAt, now) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      </section>
-    ) : null}
-    </div>
+      </Card>
+
+      <Card
+        title="Recent fills"
+        flush
+        actions={
+          <Link className="v-btn v-btn-secondary" to="/fills">
+            View all
+          </Link>
+        }
+      >
+        {rows.length === 0 && fills.isLoading ? (
+          <Empty title="Reading the fills…" />
+        ) : rows.length === 0 ? (
+          <Empty picture="pier" title="No fills yet" description="Counterparties fill from the Trade page." />
+        ) : (
+          <div className="v-table-wrap">
+            <table className="v-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Counterparty</th>
+                  <th>Side</th>
+                  <th className="v-right">Size</th>
+                  <th className="v-right">Price</th>
+                  <th className="v-right">Transaction</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((fill) => (
+                  <FillRow key={fill.tx} fill={fill} now={now} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </Page>
   );
 }

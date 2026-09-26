@@ -17,3 +17,15 @@ export {
 export { buildTakerData } from "./taker.js";
 export { priceMirror } from "./price.js";
 export { deskFillAbi, decodeDeskFill, type DeskFillEvent } from "./events.js";
+export {
+  AGENT_SCOPE,
+  agentSpreadFits,
+  encodeAgentSpread,
+  encodeAgentStats,
+  planAgentWrites,
+  type AgentSpread,
+  type AgentStats,
+  type AgentTerms,
+  type AgentWrite,
+  type DeskBook,
+} from "./agent.js";

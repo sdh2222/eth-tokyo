@@ -1,16 +1,14 @@
-.mul-shell[data-astryx-theme="neutral"] {
-  --color-background-body: #ffffff;
-  --color-background-surface: #ffffff;
-  --color-background-card: #f3f3f3;
-  --color-text-primary: #111111;
-  --color-text-secondary: #111111;
-  --color-accent: #b7e4f8;
-  --color-on-accent: #111111;
-  --font-family-body: "Die Grotesk C", system-ui, sans-serif;
-  --font-family-heading: "Die Grotesk C", system-ui, sans-serif;
+/* The approved header and banners (design/desk /dev/shell/row, "Second row"),
+   kept as approved: this file is the one exception to "Astryx examples as-is, our look
+   only through theme tokens". Imported into the `app` layer, after astryx-theme. */
+
+.mul-shell {
+  display: flow-root;
   min-height: 100vh;
-  background: #ffffff;
-  color: #111111;
+  /* A halftone of soft water bands, top right, behind the header and the page head
+     (web/scripts/halftone-bg.mjs). Cards stay white on top of it. */
+  background: #ffffff url("/app/halftone.svg") no-repeat right top / 1600px auto;
+  color: #011a25;
   font-family: "Die Grotesk C", system-ui, sans-serif;
 }
 
@@ -22,15 +20,15 @@
 }
 
 .mul-shell .astryx-banner {
-  background: #f3f3f3;
-  color: #111111;
+  background: #f6f6f6;
+  color: #011a25;
 }
 
 .mul-shell .astryx-banner,
 .mul-shell .astryx-banner * {
-  --color-text-primary: #111111;
-  --color-text-secondary: #111111;
-  color: #111111;
+  --color-text-primary: #011a25;
+  --color-text-secondary: #011a25;
+  color: #011a25;
   font-family: "LisaTerminal Paper", "Courier New", monospace;
   font-weight: 400;
 }
@@ -42,81 +40,8 @@
 
 .mul-header {
   margin: 12px 16px 0;
-  background: #ffffff;
-  color: #111111;
-}
-
-.watermark-toc {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 28px;
-  width: 180px;
-  flex: 0 0 auto;
-  overflow: hidden;
-  padding: 28px 24px 28px 28px;
-  transition: width 200ms ease-out, padding 200ms ease-out;
-}
-
-.mul-frame {
-  display: flex;
-  align-items: stretch;
-  min-height: 100vh;
-}
-
-.mul-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.mul-shell[data-roles="closed"] .watermark-toc {
-  width: 0;
-  padding: 0;
-  pointer-events: none;
-}
-
-.watermark-toc-toggle {
-  border: 0;
-  border-radius: 0;
   background: transparent;
-  box-shadow: none;
-  width: auto;
-  height: auto;
-  padding: 0;
-  color: #111111;
-  font-size: 24px;
-  line-height: 1;
-}
-
-.watermark-toc-item {
-  position: relative;
-  display: block;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 0 0 0 16px;
-  margin-top: 18px;
-  font: inherit;
-  font-size: 20px;
-  line-height: 28px;
-  color: #111111;
-  text-align: left;
-  transition: transform 150ms ease-out, color 150ms ease-out;
-}
-
-.watermark-toc-item[aria-checked="true"] {
-  color: #0080bc;
-}
-
-.watermark-toc-item[aria-checked="true"]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 2px;
-  bottom: 2px;
-  width: 2px;
-  background: #0080bc;
+  color: #011a25;
 }
 
 .watermark-heading {
@@ -137,23 +62,6 @@
   align-items: center;
 }
 
-.watermark-versions {
-  display: flex;
-  gap: 16px;
-  padding: 12px 16px 0;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.watermark-versions a {
-  color: #111111;
-}
-
-.watermark-versions a[aria-current="page"] {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
 .watermark-role-row {
   display: flex;
   flex-wrap: wrap;
@@ -163,8 +71,8 @@
 
 .watermark-wallet-popover {
   background: #ffffff;
-  color: #111111;
-  border: 1px solid #111111;
+  color: #011a25;
+  border: 1px solid #011a25;
   box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
   color-scheme: light;
 }
@@ -178,12 +86,12 @@
   padding: 4px;
   background: transparent;
   box-shadow: none;
-  color: #111111;
+  color: #011a25;
 }
 
 .watermark-wallet-info .astryx-link,
 .watermark-wallet-info .astryx-link .astryx-text {
-  color: #111111;
+  color: #011a25;
 }
 
 .watermark-wallet-info p {
@@ -203,7 +111,7 @@
   background: transparent;
   box-shadow: none;
   padding: 0;
-  color: #111111;
+  color: #011a25;
   font: inherit;
   font-variant-numeric: tabular-nums;
 }
@@ -260,12 +168,8 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: #111111;
+  color: #011a25;
   transform: none;
-}
-
-.watermark-toc-item:active {
-  transform: scale(0.94);
 }
 
 .mul-shell .watermark-mark,
@@ -285,11 +189,11 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  border: 1px solid #111111;
+  border: 1px solid #011a25;
   background-color: #ffffff;
-  background-image: radial-gradient(#b7e4f8 0.92px, transparent 1px);
+  background-image: radial-gradient(#cce6f2 0.92px, transparent 1px);
   background-size: 2px 2px;
-  color: #111111;
+  color: #011a25;
   height: 32px;
   font-family: "Die Grotesk C", system-ui, sans-serif;
   font-size: 16px;
@@ -303,7 +207,7 @@
 
 .mul-shell .watermark-wallet:hover {
   background-color: #ffffff;
-  background-image: radial-gradient(#b7e4f8 0.92px, transparent 1px);
+  background-image: radial-gradient(#cce6f2 0.92px, transparent 1px);
   background-size: 2px 2px;
 }
 
@@ -320,7 +224,7 @@
 }
 
 .mul-shell .watermark-wallet.watermark-wallet-on:hover {
-  background-color: #2b9ed4;
+  background-color: #011a25;
   color: #ffffff;
 }
 
@@ -344,13 +248,13 @@
 }
 
 .mul-shell .watermark-ens {
-  color: #111111;
+  color: #011a25;
 }
 
 .mul-pages a,
 .mul-pages button {
   white-space: nowrap;
-  color: #111111;
+  color: #011a25;
   transition: color 150ms ease-out, transform 150ms ease-out;
 }
 
@@ -367,14 +271,14 @@
   background-image: none;
   border-radius: 0;
   box-shadow: none;
-  color: #111111;
+  color: #011a25;
   text-decoration: none;
 }
 
 .mul-pages a[data-selected="selected"] {
   text-decoration: underline;
   text-decoration-thickness: 1.5px;
-  text-decoration-color: #111111;
+  text-decoration-color: #011a25;
   text-underline-offset: 6px;
 }
 
@@ -385,9 +289,9 @@
   background: transparent;
   text-decoration: underline;
   text-decoration-thickness: 2px;
-  text-decoration-color: #2b9ed4;
+  text-decoration-color: #0080bc;
   text-underline-offset: 6px;
-  color: #2b9ed4;
+  color: #0080bc;
   transition: color 150ms ease-out, transform 150ms ease-out;
 }
 
@@ -400,14 +304,14 @@
 .mul-pages a:active *,
 .mul-pages a[data-selected="selected"]:hover *,
 .mul-pages a[data-selected="selected"]:active * {
-  color: #2b9ed4;
+  color: #0080bc;
   background: transparent;
-  text-decoration-color: #2b9ed4;
+  text-decoration-color: #0080bc;
 }
 
 .mul-header .astryx-button,
 .mul-banners .astryx-button {
-  color: #111111;
+  color: #011a25;
   transition: background-color 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
 }
 
@@ -418,7 +322,7 @@
 
 .mul-header .astryx-button *,
 .mul-banners .astryx-button * {
-  color: #111111;
+  color: #011a25;
   background-color: transparent;
 }
 
@@ -443,9 +347,9 @@
 .mul-banners .astryx-button[data-variant="primary"]:hover,
 .mul-banners .astryx-button[data-variant="primary"]:active {
   background-color: #ffffff;
-  background-image: radial-gradient(#b7e4f8 0.92px, transparent 1px);
+  background-image: radial-gradient(#cce6f2 0.92px, transparent 1px);
   background-size: 2px 2px;
-  color: #111111;
+  color: #011a25;
 }
 
 .mul-header .astryx-button[data-variant="primary"]:active,
@@ -457,16 +361,16 @@
 .mul-header .astryx-button[data-variant="ghost"]:hover:not(.watermark-menu),
 .mul-header .astryx-button[data-variant="secondary"]:active,
 .mul-header .astryx-button[data-variant="ghost"]:active:not(.watermark-menu) {
-  background: #1f7eae;
+  background: #0080bc;
   background-image: none;
   color: #ffffff;
 }
 
 .mul-banners .astryx-banner .astryx-button[data-variant="ghost"]:hover,
 .mul-banners .astryx-banner .astryx-button[data-variant="ghost"]:active {
-  background: #b7e4f8;
+  background: #cce6f2;
   background-image: none;
-  color: #111111;
+  color: #011a25;
 }
 
 .mul-header .astryx-button[data-variant="secondary"]:hover *,
@@ -482,22 +386,105 @@
 .mul-banners .astryx-button[data-variant="primary"]:active *,
 .mul-banners .astryx-banner .astryx-button[data-variant="ghost"]:hover *,
 .mul-banners .astryx-banner .astryx-button[data-variant="ghost"]:active * {
-  color: #111111;
+  color: #011a25;
 }
 
 .mul-shell .watermark-wallet:focus-visible {
-  outline: 2px solid #111111;
+  outline: 2px solid #011a25;
   outline-offset: 2px;
 }
 
 .mul-header .astryx-button:focus-visible,
 .mul-banners .astryx-button:focus-visible,
 .mul-pages a:focus-visible {
-  outline: 2px solid #111111;
+  outline: 2px solid #011a25;
   outline-offset: 2px;
 }
 
-.mul-shell-note {
-  margin: 24px 16px;
+/* The approved role buttons and banner actions were square white buttons with an ink rule. That look came
+   from the old global button rule, which now sits below Astryx, so it is written here. */
+.watermark-role-row .astryx-button,
+.mul-banners .astryx-button {
+  border: 1px solid #011a25;
+  border-radius: 0;
+  background: #ffffff;
   font-family: "Die Grotesk C", system-ui, sans-serif;
+  font-weight: 500;
+}
+
+/* The approved page frame (shell-pages.css .mul-page). */
+.mul-page {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 32px;
+}
+
+/* Breadcrumbs on child pages (Fills / a fill, Controls / Program): plain underlined words. */
+.wm-crumbs {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.wm-crumbs a {
+  color: #011a25;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The approved current tab is set heavier (500, the heaviest cut). */
+.mul-pages a[data-selected="selected"] {
+  font-weight: 500;
+}
+
+/* Header buttons (role buttons, Connect wallet): the bright sky #b7e4f8 filled when selected,
+   ENS blue with white text on hover, and a small spring when pressed. No dotted fill. */
+.mul-header .astryx-button,
+.mul-banners .astryx-button,
+.mul-shell .watermark-wallet {
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 360ms cubic-bezier(0.34, 1.8, 0.64, 1);
+}
+
+.mul-header .astryx-button[data-variant="primary"],
+.mul-header .astryx-button[data-variant="primary"]:active,
+.mul-banners .astryx-button[data-variant="primary"],
+.mul-shell .watermark-wallet:not(.watermark-wallet-on),
+.mul-shell .watermark-wallet:not(.watermark-wallet-on):active {
+  background: #b7e4f8;
+  background-image: none;
+  color: #011a25;
+}
+
+.mul-header .astryx-button:hover:not(.watermark-menu),
+.mul-banners .astryx-button[data-variant="primary"]:hover,
+.mul-shell .watermark-wallet:not(.watermark-wallet-on):hover {
+  background: #0080bc;
+  background-image: none;
+  color: #ffffff;
+}
+
+.mul-header .astryx-button:hover:not(.watermark-menu) *,
+.mul-banners .astryx-button[data-variant="primary"]:hover * {
+  color: #ffffff;
+}
+
+.mul-header .astryx-button:active:not(.watermark-menu),
+.mul-banners .astryx-button:active,
+.mul-shell .watermark-wallet:active {
+  transform: scale(0.9);
+  transition-duration: 150ms, 150ms, 90ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mul-header .astryx-button:active:not(.watermark-menu),
+  .mul-banners .astryx-button:active,
+  .mul-shell .watermark-wallet:active {
+    transform: none;
+  }
 }

@@ -1,86 +1,134 @@
-import { type ReactNode } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useAccount, useChainId, useConnect, useSwitchChain } from "wagmi";
-import { BannerList, bannersFrom } from "./banners";
+import { useEffect, type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { TopNav, TopNavHeading, TopNavItem } from "@astryxdesign/core/TopNav";
+import { bannersFrom } from "./banners";
+import { COUNTERPARTY_PAGES, roleOf, selectedHref, trailFor, treasuryPages } from "./nav";
+import { homeFor, useRole, type Role } from "./role";
+import { WalletControl } from "./WalletControl";
 import { ToastProvider } from "../components/Toast";
-import {
-  BANNER_OWNER,
-  CONNECT_WALLET,
-  FOOTER,
-  MARK,
-  NAV_LABEL,
-  ROLE_LABEL,
-  SWITCH_SEPOLIA,
-} from "../copy/en";
 import { NOW } from "../desk/fixture/state";
 import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
-import { useCanAct, useWalletLabel } from "../hooks/useCanAct";
 import { formatWhen } from "../lib/time";
-import { formatAddr } from "../lib/format";
 import { DemoDrawer } from "../pages/DemoDrawer";
-import { homeFor, useRole, type Role } from "./role";
 
-const NAV: Record<Role, { to: string; label: string; end: boolean }[]> = {
-  treasury: [
-    { to: "/desk", label: NAV_LABEL.dashboard, end: true },
-    { to: "/open", label: NAV_LABEL.open, end: true },
-    { to: "/counterparties", label: NAV_LABEL.counterparties, end: true },
-    { to: "/controls", label: NAV_LABEL.controls, end: true },
-    { to: "/fills", label: NAV_LABEL.fills, end: false },
-    { to: "/program", label: NAV_LABEL.program, end: true },
-  ],
-  mm: [
-    { to: "/trade", label: NAV_LABEL.trade, end: true },
-    { to: "/desk", label: NAV_LABEL.dashboard, end: true },
-    { to: "/fills", label: NAV_LABEL.fills, end: false },
-    { to: "/program", label: NAV_LABEL.program, end: true },
-  ],
-};
-
+const SEPOLIA = 11155111;
 const ROLES: Role[] = ["treasury", "mm"];
+const ROLE_WORD: Record<Role, string> = { treasury: "Treasury", mm: "Counterparty" };
 
+// Landing keeps its own frame; every other page sits in the approved shell.
 export function AppFrame({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const showHeader = pathname !== "/" && !pathname.startsWith("/dev/shell");
+  return <ToastProvider>{pathname === "/" ? children : <Shell>{children}</Shell>}</ToastProvider>;
+}
+
+// The approved "Second row" shell from design/desk (ShellRow.tsx), kept as approved: the
+// wordmark and wallet in the TopNav, a second row of role buttons, the page tabs, then the
+// banners. Styles are web/src/app/shell.css. What changed: the roles are Treasury and
+// Counterparty, the tabs are the IA pages and route, and the banners and wallet are live.
+function Shell({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [role, setRole] = useRole();
+  const live = useLiveStrategy();
+  // "Open a desk" joins the tabs only once the read says there is no desk, so it does not
+  // flash in while the strategy is still loading.
+  const deskLive = Boolean(live.data) || !live.isSuccess;
+
+  // The page in view decides the role: Trade and My fills belong to the counterparty.
+  const pageRole = roleOf(location);
+  useEffect(() => {
+    if (pageRole && pageRole !== role) setRole(pageRole);
+  }, [pageRole, role, setRole]);
+
+  const pages = role === "treasury" ? treasuryPages(deskLive) : COUNTERPARTY_PAGES;
+  const selected = selectedHref(location, role, deskLive);
+  const trail = trailFor(location, role, deskLive);
 
   return (
-    <ToastProvider>
-      <div className="min-h-screen flex flex-col">
-        {showHeader ? <AppHeader /> : null}
-        <main
-          className={
-            showHeader
-              ? "mx-auto flex w-full min-w-0 max-w-[var(--max)] flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8"
-              : "flex w-full flex-1 flex-col"
+    <div className="mul-shell">
+      <header className="mul-header">
+        <TopNav
+          label="Account"
+          heading={
+            <span className="watermark-heading">
+              <TopNavHeading
+                className="watermark-mark"
+                logoLabel="watermark"
+                logo={
+                  <span className="watermark-word">
+                    <span className="watermark-water">water</span>
+                    <span className="watermark-ens">mark</span>
+                  </span>
+                }
+              />
+            </span>
           }
-        >
-          {showHeader ? <PageNotices /> : null}
-          {children}
-          {showHeader ? <DemoDrawer /> : null}
-        </main>
-        {pathname.startsWith("/dev/shell") ? null : (
-          <footer className="break-words px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
-        )}
-      </div>
-    </ToastProvider>
+          endContent={<WalletControl />}
+        />
+        <div className="watermark-role-row" role="group" aria-label="Role">
+          {ROLES.map((item) => (
+            <Button
+              key={item}
+              label={ROLE_WORD[item]}
+              aria-pressed={item === role}
+              variant={item === role ? "primary" : "ghost"}
+              onClick={() => {
+                setRole(item);
+                navigate(homeFor(item));
+              }}
+            />
+          ))}
+        </div>
+        <nav className="mul-pages" aria-label="Pages">
+          {pages.map((page) => (
+            <TopNavItem key={page.href} label={page.label} href={page.href} isSelected={page.href === selected} />
+          ))}
+        </nav>
+      </header>
+      <Notices isTreasury={role === "treasury"} />
+      <main className="mul-page">
+        {trail ? (
+          <nav className="wm-crumbs" aria-label="Breadcrumb">
+            {trail.map((crumb, index) => (
+              <span key={crumb.label}>
+                {index > 0 ? <span aria-hidden="true"> / </span> : null}
+                {crumb.href ? <Link to={crumb.href}>{crumb.label}</Link> : <span aria-current="page">{crumb.label}</span>}
+              </span>
+            ))}
+          </nav>
+        ) : null}
+        {children}
+        <DemoDrawer />
+      </main>
+    </div>
   );
 }
 
-function PageNotices() {
-  const { wrongNetwork, readOnlyTreasury } = useCanAct();
-  const { switchChain } = useSwitchChain();
+const STATUS = { danger: "error", warning: "warning", info: "info" } as const;
+
+// The approved DismissibleNotices: section banners with a ghost action, fed by bannersFrom.
+function Notices({ isTreasury }: { isTreasury: boolean }) {
   const navigate = useNavigate();
-  const [role] = useRole();
+  const account = useAccount();
+  const configChainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const live = useLiveStrategy();
   const state = useDeskState(live.data ?? null);
   const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
   const desk = state.data;
+  const chainId = account.status === "connected" && account.chainId != null ? account.chainId : configChainId;
+
   const banners = bannersFrom({
-    ...(wrongNetwork ? { wrongNetwork: true, onSwitch: () => switchChain({ chainId: 11155111 }) } : {}),
+    ...(account.status === "connected" && chainId !== SEPOLIA
+      ? { wrongNetwork: true, onSwitch: () => switchChain({ chainId: SEPOLIA }) }
+      : {}),
     ...(live.data?.warning ? { strategyWarning: live.data.warning, onControls: () => navigate("/controls") } : {}),
     ...(desk?.oracleStale ? { oracleStale: true, maxStaleness: desk.maxStaleness } : {}),
     ...(live.isSuccess ? { loaded: true, live: live.data } : {}),
-    ...(role === "treasury" ? { isTreasury: true, onOpen: () => navigate("/open") } : {}),
+    ...(isTreasury ? { isTreasury: true, onOpen: () => navigate("/open") } : {}),
     ...(desk
       ? {
           secondsToDeadline: desk.deadline - now,
@@ -90,111 +138,21 @@ function PageNotices() {
       : {}),
   });
 
+  if (banners.length === 0) return null;
   return (
-    <>
-      {readOnlyTreasury ? <p className="text-body">{BANNER_OWNER}</p> : null}
-      <BannerList banners={banners} />
-    </>
-  );
-}
-
-function AppHeader() {
-  const [role, setRole] = useRole();
-  const navigate = useNavigate();
-  const live = useLiveStrategy();
-  const links = NAV[role].filter((link) => !(role === "treasury" && live.data && link.to === "/open"));
-
-  function pick(next: Role) {
-    if (next === role) return;
-    setRole(next);
-    navigate(homeFor(next));
-  }
-
-  return (
-    <header className="sticky top-0 z-20 bg-bg">
-      <div className="mx-auto flex w-full max-w-[var(--max)] flex-wrap items-center gap-3 px-4 py-4 sm:gap-5 sm:px-8">
-        <span className="text-h3">{MARK}</span>
-        <div className="ml-auto flex flex-wrap items-center gap-3">
-          <NetworkChip />
-          <WalletChip />
-          <div className="mode-switch" role="radiogroup" aria-label="Mode">
-            <span className="mode-thumb" style={{ transform: `translateX(${ROLES.indexOf(role) * 100}%)` }} />
-            {ROLES.map((item) => (
-              <button
-                key={item}
-                type="button"
-                role="radio"
-                aria-checked={item === role}
-                onClick={() => pick(item)}
-              >
-                {ROLE_LABEL[item]}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <nav className="mx-auto flex w-full max-w-[var(--max)] flex-wrap gap-2 px-4 pb-4 sm:px-8" aria-label="Pages">
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.end}
-            className={({ isActive }) =>
-              isActive ? "page-tab bg-text text-body text-onfocus" : "page-tab bg-transparent text-body text-muted"
-            }
-          >
-            {link.label}
-          </NavLink>
-        ))}
-      </nav>
-    </header>
-  );
-}
-
-function NetworkChip() {
-  const account = useAccount();
-  const configChainId = useChainId();
-  const chainId =
-    account.status === "connected" && account.chainId != null ? account.chainId : configChainId;
-  const { switchChain } = useSwitchChain();
-
-  if (chainId === 11155111) return null;
-
-  return (
-    <button
-      type="button"
-      className="rounded-control bg-danger px-3 py-2 text-body text-onfocus"
-      onClick={() => switchChain({ chainId: 11155111 })}
-    >
-      {SWITCH_SEPOLIA}
-    </button>
-  );
-}
-
-function WalletChip() {
-  const { address, status } = useAccount();
-  const { connect, connectors } = useConnect();
-  const label = useWalletLabel();
-
-  if (status === "connected" && address) {
-    return (
-      <span className="text-body">
-        <span className="num">{formatAddr(address)}</span> <span className="text-muted">{label}</span>
-      </span>
-    );
-  }
-
-  const connector = connectors[0];
-
-  return (
-    <button
-      type="button"
-      className="header-wallet text-small"
-      onClick={() => {
-        if (connector) connect({ connector });
-      }}
-    >
-      {CONNECT_WALLET}
-    </button>
+    <div className="mul-banners">
+      {banners.map((banner) => (
+        <Banner
+          key={banner.id}
+          status={STATUS[banner.level]}
+          container="section"
+          isDismissable
+          title={banner.text}
+          {...(banner.action
+            ? { endContent: <Button label={banner.action.label} variant="ghost" onClick={banner.action.onClick} /> }
+            : {})}
+        />
+      ))}
+    </div>
   );
 }

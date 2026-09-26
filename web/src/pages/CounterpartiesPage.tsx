@@ -1,86 +1,346 @@
-import { AddressCell } from "../components/AddressCell";
-import { Skeleton } from "../components/Skeleton";
-import { StatusBadge, type StatusKind } from "../components/StatusBadge";
-import { CP_HELP, ENS_UNAVAILABLE } from "../copy/en";
-import type { EnsNameView } from "../ens/read";
-import { useEnsDesk } from "../hooks/useEnsDesk";
-import { formatBps, formatUsdc } from "../lib/format";
-import { formatWhen } from "../lib/time";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useImperativeAlertDialog } from "@astryxdesign/core/AlertDialog";
+import { formatUnits } from "viem";
+import { nameQuote, shortName, type DeskBook, type NameQuote } from "../desk/book";
+import { CLIENT_SUFFIX } from "../ens/names";
+import { useBook } from "../hooks/useBook";
+import { useClock } from "../hooks/useClock";
+import { useLiveStrategy } from "../hooks/useDesk";
+import { formatAddr, formatWeth } from "../lib/format";
+import { Badge, Card, Empty, Header, Page, type Tone } from "../ui/v";
+import { DotSlider } from "../ui/slider";
+import { SafeDialog } from "./open/SafeDialog";
 
-const STATUS: Record<EnsNameView["status"], StatusKind | null> = {
-  ok: null,
-  expired: "Expired",
-  "no-terms": "NoTerms",
-  "wrong-resolver": "WrongResolver",
-  "no-addr": "NoAddress",
+// Counterparties (IA: "Who can trade with my desk, and on what terms?"). Main's flow (PR #34):
+// each name has its own terms and its own agent spread, and is quoted from that spread while
+// it is live, else from its terms. Vercel-style: metrics, then the client names in a flush
+// table card. Edit expands the row (SC-10) and saving opens the Safe signing overlay (O1).
+// Cut off shows one confirm sentence first (SC-05).
+
+const SAFE_WALLET = "Safe{Wallet}";
+
+type NameStatus = "Live" | "Ready" | "Expired" | "Cut off";
+
+const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Ready: "gray", Expired: "red", "Cut off": "gray" };
+
+type Terms = DeskBook["names"][number]["terms"];
+type Spread = DeskBook["names"][number]["spread"];
+
+type NameRow = {
+  id: string;
+  name: string;
+  addr: string;
+  expiry: number;
+  status: NameStatus;
+  terms: Terms;
+  spread: Spread;
+  quote: NameQuote | null;
+  reason: string;
 };
 
-function expiresCell(mm: EnsNameView, now: number): string {
-  if (!mm.expiryOk) return "Expired";
-  return formatWhen(Number(mm.expiry), now);
+type Draft = { sell: string; buy: string; cap: string };
+type Proposal = { isOpen: boolean; title: string; description: string };
+
+// Widths as bid / ask around the mid, e.g. "−10 / +3 bp" (the Dashboard's order).
+function widths(sellBps: number, buyBps: number): string {
+  return `−${buyBps} / +${sellBps} bp`;
+}
+
+// With no desk open a name that passes the gate is Ready, not Live: nothing can fill yet.
+function toRows(book: DeskBook, now: number, deskOpen: boolean): NameRow[] {
+  return book.names.map((entry) => {
+    const expiry = Number(entry.expiry);
+    const expired = expiry > 0 && expiry <= now;
+    const status: NameStatus = expired ? "Expired" : !entry.live ? "Cut off" : deskOpen ? "Live" : "Ready";
+    let reason = "Its address is the wallet, it has terms, and it has not expired.";
+    if (status === "Ready") reason = "It passes the gate and can fill once a desk is open.";
+    else if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
+    else if (status === "Cut off" && !entry.terms) reason = "The name has no valid desk.terms.";
+    else if (status === "Cut off") reason = "Its address or resolver does not pass the gate.";
+    return {
+      id: entry.name,
+      name: entry.name,
+      addr: entry.addr,
+      expiry,
+      status,
+      terms: entry.terms,
+      spread: entry.spread,
+      quote: nameQuote(book, entry),
+      reason,
+    };
+  });
+}
+
+function draftFrom(terms: Terms): Draft {
+  if (!terms) return { sell: "", buy: "", cap: "" };
+  return { sell: String(terms.sellBps), buy: String(terms.buyBps), cap: formatUnits(terms.cap, 18) };
+}
+
+function isDraftValid(draft: Draft): boolean {
+  const whole = /^\d+$/;
+  const amount = /^\d+(\.\d{1,18})?$/;
+  return whole.test(draft.sell.trim()) && whole.test(draft.buy.trim()) && amount.test(draft.cap.trim());
+}
+
+function Expiry({ seconds }: { seconds: number }) {
+  if (seconds <= 0) return <>No expiry set</>;
+  const date = new Date(seconds * 1000);
+  return (
+    <time dateTime={date.toISOString()}>
+      {date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+    </time>
+  );
+}
+
+function TermsEditor({
+  row,
+  saved,
+  draft,
+  onDraft,
+  onSave,
+  onCancel,
+  onCutOff,
+}: {
+  row: NameRow;
+  saved: Draft;
+  draft: Draft;
+  onDraft: (draft: Draft) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onCutOff: () => void;
+}) {
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isDraftValid(draft) && !unchanged) onSave();
+  }
+
+  const unchanged = draft.sell === saved.sell && draft.buy === saved.buy && Number(draft.cap) === Number(saved.cap);
+
+  return (
+    <div className="v-stack v-stack-24">
+      <p className="v-muted">
+        <span className="v-mono">{formatAddr(row.addr)}</span>
+        {" · expires "}
+        <Expiry seconds={row.expiry} />
+        {row.status === "Live" ? "" : ` · ${row.reason}`}
+      </p>
+
+      <form className="v-stack" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
+        <div className="v-grid">
+          <div className="v-col-4">
+            <DotSlider
+              label="Bid width"
+              value={Number(draft.buy) || 0}
+              min={1}
+              max={25}
+              step={1}
+              display={`−${Number(draft.buy) || 0} bp`}
+              onChange={(next) => onDraft({ ...draft, buy: String(next) })}
+            />
+          </div>
+          <div className="v-col-4">
+            <DotSlider
+              label="Ask width"
+              value={Number(draft.sell) || 0}
+              min={1}
+              max={25}
+              step={1}
+              display={`+${Number(draft.sell) || 0} bp`}
+              onChange={(next) => onDraft({ ...draft, sell: String(next) })}
+            />
+          </div>
+          <div className="v-col-4">
+            <DotSlider
+              label="Cap per fill"
+              value={Number(draft.cap) || 0}
+              min={1}
+              max={100}
+              step={1}
+              display={`${Number(draft.cap) || 0} WETH`}
+              onChange={(next) => onDraft({ ...draft, cap: String(next) })}
+            />
+          </div>
+        </div>
+        <div className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</div>
+        <div className="v-row v-between">
+          <div className="v-row v-row-8">
+            <button type="submit" className="v-btn" disabled={!isDraftValid(draft) || unchanged}>
+              Save terms
+            </button>
+            <button type="button" className="v-btn v-btn-tertiary" onClick={onCancel}>
+              Cancel
+            </button>
+          </div>
+          <button type="button" className="v-btn v-btn-error" onClick={onCutOff}>
+            Cut off
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 export function CounterpartiesPage() {
-  const ens = useEnsDesk();
-  const now = Math.floor(Date.now() / 1000);
+  const book = useBook();
+  const now = useClock();
+  const strategy = useLiveStrategy();
+  const alert = useImperativeAlertDialog();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Draft>({ sell: "", buy: "", cap: "" });
+  const [proposal, setProposal] = useState<Proposal>({ isOpen: false, title: "", description: "" });
+  const editorRef = useRef<HTMLDivElement>(null);
 
-  if (ens.isPending) {
+  // The editor is a card under the table, so on a phone it can sit below the fold: bring it
+  // into view and put focus on its first control when a name opens.
+  useEffect(() => {
+    if (openId === null) return;
+    const editor = editorRef.current;
+    editor?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    editor?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  }, [openId]);
+
+  function toggle(row: NameRow) {
+    if (openId === row.id) {
+      setOpenId(null);
+      return;
+    }
+    setDraft(draftFrom(row.terms));
+    setOpenId(row.id);
+  }
+
+  function saveTerms(row: NameRow) {
+    setProposal({
+      isOpen: true,
+      title: "Edit terms",
+      description: `New terms for ${row.name}: bid −${draft.buy.trim()} bp · ask +${draft.sell.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
+    });
+  }
+
+  function cutOff(row: NameRow) {
+    const label = shortName(row.name);
+    alert.show({
+      title: `Cut off ${row.name}?`,
+      description: `The Safe clears this name's desk.terms. Once 2 of 3 owners sign in ${SAFE_WALLET}, fills from ${label} fail the gate. Other names keep trading.`,
+      actionLabel: `Cut off ${label}`,
+      onAction: () => {
+        alert.hide();
+        setProposal({ isOpen: true, title: "Cut off", description: `The Safe transaction clears desk.terms on ${row.name}.` });
+      },
+    });
+  }
+
+  if (!book.data) {
     return (
-      <div className="flex flex-col gap-5">
-        <h1 className="text-h1">Counterparties</h1>
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-      </div>
+      <Page>
+        <Header
+          title="Counterparties"
+          description={
+            book.isLoading ? "Reading the client names…" : "The client names could not be read. Check the Sepolia RPC in web/.env and reload."
+          }
+        />
+      </Page>
     );
   }
 
-  if (ens.isError || !ens.data) {
-    return (
-      <div className="flex flex-col gap-5">
-        <h1 className="text-h1">Counterparties</h1>
-        <p className="text-body">{ENS_UNAVAILABLE}</p>
-        <button type="button" className="text-body" onClick={() => void ens.refetch()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
+  const b = book.data;
+  const noDesk = !strategy.isLoading && !strategy.data;
+  const rows = toRows(b, now, !noDesk);
+  const openRow = rows.find((row) => row.id === openId) ?? null;
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-h1">Counterparties</h1>
-      <p className="rounded-card border border-border bg-surface p-5 text-body">{CP_HELP}</p>
-      <div className="overflow-x-auto rounded-card border border-border px-5">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Address</th>
-              <th>Expires</th>
-              <th>Tier</th>
-              <th>Cap per fill</th>
-              <th>Agent spread</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ens.data.clients.map((mm) => {
-              const kind = STATUS[mm.status];
-              return (
-                <tr key={mm.name}>
-                  <td>{mm.name}</td>
-                  <td>{mm.addr === "0x0000000000000000000000000000000000000000" ? "—" : <AddressCell address={mm.addr} />}</td>
-                  <td>{expiresCell(mm, now)}</td>
-                  <td>{mm.tierBps === null ? "—" : formatBps(mm.tierBps)}</td>
-                  <td className="num">{mm.cap === null ? "—" : formatUsdc(mm.cap)}</td>
-                  <td>{mm.spreadBps === null ? "—" : formatBps(mm.spreadBps)}</td>
-                  <td>{kind ? <StatusBadge kind={kind} /> : "ok"}</td>
+    <Page>
+      <Header title="Counterparties" description={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
+
+      <Card title="Client names" flush footer={<span>Adding a counterparty is an ENS change made by the Safe.</span>}>
+        {rows.length === 0 ? (
+          <Empty title="No counterparties yet" description={`The Safe adds a name under ${CLIENT_SUFFIX} with an address, terms and an expiry.`} />
+        ) : (
+          <div className="v-table-wrap">
+            <table className="v-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Terms</th>
+                  <th>Widths now</th>
+                  <th>Expires</th>
+                  <th className="v-right">
+                    <span className="v-sr">Edit</span>
+                  </th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const isOpen = openId === row.id;
+                  const q = row.status === "Live" ? row.quote : null;
+                  return (
+                    <tr key={row.id} data-active={isOpen}>
+                      <td>
+                        <button type="button" className="v-link" aria-expanded={isOpen} aria-controls={isOpen ? "terms-editor" : undefined} onClick={() => toggle(row)}>
+                          {shortName(row.name)}
+                        </button>
+                      </td>
+                      <td>
+                        <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
+                      </td>
+                      <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
+                      <td>
+                        {q ? (
+                          <>
+                            {widths(q.sellBps, q.buyBps)}
+                            {q.source === "terms" ? <span className="v-muted"> · terms</span> : null}
+                          </>
+                        ) : (
+                          <span className="v-muted">—</span>
+                        )}
+                      </td>
+                      <td className="v-muted">
+                        <Expiry seconds={row.expiry} />
+                      </td>
+                      <td className="v-right">
+                        <button
+                          type="button"
+                          className="v-btn v-btn-secondary"
+                          aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
+                          aria-expanded={isOpen}
+                          aria-controls={isOpen ? "terms-editor" : undefined}
+                          onClick={() => toggle(row)}
+                        >
+                          {isOpen ? "Close" : "Edit"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {openRow ? (
+        <div ref={editorRef} id="terms-editor">
+          <Card title={`Terms for ${shortName(openRow.name)}`}>
+            <TermsEditor
+              row={openRow}
+              saved={draftFrom(openRow.terms)}
+              draft={draft}
+              onDraft={setDraft}
+              onSave={() => saveTerms(openRow)}
+              onCancel={() => setOpenId(null)}
+              onCutOff={() => cutOff(openRow)}
+            />
+          </Card>
+        </div>
+      ) : null}
+
+      <SafeDialog
+        isOpen={proposal.isOpen}
+        onOpenChange={(isOpen) => setProposal((prev) => ({ ...prev, isOpen }))}
+        title={proposal.title}
+        description={proposal.description}
+      />
+      {alert.element}
+    </Page>
   );
 }

@@ -2,34 +2,49 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import { WalletTxOverlay } from "../overlays/WalletTxOverlay";
-import { AmountInput } from "../components/AmountInput";
-import { Countdown } from "../components/Countdown";
-import { Skeleton } from "../components/Skeleton";
-import { SourceBadge } from "../components/SourceBadge";
 import {
   APPROVE_ROUTER,
   BUY_ETH,
-  FILL,
-  CHECKED,
   ENTER_AMOUNT,
-  NOT_ON_LIST,
-  PER_FILL,
+  FILL,
   REFRESH_QUOTE,
   SELL_ETH,
   SLIPPAGE,
   TOO_MANY_DECIMALS,
-  TRADING_AS,
   YOU_PAY,
   YOU_RECEIVE,
+  CONNECT_WALLET,
 } from "../copy/en";
+import { ERRORS } from "../copy/errors";
+import { formatEth, formatWadUsd, nameQuote, type DeskBook } from "../desk/book";
 import { emptyConfig } from "../desk/fixture/state";
-import { useDeskPort, useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { useBook } from "../hooks/useBook";
+import { useWalletLabel } from "../hooks/useCanAct";
+import { formatCountdown, useClock } from "../hooks/useClock";
+import { useConnectWallet } from "../hooks/useConnectWallet";
+import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
-import { formatBps, formatPrice, formatUsdc, formatWeth } from "../lib/format";
-import { formatVsMidBps } from "../lib/format";
+import { DotSlider } from "../ui/slider";
+import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
+import { Badge, Card, Dl, Empty, Header, Note, Page, Status, type Tone } from "../ui/v";
+import { PRICE_WINDOW_SECONDS } from "../desk/window";
+
+// Trade (IA: "Can I trade now, at what price, and how much?"). Vercel-style: the header says
+// who trades and whether they can, a refusal is one Note above the grid, then the Order card
+// (5 columns, Fill in its footer) and the Quote card (7). Slippage is a disclosure (SC-06).
 
 type Side = "buy" | "sell";
 type Unit = "ETH" | "USDC";
+type Refusal = { title: string; hint: string };
+type Action = { label: string; run: () => void };
+
+const MODE_LIVE = import.meta.env.VITE_DESK_MODE === "live";
+const ZERO = "0x0000000000000000000000000000000000000000";
+const SOURCE_LABEL: Record<NonNullable<DeskBook["quote"]>["source"], string> = {
+  spread: "Agent spread",
+  terms: "Terms",
+  router: "Router",
+};
 
 export function parseAmount(text: string, decimals: number): { ok: true; value: bigint } | { ok: false; reason: "empty" | "decimals" } {
   if (text === "" || text === ".") return { ok: false, reason: "empty" };
@@ -40,12 +55,6 @@ export function parseAmount(text: string, decimals: number): { ok: true; value: 
   return { ok: true, value: BigInt(digits) };
 }
 
-function bpsOf(text: string): number {
-  let value = 0;
-  for (const char of text) value = value * 10 + (char.charCodeAt(0) - 48);
-  return value;
-}
-
 export function legFor(side: Side, unit: Unit): { leg: "weth" | "usdc"; exact: "exactIn" | "exactOut" } {
   if (side === "buy" && unit === "ETH") return { leg: "weth", exact: "exactOut" };
   if (side === "buy" && unit === "USDC") return { leg: "usdc", exact: "exactIn" };
@@ -53,150 +62,364 @@ export function legFor(side: Side, unit: Unit): { leg: "weth" | "usdc"; exact: "
   return { leg: "usdc", exact: "exactOut" };
 }
 
+// The title and hint from web/src/copy/errors.ts. DeskPriceTargetReached is not in that file
+// yet, so its fallback is the copy from ts/src/lib/client/errors.ts.
+function errorCopy(code: string, fallback: Refusal): Refusal {
+  const copy = ERRORS[code];
+  return copy ? { title: copy.title, hint: copy.hint } : fallback;
+}
+
+// USDC base units (6 decimals) for an ETH amount (wei) at a wad price.
+function usdcFor(wei: bigint, priceWad: bigint): bigint {
+  return (wei * priceWad) / 10n ** 30n;
+}
+
+// "1." and ".5" are half-typed numbers, not a decimals error.
+function normalizeAmount(text: string): string {
+  const lead = text.startsWith(".") ? `0${text}` : text;
+  return lead.endsWith(".") ? lead.slice(0, -1) : lead;
+}
+
+// Wei as an input string, e.g. 50000000000000000000n -> "50".
+function weiText(wei: bigint): string {
+  const whole = wei / 10n ** 18n;
+  const frac = (wei % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
+  return frac === "" ? whole.toString() : `${whole}.${frac}`;
+}
+
 export function TradePage() {
   const { address } = useAccount();
-  const live = useLiveStrategy();
-  const state = useDeskState(live.data ?? null);
-  const [side, setSide] = useState<Side>("buy");
-  const [unit, setUnit] = useState<Unit>("ETH");
-  const [amount, setAmount] = useState("");
-  const [slippage, setSlippage] = useState("10");
-  const mm = state.data?.mms.find((item) => address && item.address.toLowerCase() === address.toLowerCase());
-  const named = mm && (mm.status === "ok" || mm.terms);
-  const parsed = parseAmount(amount, unit === "ETH" ? 18 : 6);
-  const route = legFor(side, unit);
+  const wallet = useConnectWallet();
+  const label = useWalletLabel();
+  const book = useBook();
+  const now = useClock();
+  const strategy = useLiveStrategy();
   const port = useDeskPort();
   const client = usePublicClient();
+  const [side, setSide] = useState<Side>("buy");
+  const [amount, setAmount] = useState("");
+  const [slippage, setSlippage] = useState<number | null>(10);
   const [overlay, setOverlay] = useState<"approve" | "fill" | null>(null);
+  const parsed = parseAmount(normalizeAmount(amount), 18);
+  const wei = parsed.ok && parsed.value > 0n ? parsed.value : null;
+  const route = legFor(side, "ETH");
   const approvals = useQuery({
     queryKey: ["approvals", address],
     queryFn: () => port.planMmApprovals({ client, cfg: emptyConfig() }, address as `0x${string}`),
     enabled: address !== undefined,
   });
   const quote = useQuote({
-    strategy: live.data ?? null,
-    mm: (address as `0x${string}` | undefined) ?? "0x0000000000000000000000000000000000000009",
+    strategy: strategy.data ?? null,
+    mm: address ?? null,
     side,
     leg: route.leg,
-    amount: parsed.ok ? parsed.value : null,
+    amount: wei,
   });
 
-  return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-h1">Trade</h1>
-      {named && mm?.terms ? (
-        <p className="text-body">
-          {TRADING_AS} {mm.name} · tier {formatBps(mm.terms.tierBps)} · cap {formatUsdc(mm.terms.cap)} {PER_FILL}
-        </p>
-      ) : (
-        <p className="rounded-card border border-border bg-surface p-5 text-body">{NOT_ON_LIST}</p>
-      )}
-      <div className="flex flex-col gap-5 rounded-card border border-border bg-surface p-5">
-      <div className="flex gap-2" role="group" aria-label="Side">
-        <button type="button" aria-pressed={side === "buy"} className="rounded-control px-3 py-2 text-body" onClick={() => setSide("buy")}>
-          {BUY_ETH}
-        </button>
-        <button type="button" aria-pressed={side === "sell"} className="rounded-control px-3 py-2 text-body" onClick={() => setSide("sell")}>
-          {SELL_ETH}
-        </button>
-      </div>
-      <AmountInput
-        value={amount}
-        onChange={setAmount}
-        unit={unit}
-        onUnit={() => setUnit(unit === "ETH" ? "USDC" : "ETH")}
-        {...(parsed.ok === false && parsed.reason === "decimals" ? { error: TOO_MANY_DECIMALS } : {})}
-      />
-      <label className="text-body">
-        {SLIPPAGE}
-        <input
-          className="ml-2 rounded-control border border-border px-3 py-2 text-body"
-          type="text"
-          inputMode="numeric"
-          value={slippage}
-          onChange={(event) => setSlippage(event.target.value.replace(/\D/g, ""))}
+  if (!book.data) {
+    return (
+      <Page>
+        <Header
+          title="Trade"
+          description={book.isLoading ? "Reading the desk…" : "The desk could not be read. Check the Sepolia RPC in web/.env and reload."}
         />
-      </label>
-      <QuotePanel
-        quote={quote}
-        side={side}
-        midWad={state.data?.pWad ?? 0n}
-        empty={parsed.ok === false && parsed.reason === "empty"}
-        onRefresh={() => void quote.refetch()}
+      </Page>
+    );
+  }
+
+  // No desk open: nothing to quote or fill against yet.
+  if (!strategy.isLoading && !strategy.data) {
+    return (
+      <Page>
+        <Header title="Trade" description="WETH / USDC" actions={<Badge>No desk</Badge>} />
+        <Card>
+          <Empty
+            title="No desk is open"
+            description="The treasury has not opened a desk yet. Prices and the Fill button appear here once it does."
+          />
+        </Card>
+      </Page>
+    );
+  }
+
+  const b = book.data;
+  const updatedAt = Number(b.oracle.updatedAt);
+  const windowLeft = updatedAt > now ? 0 : updatedAt + PRICE_WINDOW_SECONDS - now;
+  const entry = address
+    ? b.names.find((name) => name.addr.toLowerCase() === address.toLowerCase() || name.name === label)
+    : undefined;
+  const expired = entry !== undefined && (!entry.live || (entry.expiry > 0n && Number(entry.expiry) <= now));
+
+  // Who you are: can this wallet trade at all right now?
+  let nameRefusal: Refusal | null = null;
+  if (address && !entry) {
+    nameRefusal = errorCopy("EnsGateTakerMismatch", {
+      title: "This wallet isn't on the desk's list",
+      hint: "Only the address in a client name's ENS record can trade under that name.",
+    });
+  } else if (expired) {
+    nameRefusal = errorCopy("EnsGateNameExpired", {
+      title: "Your name has expired",
+      hint: "Ask the treasury to renew your name to trade again.",
+    });
+  }
+  const windowRefusal =
+    windowLeft > 0
+      ? null
+      : errorCopy("DeskPriceOracleStale", {
+          title: "The price feed is too old",
+          hint: "Trading pauses when the price is older than the limit. It resumes on the next update.",
+        });
+
+  // The price this wallet gets (main, PR #34): its name's own live agent spread, else that
+  // name's terms. With no wallet or no name on the desk, the desk's terms quote.
+  const named = entry ? nameQuote(b, entry) : null;
+  const terms = entry?.terms ?? b.terms;
+  // The slider runs to this name's cap per fill (50 ETH on the demo names).
+  const sliderMax = terms ? Math.max(1, Math.floor(Number(terms.cap / 10n ** 16n) / 100)) : 50;
+  const shown = named ?? (b.quote ? { sellBps: b.terms?.sellBps ?? 0, buyBps: b.terms?.buyBps ?? 0, ask: b.quote.ask, bid: b.quote.bid } : null);
+  const sourceLabel = named ? (named.source === "agent" ? "Agent spread" : "Terms") : b.quote ? SOURCE_LABEL[b.quote.source] : "—";
+
+  // This order: the desk-side guards on side and size, then the quote's own refusal.
+  // Each refusal carries at most one action.
+  let refusal: Refusal | null = nameRefusal ?? windowRefusal;
+  let refusalTone: Tone = "red";
+  let refusalAction: Action | null = null;
+  if (!refusal && side === "buy" && b.inventory.wBps <= b.inventory.wStarBps) {
+    refusal = errorCopy("DeskPriceTargetReached", {
+      title: "The desk has reached its ETH target",
+      hint: "A sale of ETH stops at the target share. A purchase of ETH still fills.",
+    });
+    refusalTone = "amber";
+    refusalAction = { label: SELL_ETH, run: () => setSide("sell") };
+  }
+  if (!refusal && terms && wei !== null && wei > terms.cap) {
+    const cap = terms.cap;
+    const copy = errorCopy("DeskPriceCapExceeded", { title: "Over your cap per fill", hint: "" });
+    refusal = { title: copy.title, hint: `One fill is capped at ${formatEth(cap)}. Split the trade.` };
+    refusalTone = "amber";
+    refusalAction = { label: "Use the cap", run: () => setAmount(weiText(cap)) };
+  }
+  if (!refusal && quote.data && !quote.data.ok) {
+    refusal = { title: quote.data.error.title, hint: quote.data.error.hint };
+    refusalAction = { label: REFRESH_QUOTE, run: () => void quote.refetch() };
+  }
+
+  const canTrade = address !== undefined && nameRefusal === null && windowRefusal === null;
+
+  // What you pay and receive: the exact quote when there is one, else the price shown.
+  const exact = quote.data?.ok ? quote.data : null;
+  const bookPrice = shown ? (side === "buy" ? shown.ask : shown.bid) : null;
+  let pay = "—";
+  let receive = "—";
+  let price = bookPrice === null ? "—" : `$${formatWadUsd(bookPrice)}`;
+  let priceNote = "Indicative";
+  if (exact) {
+    pay = side === "buy" ? formatUsdc(exact.amountIn) : formatWeth(exact.amountIn);
+    receive = side === "buy" ? formatWeth(exact.amountOut) : formatUsdc(exact.amountOut);
+    price = `$${formatPrice(exact.priceWad)}`;
+    priceNote = quote.secondsLeft > 0 ? formatCountdown(quote.secondsLeft) : "Expired";
+  } else if (wei !== null && bookPrice !== null) {
+    pay = side === "buy" ? `≈ ${formatUsdc(usdcFor(wei, bookPrice))}` : formatWeth(wei);
+    receive = side === "buy" ? formatWeth(wei) : `≈ ${formatUsdc(usdcFor(wei, bookPrice))}`;
+  }
+
+  const slippageBps = slippage ?? 0;
+  const needsApproval = (approvals.data?.length ?? 0) > 0;
+  const swapTx =
+    strategy.data && exact
+      ? port.buildSwapTx({ client, cfg: emptyConfig() }, strategy.data, exact, { slippageBps, deadlineSec: 120 })
+      : null;
+  const fillWired = !MODE_LIVE || (swapTx !== null && swapTx.to.toLowerCase() !== ZERO);
+  let blocked: string | null = null;
+  if (!address) blocked = wallet.problem ?? "Connect a wallet to trade.";
+  else if (refusal) blocked = refusal.title;
+  else if (wei === null) blocked = `${ENTER_AMOUNT}.`;
+  else if (!exact) blocked = "Waiting for a quote.";
+  else if (quote.secondsLeft <= 0) blocked = "The quote expired. Refresh it.";
+  else if (!needsApproval && !fillWired) blocked = "Filling from this page is not wired to Sepolia yet.";
+  const midWad = b.oracle.answer * 10n ** 10n;
+  // Refresh quote sits in the Quote card head when there is a quote, unless the refusal's
+  // one action is already Refresh quote.
+  const showRefresh = quote.data !== undefined && refusalAction?.label !== REFRESH_QUOTE;
+  const refusalText = refusal ? (refusal.hint && refusal.hint !== "—" ? `${refusal.title}. ${refusal.hint}` : refusal.title) : "";
+  // A refusal is already said in the Note, so the footer keeps it for screen readers only.
+  const blockedInNote = address !== undefined && refusal !== null;
+
+  return (
+    <Page>
+      <Header
+        title="Trade"
+        description={entry ? `${entry.name} · WETH / USDC` : "WETH / USDC"}
+        actions={
+          address === undefined ? (
+            <Badge>Not connected</Badge>
+          ) : (
+            <Badge tone={canTrade ? "green" : "red"}>{canTrade ? "Can trade" : "Can't trade"}</Badge>
+          )
+        }
       />
-      {named && quote.data?.ok && quote.secondsLeft > 0 ? (
-        (approvals.data?.length ?? 0) > 0 ? (
-          <button type="button" className="text-body" onClick={() => setOverlay("approve")}>
-            {APPROVE_ROUTER}
-          </button>
-        ) : (
-          <button type="button" className="text-body" onClick={() => setOverlay("fill")}>
-            {FILL}
-          </button>
-        )
+
+      {refusal ? (
+        <Note
+          tone={refusalTone}
+          action={
+            refusalAction ? (
+              <button type="button" className="v-btn v-btn-secondary" onClick={refusalAction.run}>
+                {refusalAction.label}
+              </button>
+            ) : null
+          }
+        >
+          {refusalText}
+        </Note>
       ) : null}
-      {overlay && live.data && quote.data?.ok ? (
+
+      <div className="v-grid">
+        <Card
+          className="v-col-5"
+          title="Order"
+          footer={
+            <>
+              {blocked !== null ? (
+                <span id="trade-blocked" className={blockedInNote ? "v-sr" : undefined}>
+                  {blocked}
+                </span>
+              ) : null}
+              {blocked === null || blockedInNote ? <span /> : null}
+              {address ? (
+                <button
+                  type="button"
+                  className="v-btn v-btn-lg"
+                  disabled={blocked !== null}
+                  aria-describedby={blocked !== null ? "trade-blocked" : undefined}
+                  onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
+                >
+                  {needsApproval ? APPROVE_ROUTER : FILL}
+                </button>
+              ) : (
+                <button type="button" className="v-btn v-btn-lg" onClick={wallet.connectWallet}>
+                  {CONNECT_WALLET}
+                </button>
+              )}
+            </>
+          }
+        >
+          <div className="v-stack v-stack-24">
+            <div className="v-row">
+              <div className="v-seg" role="radiogroup" aria-label="Side">
+                <button type="button" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
+                  {BUY_ETH}
+                </button>
+                <button type="button" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
+                  {SELL_ETH}
+                </button>
+              </div>
+            </div>
+            <label className="v-field">
+              <span>Amount · ETH</span>
+              <input
+                className="v-input"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder={ENTER_AMOUNT}
+                value={amount}
+                aria-invalid={!parsed.ok && parsed.reason === "decimals"}
+                onChange={(event) => {
+                  if (/^\d*\.?\d*$/.test(event.target.value)) setAmount(event.target.value);
+                }}
+              />
+              {!parsed.ok && parsed.reason === "decimals" ? (
+                <span className="v-error" role="alert">
+                  {TOO_MANY_DECIMALS}
+                </span>
+              ) : null}
+            </label>
+            <DotSlider
+              label="Size"
+              value={Math.min(sliderMax, Number(amount) || 0)}
+              min={0}
+              max={sliderMax}
+              step={0.5}
+              display={`${Number(amount) || 0} of ${sliderMax} ETH`}
+              onChange={(next) => setAmount(next === 0 ? "" : String(next))}
+            />
+            <Dl
+              items={[
+                [YOU_PAY, pay],
+                [YOU_RECEIVE, receive],
+                ["Your limits", terms ? `Up to ${formatEth(terms.cap)} per fill` : "No terms on the client names"],
+              ]}
+            />
+            <details className="v-details">
+              <summary>{SLIPPAGE}</summary>
+              <label className="v-field">
+                <span>Slippage · bps</span>
+                <input
+                  className="v-input"
+                  type="number"
+                  min={0}
+                  max={500}
+                  step={1}
+                  value={slippage ?? ""}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setSlippage(next === "" ? null : Math.min(500, Math.max(0, Math.round(Number(next)))));
+                  }}
+                />
+                <span className="v-label">The fill reverts if the price moves more than this.</span>
+              </label>
+            </details>
+          </div>
+        </Card>
+
+        <Card
+          className="v-col-7"
+          title="Quote"
+          {...(shown
+            ? { footer: <span className="v-muted">The risk agent rewrites your widths after each of your fills; your next fill uses the new ones.</span> }
+            : {})}
+          actions={
+            showRefresh ? (
+              <button type="button" className="v-btn v-btn-secondary" disabled={quote.isFetching} onClick={() => void quote.refetch()}>
+                {REFRESH_QUOTE}
+              </button>
+            ) : null
+          }
+        >
+          {shown ? (
+            <div className="v-stack v-stack-24">
+              <div className="v-stack v-stack-4">
+                <span className="v-label">{side === "buy" ? "Ask · you buy ETH" : "Bid · you sell ETH"}</span>
+                <span className="v-figure-lg">{price}</span>
+              </div>
+              <Dl
+                items={[
+                  ["Source", sourceLabel],
+                  ["Oracle mid", `$${formatWadUsd(midWad)}`],
+                  [
+                    "Price window",
+                    <Status key="window" tone={windowLeft > 60 ? "green" : windowLeft > 0 ? "amber" : "red"}>
+                      {windowLeft > 0 ? `${formatCountdown(windowLeft)} left` : "Closed"}
+                    </Status>,
+                  ],
+                  ["Valid", priceNote],
+                ]}
+              />
+            </div>
+          ) : (
+            <Empty title="No quote: the terms on the client names disagree or are missing." />
+          )}
+        </Card>
+      </div>
+
+      {overlay && strategy.data && exact && swapTx ? (
         <WalletTxOverlay
           kind={overlay}
-          tx={
-            overlay === "approve"
-              ? (approvals.data?.[0] ?? port.buildSwapTx({ client, cfg: emptyConfig() }, live.data, quote.data, { slippageBps: bpsOf(slippage), deadlineSec: 120 }))
-              : port.buildSwapTx({ client, cfg: emptyConfig() }, live.data, quote.data, { slippageBps: bpsOf(slippage), deadlineSec: 120 })
-          }
+          tx={overlay === "approve" ? (approvals.data?.[0] ?? swapTx) : swapTx}
           onClose={() => setOverlay(null)}
         />
       ) : null}
-      </div>
-    </div>
-  );
-}
-
-function QuotePanel({
-  quote,
-  side,
-  midWad,
-  empty,
-  onRefresh,
-}: {
-  quote: ReturnType<typeof useQuote>;
-  side: Side;
-  midWad: bigint;
-  empty: boolean;
-  onRefresh: () => void;
-}) {
-  if (empty) return <p tabIndex={0} className="text-body">{ENTER_AMOUNT}</p>;
-  if (quote.isFetching && !quote.data) return <Skeleton className="h-8 w-full" />;
-  const data = quote.data;
-  if (!data) return null;
-  if (!data.ok) {
-    return (
-      <div>
-        <p className="text-body">{data.error.title}</p>
-        <p className="text-body text-muted">{data.error.hint}</p>
-      </div>
-    );
-  }
-  const fresh = quote.secondsLeft > 0;
-  return (
-    <div tabIndex={0} className={fresh ? "flex flex-col gap-2" : "flex flex-col gap-2 text-muted"}>
-      <p className="text-body">
-        {YOU_PAY} {side === "buy" ? formatUsdc(data.amountIn) : formatWeth(data.amountIn)}
-      </p>
-      <p className="text-body">
-        {YOU_RECEIVE} {side === "buy" ? formatWeth(data.amountOut) : formatUsdc(data.amountOut)}
-      </p>
-      <p className="num text-h3">{formatPrice(data.priceWad)}</p>
-      <p className="text-body">{midWad === 0n ? "—" : `${formatVsMidBps(data.priceWad, midWad).toString()} bps`}</p>
-      <p className="text-body">
-        {formatBps(data.spreadBps)} <SourceBadge source={data.spreadSource} />
-      </p>
-      <Countdown secondsLeft={quote.secondsLeft} />
-      {data.mirrorMatches ? <p className="text-body">{CHECKED} ✓</p> : null}
-      {fresh ? null : (
-        <button type="button" className="text-body" onClick={onRefresh}>
-          {REFRESH_QUOTE}
-        </button>
-      )}
-    </div>
+    </Page>
   );
 }

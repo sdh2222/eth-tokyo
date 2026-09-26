@@ -121,12 +121,7 @@ abstract contract DeskPrice is IDeskEvents {
         view
         returns (uint256 cap, uint16 sSell, uint16 sBuy)
     {
-        // PermissionedResolver.resolve returns the ABI encoding of data()'s bytes, not the raw record.
-        bytes memory terms = abi.decode(
-            IExtendedResolver(resolver)
-                .resolve(dnsName, abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms"))),
-            (bytes)
-        );
+        bytes memory terms = _data(resolver, dnsName, "desk.terms");
         if (terms.length != 128) revert DeskPriceNoTerms();
         uint256 version = _word(terms, 0);
         uint256 sell = _word(terms, 1);
@@ -140,6 +135,31 @@ abstract contract DeskPrice is IDeskEvents {
         }
         sSell = uint16(sell);
         sBuy = uint16(buy);
+        (bool live, uint16 liveSell, uint16 liveBuy) = _liveSpread(_data(resolver, dnsName, "desk.spread"), sSell, sBuy);
+        if (live) return (cap, liveSell, liveBuy);
+        return (cap, sSell, sBuy);
+    }
+
+    function _liveSpread(bytes memory spread, uint16 termSell, uint16 termBuy)
+        private
+        view
+        returns (bool live, uint16 sell, uint16 buy)
+    {
+        if (spread.length != 128) return (false, 0, 0);
+        uint256 version = _word(spread, 0);
+        uint256 s = _word(spread, 1);
+        uint256 b = _word(spread, 2);
+        uint256 until = _word(spread, 3);
+        if (version != 1 || s == 0 || s >= b || b >= 10_000 || s > termSell || b > termBuy) return (false, 0, 0);
+        if (until <= block.timestamp) return (false, 0, 0);
+        return (true, uint16(s), uint16(b));
+    }
+
+    function _data(address resolver, bytes memory dnsName, string memory key) private view returns (bytes memory) {
+        // PermissionedResolver.resolve returns the ABI encoding of data()'s bytes, not the raw record.
+        return abi.decode(
+            IExtendedResolver(resolver).resolve(dnsName, abi.encodeCall(IDataResolver.data, (bytes32(0), key))), (bytes)
+        );
     }
 
     function _inventory(Context memory ctx, DeskArgs.PriceArgs memory a, uint256 pWad, bool baseIsIn)
@@ -158,9 +178,11 @@ abstract contract DeskPrice is IDeskEvents {
         wWad = Math.mulDiv(ethValue, WAD, book, Math.Rounding.Floor);
     }
 
+    /// @dev The oracle stays the price. Widths are that name's live spread, or its terms.
     function _quotes(uint256 pWad, uint16 sSell, uint16 sBuy) private pure returns (uint256 askWad, uint256 bidWad) {
-        askWad = Math.mulDiv(pWad, 10_000 + uint256(sSell), 10_000, Math.Rounding.Floor);
-        bidWad = Math.mulDiv(pWad, 10_000 - uint256(sBuy), 10_000, Math.Rounding.Floor);
+        uint256 denom = 10_000;
+        askWad = Math.mulDiv(pWad, denom + uint256(sSell), denom, Math.Rounding.Floor);
+        bidWad = sBuy >= 10_000 ? 0 : Math.mulDiv(pWad, denom - uint256(sBuy), denom, Math.Rounding.Floor);
     }
 
     function _amounts(
