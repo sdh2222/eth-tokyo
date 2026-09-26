@@ -12,6 +12,7 @@
 @import "./legacy.css" layer(legacy);
 @import "../app/shell.css" layer(app);
 @import "../ui/plain.css" layer(app);
+@import "../ui/standard.css" layer(app);
 
 @layer tw-preflight {
   @tailwind base;

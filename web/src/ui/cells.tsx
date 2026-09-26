@@ -99,8 +99,8 @@ export function SpreadStrip({
 }: {
   sellBps: number;
   buyBps: number;
-  fenceSellBps?: number;
-  fenceBuyBps?: number;
+  fenceSellBps?: number | undefined;
+  fenceBuyBps?: number | undefined;
 }) {
   const span = Math.max(sellBps, buyBps, fenceSellBps ?? 0, fenceBuyBps ?? 0) + 2;
   const cols = span * 2 + 1;
