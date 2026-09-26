@@ -1,0 +1,540 @@
+/* The plain page kit. Page bodies are plain HTML on these classes; Astryx stays for the
+   header, the banners, the wallet popover and the dialogs. Sizes follow docs/design:
+   type.md (TY), spacing.md (SP), components.md (CP), style.md (ST), color.md (CL).
+   White ground; sky is an accent only. Imported into the `app` layer. */
+
+.wm-page {
+  --wm-ink: #111111;
+  --wm-paper: #f3f3f3;
+  --wm-sky: #b7e4f8;
+  --wm-muted: rgba(17, 17, 17, 0.64);
+  --wm-hair: rgba(17, 17, 17, 0.16);
+  --wm-success: #2f9e44;
+  --wm-warning: #f08c00;
+  --wm-danger: #e03131;
+  --wm-bid: #2b8a3e;
+  --wm-ask: #c92a2a;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  color: var(--wm-ink);
+  font-family: "Die Grotesk C", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.wm-page h1,
+.wm-page h2,
+.wm-page h3,
+.wm-page p,
+.wm-page dl,
+.wm-page dd,
+.wm-page ul {
+  margin: 0;
+}
+
+/* Page head: kicker 16/24 +0.03em, title 32/26 -0.03em (TY table), lede 16/24. */
+.wm-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.wm-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+}
+
+.wm-kicker {
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.wm-title {
+  font-size: 32px;
+  line-height: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  padding-top: 4px;
+}
+
+.wm-lede,
+.wm-muted {
+  color: var(--wm-muted);
+}
+
+/* Section: a 16 px label on a 1 px ink left rule (CP-07), 16 px to its body. */
+.wm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.wm-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.wm-section-title {
+  border-left: 1px solid var(--wm-ink);
+  padding-left: 12px;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+/* Layout: 12 columns, 24 px gutters (UI-12). Below 900 px every span is full width. */
+.wm-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 32px 24px;
+  align-items: start;
+}
+
+.wm-span-3 { grid-column: span 3; }
+.wm-span-4 { grid-column: span 4; }
+.wm-span-5 { grid-column: span 5; }
+.wm-span-6 { grid-column: span 6; }
+.wm-span-7 { grid-column: span 7; }
+.wm-span-8 { grid-column: span 8; }
+.wm-span-9 { grid-column: span 9; }
+.wm-span-12 { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .wm-grid > * {
+    grid-column: 1 / -1;
+  }
+}
+
+.wm-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.wm-stack-4 { gap: 4px; }
+.wm-stack-8 { gap: 8px; }
+.wm-stack-24 { gap: 24px; }
+.wm-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.wm-row-8 { gap: 8px; }
+.wm-row-24 { gap: 24px; }
+.wm-between { justify-content: space-between; }
+.wm-num { font-variant-numeric: tabular-nums; }
+
+/* Stat: label 16 muted over a 24/36 value (Type "Value"), on a 1 px rule. No gray card. */
+.wm-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.wm-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--wm-ink);
+  padding-top: 12px;
+  min-width: 0;
+}
+
+.wm-stat-value {
+  font-size: 24px;
+  line-height: 36px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Terminal window (ST-03, CP-04): 1 px ink border, ink title bar, paper body in Lisa. */
+.wm-window {
+  border: 1px solid var(--wm-ink);
+  background: var(--wm-paper);
+  min-width: 0;
+}
+
+.wm-window-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--wm-ink);
+  color: #ffffff;
+  padding: 8px 12px;
+  font-weight: 500;
+}
+
+.wm-window-bar a {
+  color: #ffffff;
+}
+
+.wm-window-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  font-family: "LisaTerminal Paper", ui-monospace, monospace;
+  font-size: 16px;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+
+.wm-window-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Sky is the accent: a highlighter behind the one number that matters. */
+.wm-mark {
+  background: var(--wm-sky);
+  padding: 0 4px;
+}
+
+.wm-big {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+/* Tables: 16/24, ink header rule, hairline rows, tabular numbers. */
+.wm-table-wrap {
+  overflow-x: auto;
+}
+
+.wm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-table th {
+  text-align: left;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--wm-ink);
+  white-space: nowrap;
+}
+
+.wm-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--wm-hair);
+  vertical-align: top;
+}
+
+.wm-table th:first-child,
+.wm-table td:first-child {
+  padding-left: 0;
+}
+
+.wm-table .wm-right {
+  text-align: right;
+}
+
+.wm-table tr[data-selected="true"] td {
+  background: var(--wm-sky);
+}
+
+/* Buttons: one filled ink button per screen (CP-01), a danger outline (Stop, Cut off), and
+   the secondary action as an underlined word (CP-02). Square, 12 x 16, 16/24 500. */
+.wm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--wm-ink);
+  border-radius: 0;
+  background: var(--wm-ink);
+  color: #ffffff;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 150ms ease-out, background-color 150ms ease-out;
+  text-decoration: none;
+}
+
+.wm-btn:hover {
+  background: #333333;
+}
+
+.wm-btn:active {
+  transform: scale(0.97);
+}
+
+.wm-btn:disabled {
+  background: rgba(17, 17, 17, 0.28);
+  border-color: transparent;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wm-page a.wm-btn {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.wm-btn-danger,
+.wm-btn-danger:hover,
+.wm-page a.wm-btn-danger {
+  background: #ffffff;
+  color: var(--wm-danger);
+  border-color: var(--wm-danger);
+}
+
+.wm-link,
+.wm-page a.wm-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--wm-ink);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.wm-page a {
+  color: var(--wm-ink);
+  text-underline-offset: 3px;
+}
+
+.wm-link:disabled {
+  color: var(--wm-muted);
+  cursor: not-allowed;
+}
+
+.wm-btn:focus-visible,
+.wm-link:focus-visible,
+.wm-chip:focus-visible,
+.wm-input:focus-visible,
+.wm-page a:focus-visible {
+  outline: 2px solid var(--wm-ink);
+  outline-offset: 2px;
+}
+
+/* Chips: white, 8 x 12, square; the chosen chip is ink with white type (CP-03). */
+.wm-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wm-chip {
+  border: 1px solid var(--wm-ink);
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--wm-ink);
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.wm-chip[aria-pressed="true"],
+.wm-chip[aria-checked="true"] {
+  background: var(--wm-ink);
+  color: #ffffff;
+}
+
+/* Status pill (CP-06): 12/16 500, 4 x 8, always a word, with an 8 px dot in its colour. */
+.wm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--wm-ink);
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.wm-pill::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--wm-muted);
+}
+
+.wm-pill[data-tone="success"]::before { background: var(--wm-success); }
+.wm-pill[data-tone="warning"]::before { background: var(--wm-warning); }
+.wm-pill[data-tone="danger"]::before { background: var(--wm-danger); }
+.wm-pill[data-tone="accent"]::before { background: #0080bc; }
+
+/* Key and value rows. */
+.wm-facts {
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) minmax(0, 1fr);
+  gap: 8px 24px;
+}
+
+.wm-facts dt {
+  color: var(--wm-muted);
+}
+
+.wm-facts dd {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Lists with hairline rows (Needs you, Can / Cannot). */
+.wm-list {
+  list-style: none;
+  padding: 0;
+  border-top: 1px solid var(--wm-hair);
+}
+
+.wm-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--wm-hair);
+}
+
+/* Share bar: 8 px, sky fill, ink target mark with its label. */
+.wm-bar {
+  position: relative;
+  height: 8px;
+  border: 1px solid var(--wm-ink);
+  background: #ffffff;
+}
+
+.wm-bar-fill {
+  height: 100%;
+  background: var(--wm-sky);
+}
+
+.wm-bar-mark {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--wm-ink);
+}
+
+/* Inputs (CP-05): 16 px, padding 12, square, 1 px ink border, paper fill. */
+.wm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wm-field > span:first-child {
+  font-weight: 500;
+}
+
+.wm-input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--wm-ink);
+  border-radius: 0;
+  background: var(--wm-paper);
+  color: var(--wm-ink);
+  padding: 12px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+textarea.wm-input {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Empty and error blocks: one sentence and one action (UI-15). */
+.wm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--wm-paper);
+  padding: 24px;
+}
+
+.wm-note {
+  border-left: 1px solid var(--wm-ink);
+  padding-left: 12px;
+  color: var(--wm-muted);
+}
+
+/* A notice inside a page (refusals on Trade, the verdict on Verify). */
+.wm-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border: 1px solid var(--wm-ink);
+  padding: 16px;
+  background: #ffffff;
+}
+
+.wm-callout[data-tone="success"] { border-left: 8px solid var(--wm-success); }
+.wm-callout[data-tone="warning"] { border-left: 8px solid var(--wm-warning); }
+.wm-callout[data-tone="danger"] { border-left: 8px solid var(--wm-danger); }
+.wm-callout[data-tone="accent"] { background: var(--wm-sky); }
+
+.wm-raw summary {
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wm-raw[open] summary {
+  margin-bottom: 12px;
+}
+
+.wm-bid { color: var(--wm-bid); }
+.wm-ask { color: var(--wm-ask); }
+
+/* Vertical steps for the Open a desk wizard. */
+.wm-steps {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  counter-reset: wm-step;
+}
+
+.wm-steps button {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  border-left: 1px solid var(--wm-hair);
+  background: none;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--wm-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wm-steps button[aria-current="step"] {
+  border-left: 2px solid var(--wm-ink);
+  color: var(--wm-ink);
+  font-weight: 500;
+}
+
+.wm-steps button[data-done="true"] {
+  color: var(--wm-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-btn {
+    transition: none;
+  }
+}
