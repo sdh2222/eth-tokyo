@@ -1,0 +1,587 @@
+/* The app kit, modelled one to one on Vercel's Geist system (the reference the team chose:
+   "Linear / Vercel style"). White page, bordered cards (1 px #ebebeb, 12 px radius), 14 px
+   body, 13 px gray labels, 24 px page title, compact tables, 32 px buttons with a 6 px
+   radius, pill badges. Kept from watermark: the Die Grotesk C face, ink and water blue,
+   and the dither cells for charts. Classes are `v-`. Imported into the `app` layer. */
+
+.v-page {
+  /* Geist light: gray-100 #f2f2f2, gray-200 #ebebeb, gray-alpha-400 border, gray-900 #666
+     secondary text, gray-1000 #171717 primary text. Accent: watermark water blue. */
+  --v-bg: #ffffff;
+  --v-bg-2: #fafafa;
+  --v-gray-1: #f2f2f2;
+  --v-border: #ebebeb;
+  --v-border-strong: #d9d9d9;
+  --v-text: #171717;
+  --v-text-2: #666666;
+  --v-text-3: #8f8f8f;
+  --v-accent: #0077af;
+  --v-accent-bg: #e8f4fb;
+  --v-green: #1a7f37;
+  --v-green-bg: #e9f7ee;
+  --v-amber: #a35200;
+  --v-amber-bg: #fff4e5;
+  --v-red: #cb2a2f;
+  --v-red-bg: #fdecec;
+  --v-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+  /* The dither cells (web/src/ui/cells.tsx) read these. */
+  --wk-ink: var(--v-text);
+  --wk-dot: #6ec1ea;
+  --wk-off: #d9d9d9;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--v-text);
+  font-family: "Die Grotesk C", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/compare/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+.v-page h1,
+.v-page h2,
+.v-page h3,
+.v-page p,
+.v-page dl,
+.v-page dd,
+.v-page ul,
+.v-page ol,
+.v-page figure {
+  margin: 0;
+  font-family: inherit;
+}
+
+/* Page header: 24/32 title, 14 px gray description, actions on the right. */
+.v-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--v-border);
+}
+
+.v-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.v-title {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.v-desc,
+.v-muted {
+  color: var(--v-text-2);
+}
+
+.v-faint {
+  color: var(--v-text-3);
+}
+
+.v-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Layout. */
+.v-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.v-col-3 { grid-column: span 3; }
+.v-col-4 { grid-column: span 4; }
+.v-col-5 { grid-column: span 5; }
+.v-col-6 { grid-column: span 6; }
+.v-col-7 { grid-column: span 7; }
+.v-col-8 { grid-column: span 8; }
+.v-col-9 { grid-column: span 9; }
+.v-col-12 { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .v-grid > * {
+    grid-column: 1 / -1;
+  }
+}
+
+.v-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.v-stack-4 { gap: 4px; }
+.v-stack-8 { gap: 8px; }
+.v-stack-24 { gap: 24px; }
+.v-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.v-row-4 { gap: 4px; }
+.v-row-8 { gap: 8px; }
+.v-between { justify-content: space-between; }
+.v-num { font-variant-numeric: tabular-nums; }
+.v-page .v-mono { font-family: var(--v-mono); font-size: 13px; }
+
+/* Card: white, 1 px border, 12 px radius. Header and footer are separated by a border;
+   the footer sits on the 200 gray. */
+.v-card {
+  background: var(--v-bg);
+  border: 1px solid var(--v-border);
+  border-radius: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.v-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 64px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--v-border);
+}
+
+.v-card-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.v-card-body {
+  padding: 24px;
+}
+
+.v-card-body-flush {
+  padding: 0;
+}
+
+.v-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--v-bg-2);
+  border-top: 1px solid var(--v-border);
+  color: var(--v-text-2);
+}
+
+/* Metric: 13 px gray label over a 24/32 figure (32/40 for the page's one headline figure). */
+.v-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.v-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 24px;
+  border-right: 1px solid var(--v-border);
+  min-width: 0;
+}
+
+.v-metric:last-child {
+  border-right: 0;
+}
+
+.v-label {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--v-text-2);
+}
+
+.v-figure {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.v-figure-lg {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table: 13 px gray head on the 200 gray, 14 px rows at 48 px, 1 px row borders. */
+.v-table-wrap {
+  position: relative;
+  overflow-x: auto;
+}
+
+.v-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.v-table th {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--v-bg-2);
+  border-bottom: 1px solid var(--v-border);
+  color: var(--v-text-2);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.v-table td {
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--v-border);
+  white-space: nowrap;
+}
+
+.v-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.v-table tbody tr:hover td {
+  background: var(--v-bg-2);
+}
+
+.v-table th:first-child,
+.v-table td:first-child {
+  padding-left: 24px;
+}
+
+.v-table th:last-child,
+.v-table td:last-child {
+  padding-right: 24px;
+}
+
+.v-table .v-right {
+  text-align: right;
+}
+
+/* Key and value list, Geist style: gray key, primary value. */
+.v-dl {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) minmax(0, 1fr);
+  gap: 12px 24px;
+}
+
+.v-dl dt {
+  color: var(--v-text-2);
+}
+
+.v-dl dd {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Buttons: 32 px, 6 px radius, 14/20 500. Primary is ink, secondary is bordered white,
+   tertiary is text only, error is red. */
+.v-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--v-text);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.v-btn:hover {
+  background: #383838;
+}
+
+.v-btn-lg {
+  height: 40px;
+  padding: 0 16px;
+}
+
+.v-btn-secondary {
+  background: var(--v-bg);
+  border-color: var(--v-border);
+  color: var(--v-text);
+}
+
+.v-btn-secondary:hover {
+  background: var(--v-bg-2);
+  border-color: var(--v-border-strong);
+}
+
+.v-btn-tertiary {
+  background: transparent;
+  color: var(--v-text);
+}
+
+.v-btn-tertiary:hover {
+  background: var(--v-gray-1);
+}
+
+.v-btn-error {
+  background: var(--v-bg);
+  border-color: #f5c2c3;
+  color: var(--v-red);
+}
+
+.v-btn-error:hover {
+  background: var(--v-red-bg);
+}
+
+.v-btn:disabled {
+  background: var(--v-gray-1);
+  border-color: var(--v-border);
+  color: var(--v-text-3);
+  cursor: not-allowed;
+}
+
+.v-page a.v-btn {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.v-page a.v-btn-secondary,
+.v-page a.v-btn-tertiary {
+  color: var(--v-text);
+}
+
+/* Links: the accent, underline on hover. */
+.v-page a:not(.v-btn),
+.v-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--v-accent);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.v-page a:not(.v-btn):hover,
+.v-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.v-page a:focus-visible,
+.v-btn:focus-visible,
+.v-link:focus-visible,
+.v-input:focus-visible,
+.v-seg button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(0, 119, 175, 0.5);
+}
+
+/* Badge: 20 px pill, 12 px 500, subtle tone background. */
+.v-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--v-gray-1);
+  color: var(--v-text-2);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.v-badge[data-tone="green"] { background: var(--v-green-bg); color: var(--v-green); }
+.v-badge[data-tone="amber"] { background: var(--v-amber-bg); color: var(--v-amber); }
+.v-badge[data-tone="red"] { background: var(--v-red-bg); color: var(--v-red); }
+.v-badge[data-tone="blue"] { background: var(--v-accent-bg); color: var(--v-accent); }
+
+/* Status dot: 8 px dot and a 14 px label (Geist "Status"). */
+.v-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v-text-3);
+}
+
+.v-status[data-tone="green"]::before { background: #2f9e44; }
+.v-status[data-tone="amber"]::before { background: #f08c00; }
+.v-status[data-tone="red"]::before { background: #e03131; }
+.v-status[data-tone="blue"]::before { background: var(--v-accent); }
+
+/* Inputs: 36 px, 6 px radius, 1 px border. */
+.v-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.v-field > span:first-child {
+  font-size: 13px;
+  color: var(--v-text-2);
+}
+
+.v-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--v-border);
+  border-radius: 6px;
+  background: var(--v-bg);
+  color: var(--v-text);
+  font: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+textarea.v-input {
+  height: auto;
+  min-height: 120px;
+  padding: 8px 12px;
+  resize: vertical;
+}
+
+.v-error {
+  color: var(--v-red);
+  font-size: 13px;
+}
+
+/* Segmented control (Geist "Switch"): gray track, white selected option. */
+.v-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--v-gray-1);
+}
+
+.v-seg button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--v-text-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.v-seg button[aria-checked="true"] {
+  background: var(--v-bg);
+  color: var(--v-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Note (Geist "Note"): a bordered strip with a tone. */
+.v-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border: 1px solid var(--v-border);
+  border-radius: 6px;
+  background: var(--v-bg-2);
+}
+
+.v-note[data-tone="green"] { border-color: #b7e3c3; background: var(--v-green-bg); color: var(--v-green); }
+.v-note[data-tone="amber"] { border-color: #ffd8a8; background: var(--v-amber-bg); color: var(--v-amber); }
+.v-note[data-tone="red"] { border-color: #f5c2c3; background: var(--v-red-bg); color: var(--v-red); }
+
+/* Empty state: the dither clouds, one line, one action, centred in a card. */
+.v-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.v-empty-picture {
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+  position: relative;
+}
+
+.v-empty-picture img {
+  position: absolute;
+  left: 50%;
+  top: -300px;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+/* Details disclosure. */
+.v-details summary {
+  cursor: pointer;
+  color: var(--v-text-2);
+}
+
+.v-details[open] summary {
+  margin-bottom: 12px;
+}
+
+/* A code block for raw values: Geist Mono 13 px on the 200 gray. */
+.v-code {
+  padding: 12px 16px;
+  border: 1px solid var(--v-border);
+  border-radius: 6px;
+  background: var(--v-bg-2);
+  font-family: var(--v-mono);
+  font-size: 13px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.v-bid { color: var(--v-green); }
+.v-ask { color: var(--v-red); }
+
+.v-sr {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Controls in a card head match the 32 px buttons. */
+.v-card-head .v-input {
+  width: auto;
+  height: 32px;
+}
