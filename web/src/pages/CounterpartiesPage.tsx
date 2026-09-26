@@ -5,6 +5,7 @@ import { nameQuote, shortName, type DeskBook, type NameQuote } from "../desk/boo
 import { CLIENT_SUFFIX } from "../ens/names";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
+import { useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr, formatWeth } from "../lib/format";
 import { Badge, Card, Empty, Header, Page, type Tone } from "../ui/v";
 import { DotSlider } from "../ui/slider";
@@ -18,9 +19,9 @@ import { SafeDialog } from "./open/SafeDialog";
 
 const SAFE_WALLET = "Safe{Wallet}";
 
-type NameStatus = "Live" | "Expired" | "Cut off";
+type NameStatus = "Live" | "Ready" | "Expired" | "Cut off";
 
-const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Expired: "red", "Cut off": "gray" };
+const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Ready: "gray", Expired: "red", "Cut off": "gray" };
 
 type Terms = DeskBook["names"][number]["terms"];
 type Spread = DeskBook["names"][number]["spread"];
@@ -45,13 +46,15 @@ function widths(sellBps: number, buyBps: number): string {
   return `−${buyBps} / +${sellBps} bp`;
 }
 
-function toRows(book: DeskBook, now: number): NameRow[] {
+// With no desk open a name that passes the gate is Ready, not Live: nothing can fill yet.
+function toRows(book: DeskBook, now: number, deskOpen: boolean): NameRow[] {
   return book.names.map((entry) => {
     const expiry = Number(entry.expiry);
     const expired = expiry > 0 && expiry <= now;
-    const status: NameStatus = expired ? "Expired" : entry.live ? "Live" : "Cut off";
+    const status: NameStatus = expired ? "Expired" : !entry.live ? "Cut off" : deskOpen ? "Live" : "Ready";
     let reason = "Its address is the wallet, it has terms, and it has not expired.";
-    if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
+    if (status === "Ready") reason = "It passes the gate and can fill once a desk is open.";
+    else if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
     else if (status === "Cut off" && !entry.terms) reason = "The name has no valid desk.terms.";
     else if (status === "Cut off") reason = "Its address or resolver does not pass the gate.";
     return {
@@ -180,6 +183,7 @@ function TermsEditor({
 export function CounterpartiesPage() {
   const book = useBook();
   const now = useClock();
+  const strategy = useLiveStrategy();
   const alert = useImperativeAlertDialog();
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ sell: "", buy: "", cap: "" });
@@ -239,7 +243,8 @@ export function CounterpartiesPage() {
   }
 
   const b = book.data;
-  const rows = toRows(b, now);
+  const noDesk = !strategy.isLoading && !strategy.data;
+  const rows = toRows(b, now, !noDesk);
   const openRow = rows.find((row) => row.id === openId) ?? null;
 
   return (

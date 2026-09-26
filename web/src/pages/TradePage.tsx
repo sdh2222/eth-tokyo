@@ -127,6 +127,21 @@ export function TradePage() {
     );
   }
 
+  // No desk open: nothing to quote or fill against yet.
+  if (!strategy.isLoading && !strategy.data) {
+    return (
+      <Page>
+        <Header title="Trade" description="WETH / USDC" actions={<Badge>No desk</Badge>} />
+        <Card>
+          <Empty
+            title="No desk is open"
+            description="The treasury has not opened a desk yet. Prices and the Fill button appear here once it does."
+          />
+        </Card>
+      </Page>
+    );
+  }
+
   const b = book.data;
   const updatedAt = Number(b.oracle.updatedAt);
   const windowLeft = updatedAt > now ? 0 : updatedAt + WINDOW_SECONDS - now;

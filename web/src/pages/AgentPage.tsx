@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import sepoliaConfig from "@config";
 import { nameQuote, shortName, type AgentWrite } from "../desk/book";
 import { useAgentWrites, writeFor } from "../hooks/useAgentWrites";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
+import { useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr } from "../lib/format";
 import { formatWhen } from "../lib/time";
 import { readPolicy } from "../desk/policy";
-import { Badge, Card, Dl, Header, Page, Status, type Tone } from "../ui/v";
+import { Badge, Card, Dl, Empty, Header, Page, Status, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Risk agent (IA: "What spread is the agent setting, and inside which limits?"). Main's flow
@@ -57,7 +59,12 @@ function PolicyCard({ className, policy }: { className: string; policy: string }
   const editing = draft !== null;
   const text = draft ?? policy;
   const reading = readPolicy(text);
-  const error = text.trim() === "" ? "Write a policy before proposing it." : reading.lines.length === 0 ? "The agent reads nothing from this text: it keeps the tier widths." : null;
+  const error =
+    text.trim() === ""
+      ? "Write a policy before proposing it."
+      : reading.lines.length === 0
+        ? "The agent reads nothing from this text: it keeps the tier widths."
+        : null;
 
   function cancel() {
     setDraft(null);
@@ -135,6 +142,7 @@ export function AgentPage() {
   const book = useBook();
   const now = useClock();
   const writes = useAgentWrites();
+  const strategy = useLiveStrategy();
 
   if (!book.data) {
     return (
@@ -150,7 +158,10 @@ export function AgentPage() {
   const b = book.data;
   const liveCount = b.names.filter((name) => name.live).length;
   const agentCount = b.names.filter((name) => name.live && name.spread?.live).length;
-  const state = headerState(agentCount, liveCount);
+  // With no desk open nothing fills, so the agent has nothing to rewrite: say so instead of
+  // showing widths. Rules and the policy stay, since the policy can be set before opening.
+  const noDesk = !strategy.isLoading && !strategy.data;
+  const state = noDesk ? { label: "No desk", tone: "gray" as Tone } : headerState(agentCount, liveCount);
 
   const above = b.inventory.wBps > b.inventory.wStarBps;
   const below = b.inventory.wBps < b.inventory.wStarBps;
@@ -172,40 +183,54 @@ export function AgentPage() {
         actions={<Badge tone={state.tone}>{state.label}</Badge>}
       />
 
-      <Card title="Widths now" flush>
-        <div className="v-table-wrap">
-          <table className="v-table">
-            <thead>
-              <tr>
-                <th>Counterparty</th>
-                <th className="v-right">Bid</th>
-                <th className="v-right">Ask</th>
-                <th className="v-right">Terms</th>
-                <th className="v-right">Set</th>
-                <th>Why</th>
-              </tr>
-            </thead>
-            <tbody>
-              {b.names.map((name) => {
-                const q = nameQuote(b, name);
-                const write = writeFor(writes.data, name.name);
-                return (
-                  <tr key={name.name}>
-                    <td>{shortName(name.name)}</td>
-                    <td className="v-right">{q ? `−${q.buyBps} bp` : "—"}</td>
-                    <td className="v-right">{q ? `+${q.sellBps} bp` : "—"}</td>
-                    <td className="v-right v-muted">{name.terms ? `−${name.terms.buyBps} / +${name.terms.sellBps}` : "—"}</td>
-                    <td className="v-right v-muted">{write ? formatWhen(write.writtenAt, now) : "—"}</td>
-                    <td className="v-muted v-wrap">
-                      <Why write={write} onTerms={q?.source === "terms"} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {noDesk ? (
+        <Card>
+          <Empty
+            title="No desk is open"
+            description="The agent rewrites a counterparty's widths after each of its fills. With no desk open there are no fills to react to."
+            action={
+              <Link className="v-btn v-btn-secondary" to="/open">
+                Open a desk
+              </Link>
+            }
+          />
+        </Card>
+      ) : (
+        <Card title="Widths now" flush>
+          <div className="v-table-wrap">
+            <table className="v-table">
+              <thead>
+                <tr>
+                  <th>Counterparty</th>
+                  <th className="v-right">Bid</th>
+                  <th className="v-right">Ask</th>
+                  <th className="v-right">Terms</th>
+                  <th className="v-right">Set</th>
+                  <th>Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                {b.names.map((name) => {
+                  const q = nameQuote(b, name);
+                  const write = writeFor(writes.data, name.name);
+                  return (
+                    <tr key={name.name}>
+                      <td>{shortName(name.name)}</td>
+                      <td className="v-right">{q ? `−${q.buyBps} bp` : "—"}</td>
+                      <td className="v-right">{q ? `+${q.sellBps} bp` : "—"}</td>
+                      <td className="v-right v-muted">{name.terms ? `−${name.terms.buyBps} / +${name.terms.sellBps}` : "—"}</td>
+                      <td className="v-right v-muted">{write ? formatWhen(write.writtenAt, now) : "—"}</td>
+                      <td className="v-muted v-wrap">
+                        <Why write={write} onTerms={q?.source === "terms"} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       <div className="v-grid">
         <Card
