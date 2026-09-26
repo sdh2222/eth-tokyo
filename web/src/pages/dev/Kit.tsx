@@ -17,6 +17,85 @@ import { clientName } from "../../ens/names";
 import { FIXTURE_MMS, FIXTURE_OWNERS } from "../../desk/fixture/state";
 import { labelFor } from "../../hooks/useCanAct";
 
+const FIELDS = [
+  { name: "Pink", swatch: "var(--field-pink)", ink: "var(--ink)" },
+  { name: "Sky", swatch: "var(--field-sky)", ink: "var(--ink)" },
+  { name: "Ink", swatch: "var(--ink)", ink: "var(--on-ink)" },
+  { name: "Paper", swatch: "var(--paper)", ink: "var(--ink)" },
+  { name: "Chip", swatch: "var(--chip)", ink: "var(--ink)" },
+] as const;
+
+const MARKS = [
+  { name: "Treasury", color: "var(--treasury)" },
+  { name: "Counterparty", color: "var(--mm)" },
+  { name: "Program", color: "var(--program)" },
+  { name: "Aqua", color: "var(--aqua)" },
+  { name: "ENS", color: "var(--ens)" },
+  { name: "Oracle", color: "var(--oracle)" },
+  { name: "Agent", color: "var(--agent)" },
+  { name: "Bid", color: "var(--bid)" },
+  { name: "Ask", color: "var(--ask)" },
+  { name: "Success", color: "var(--success)" },
+  { name: "Warning", color: "var(--warning)" },
+  { name: "Danger", color: "var(--danger)" },
+] as const;
+
+const GAPS = [4, 8, 12, 16, 24, 32, 48] as const;
+
+function TokenSheet() {
+  return (
+    <section className="flex flex-col gap-7">
+      <p className="text-body font-medium" style={{ letterSpacing: "var(--track-kicker)" }}>
+        Tokens
+      </p>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+        {FIELDS.map((field) => (
+          <div key={field.name} className="border border-ink p-4" style={{ background: field.swatch, color: field.ink }}>
+            <p className="text-body font-medium">{field.name}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-4">
+        {MARKS.map((mark) => (
+          <p key={mark.name} className="flex items-center gap-2 text-body">
+            <span className="inline-block h-2 w-2" style={{ background: mark.color }} />
+            {mark.name}
+          </p>
+        ))}
+      </div>
+      <div className="flex flex-col gap-5">
+        <p className="text-display font-medium">An OTC desk</p>
+        <p className="text-section font-medium">The treasury quotes</p>
+        <p className="text-h1 font-medium">Desk</p>
+        <p className="text-field">Tokens stay in the multisig until each fill.</p>
+        <p className="text-body">Forms, tables, and buttons stay at this size.</p>
+        <p className="text-body font-medium" style={{ letterSpacing: "var(--track-kicker)" }}>
+          Sepolia testnet
+        </p>
+        <p className="num text-body">3,987.98</p>
+        <p className="num text-h2 font-medium">90.0%</p>
+        <p>
+          <span className="inline-block rounded-pill bg-ink px-2 py-1 text-micro font-medium text-onfocus">Live</span>
+        </p>
+      </div>
+      <div className="flex flex-col gap-3">
+        {GAPS.map((gap) => (
+          <p key={gap} className="flex items-center gap-4 text-body">
+            <span className="inline-block h-2 bg-ink" style={{ width: gap }} />
+            {gap}
+          </p>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-start gap-5">
+        <span className="inline-block bg-ink px-4 py-3 text-body font-medium text-onfocus">Open the live demo</span>
+        <span className="inline-block bg-paper p-5 text-body" style={{ boxShadow: "var(--shadow-overlay)" }}>
+          Overlay
+        </span>
+      </div>
+    </section>
+  );
+}
+
 const KINDS: StatusKind[] = [
   "Live",
   "Stopped",
@@ -34,7 +113,8 @@ export function Kit() {
   const [step, setStep] = useState("policy");
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-7">
+      <TokenSheet />
       <h1 className="text-h1">Kit</h1>
       <button
         type="button"

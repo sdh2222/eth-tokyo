@@ -44,6 +44,13 @@ export default {
       success: "var(--success)",
       warning: "var(--warning)",
       danger: "var(--danger)",
+      field: {
+        pink: "var(--field-pink)",
+        sky: "var(--field-sky)",
+      },
+      ink: "var(--ink)",
+      paper: "var(--paper)",
+      chip: "var(--chip)",
     },
     spacing: {
       1: "var(--space-1)",
@@ -60,8 +67,10 @@ export default {
       mono: "var(--font-mono)",
     },
     fontSize: {
-      display: ["var(--text-display-size)", { lineHeight: "var(--text-display-leading)" }],
-      h1: ["var(--text-h1-size)", { lineHeight: "var(--text-h1-leading)" }],
+      display: ["var(--text-display-size)", { lineHeight: "var(--text-display-leading)", letterSpacing: "var(--track-display)" }],
+      section: ["var(--text-section-size)", { lineHeight: "var(--text-section-leading)", letterSpacing: "var(--track-display)" }],
+      h1: ["var(--text-h1-size)", { lineHeight: "var(--text-h1-leading)", letterSpacing: "var(--track-display)" }],
+      field: ["var(--text-field-size)", { lineHeight: "var(--text-field-leading)", letterSpacing: "var(--track-body)" }],
       h2: ["var(--text-h2-size)", { lineHeight: "var(--text-h2-leading)" }],
       h3: ["var(--text-h3-size)", { lineHeight: "var(--text-h3-leading)" }],
       body: ["var(--text-body-size)", { lineHeight: "var(--text-body-leading)" }],
