@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LANDING } from "../copy/en";
 import { blueNoise, packed } from "./landing-dots";
 
@@ -33,6 +33,7 @@ type Panel = {
   seed: number;
   sky: Float32Array;
   ink: Float32Array;
+  counts: { strangers: number; refused: number; named: number };
 };
 
 function makePanel(gated: boolean): Panel {
@@ -44,6 +45,7 @@ function makePanel(gated: boolean): Panel {
     seed: 7,
     sky: new Float32Array(GW * GH),
     ink: new Float32Array(GW * GH),
+    counts: { strangers: 0, refused: 0, named: 0 },
   };
 }
 
@@ -77,6 +79,7 @@ function step(panel: Panel, dt: number) {
     taker.y += taker.vy * dt;
     if (panel.gated && !taker.named && !before && inRing(taker) && !taker.bounced) {
       panel.flashes.push({ x: taker.x, y: taker.y, life: 1 });
+      panel.counts.refused += 1;
       taker.vx = -taker.vx * 1.1 + (random(panel) - 0.5) * 30;
       taker.vy = -taker.vy * 1.1 + (random(panel) - 0.5) * 30;
       taker.x += taker.vx * dt * 2;
@@ -89,6 +92,8 @@ function step(panel: Panel, dt: number) {
       const left = panel.cells.flatMap((on, i) => (on ? [i] : []));
       const pick = left[Math.floor(random(panel) * left.length)];
       if (pick !== undefined) panel.cells[pick] = false;
+      if (taker.named) panel.counts.named += 1;
+      else panel.counts.strangers += 1;
       return false;
     }
     return taker.x > -20 && taker.x < W + 20 && taker.y > -20 && taker.y < H + 20;
@@ -169,11 +174,21 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
   const copy = LANDING.gate;
   const openRef = useRef<HTMLCanvasElement>(null);
   const namedRef = useRef<HTMLCanvasElement>(null);
+  const [counts, setCounts] = useState({ strangers: 0, gatedStrangers: 0, refused: 0, named: 0 });
 
   useEffect(() => {
     const canvases = [openRef.current, namedRef.current];
     if (canvases.some((c) => !c)) return;
     const panels = [makePanel(false), makePanel(true)];
+    // The numbers under the panels, read a few times a second rather than every frame.
+    const publish = () =>
+      setCounts({
+        strangers: panels[0]!.counts.strangers,
+        gatedStrangers: panels[1]!.counts.strangers,
+        refused: panels[1]!.counts.refused,
+        named: panels[1]!.counts.named,
+      });
+    const counter = window.setInterval(publish, 300);
     const buffer = document.createElement("canvas");
     buffer.width = GW;
     buffer.height = GH;
@@ -227,7 +242,8 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
     if (reduce) {
       for (let i = 0; i < 360; i += 1) advance(1 / 60);
       render();
-      return;
+      publish();
+      return () => window.clearInterval(counter);
     }
 
     const tick = (now: number) => {
@@ -248,21 +264,33 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
     return () => {
       observer.disconnect();
       cancelAnimationFrame(frame);
+      window.clearInterval(counter);
     };
   }, [named, unnamed]);
 
   return (
-    <div className="wm-swarm">
-      <figure>
-        <p className="wm-overlay">{copy.openNote}</p>
-        <canvas ref={openRef} aria-hidden="true" />
-        <figcaption>{copy.open}</figcaption>
-      </figure>
-      <figure>
-        <p className="wm-overlay">{copy.namedNote}</p>
-        <canvas ref={namedRef} aria-hidden="true" />
-        <figcaption>{copy.named}</figcaption>
-      </figure>
+    <div className="wm-panel-field wm-panel-field-water">
+      <span className="wm-tag">{copy.tag}</span>
+      <div className="wm-swarm">
+        <figure>
+          <canvas ref={openRef} aria-hidden="true" />
+          <figcaption className="wm-stat">
+            <span className="wm-stat-name">{copy.open}</span>
+            <span className="wm-stat-value">
+              {counts.strangers} {copy.openStat}
+            </span>
+          </figcaption>
+        </figure>
+        <figure>
+          <canvas ref={namedRef} aria-hidden="true" />
+          <figcaption className="wm-stat">
+            <span className="wm-stat-name">{copy.named}</span>
+            <span className="wm-stat-value">
+              {counts.gatedStrangers} {copy.openStat} · {counts.refused} {copy.refusedStat} · {counts.named} {copy.namedStat}
+            </span>
+          </figcaption>
+        </figure>
+      </div>
     </div>
   );
 }

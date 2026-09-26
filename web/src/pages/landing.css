@@ -174,162 +174,149 @@ body:has(.wm-landing) {
   color: var(--wm-water-strong);
 }
 
-/* ---------- sections ---------- */
+/* ---------- sections: claim, proof, numbers, one paragraph ---------- */
 
 .wm-section {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 120px 32px 96px;
+  padding: 136px 32px 120px;
   scroll-margin-top: 0;
 }
 
-.wm-label {
-  margin: 0 0 16px;
-  color: var(--wm-water-strong);
-  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
-  font-size: 16px;
+.wm-claim {
+  margin-bottom: 48px;
 }
 
 .wm-h2 {
-  max-width: 17em;
+  max-width: 14em;
   margin: 0;
-  font-size: clamp(40px, 4.6vw, 64px);
+  font-size: clamp(48px, 6.4vw, 96px);
   font-weight: 500;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
   text-wrap: balance;
 }
 
-/* ---------- today and with watermark ---------- */
-
-.wm-compare {
-  margin-top: 72px;
+.wm-claim-sub {
+  margin: 20px 0 0;
+  font-size: clamp(20px, 1.8vw, 26px);
+  line-height: 1.3;
+  opacity: 0.85;
 }
 
-.wm-row {
+/* The proof sits on a dotted field with a small ink tag in its corner, as on TypeSafe. */
+.wm-panel-field {
+  position: relative;
+  padding: 44px 24px 24px;
+  background: radial-gradient(circle, rgb(17 17 17 / 0.14) 0.9px, transparent 1.1px) 0 0 / 6px 6px;
+}
+
+.wm-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2px 8px;
+  background: var(--wm-ink);
+  color: var(--wm-white);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.wm-dump-canvas,
+.wm-orbit-canvas {
+  display: block;
+  width: 100%;
+  background: var(--color-background-body);
+}
+
+.wm-orbit-canvas {
+  aspect-ratio: 640 / 400;
+}
+
+.wm-rows-labels {
+  position: absolute;
+  top: 44px;
+  left: 24px;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 220px 1fr 1fr;
-  gap: 48px;
-  align-items: start;
-  padding: 24px 0;
-  border-top: 1px solid #e5e5e5;
+  grid-template-rows: 1fr 1fr;
+  height: calc(100% - 68px);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+  pointer-events: none;
 }
 
-.wm-row-head {
-  padding: 16px 0;
-  border-top: 1px solid var(--wm-ink);
+.wm-rows-labels span {
+  padding: 8px 10px;
 }
 
-.wm-row-label {
+/* Numbers under the proof: a name, a value, a note. */
+.wm-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 48px;
+}
+
+.wm-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   margin: 0;
-  padding-top: 6px;
   font-size: 16px;
+  line-height: 1.35;
+}
+
+.wm-stat-name {
+  font-weight: 500;
+}
+
+.wm-stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-stat-note {
   opacity: 0.6;
 }
 
-.wm-panel-label {
+.wm-panel-field .wm-stats {
+  margin-top: 20px;
+}
+
+.wm-after {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 64px;
+  align-items: start;
+  margin-top: 32px;
+}
+
+.wm-body {
+  max-width: 34em;
   margin: 0;
-  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
-  font-size: 16px;
+  font-size: 20px;
+  line-height: 1.5;
+  opacity: 0.85;
 }
 
-.wm-value {
-  margin: 0;
-  font-size: clamp(28px, 2.8vw, 40px);
-  font-weight: 500;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+/* ---------- section 3: centred, on the water field ---------- */
+
+.wm-section-center .wm-claim {
+  text-align: center;
 }
 
-.wm-value-ours {
-  color: var(--wm-water-strong);
+.wm-section-center .wm-h2 {
+  margin-inline: auto;
 }
-
-.wm-figure {
-  margin: 0;
-}
-
-.wm-figure figcaption {
-  margin-top: 12px;
-  font-size: clamp(28px, 2.8vw, 40px);
-  font-weight: 500;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-}
-
-.wm-timeline {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.wm-cell-off {
-  fill: #d9d9d9;
-}
-
-.wm-cell-on {
-  opacity: 0;
-  transform: translateY(-8px);
-  transform-box: fill-box;
-  transition:
-    opacity 180ms ease-out,
-    transform 180ms ease-out;
-}
-
-.wm-compare[data-seen="true"] .wm-cell-on {
-  opacity: 1;
-  transform: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wm-cell-on,
-  .wm-sky .wm-sky-moving {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-}
-
-.wm-timeline-dump .wm-cell-on {
-  fill: var(--wm-ink);
-}
-
-.wm-timeline-fills .wm-cell-on {
-  fill: var(--wm-dot);
-}
-
-
-
-/* ---------- the spread leaks ---------- */
-
-.wm-leak {
-  max-width: 20em;
-  margin: 48px 0 0;
-  padding-top: 24px;
-  border-top: 1px solid var(--wm-ink);
-  font-size: clamp(32px, 3.4vw, 48px);
-  font-weight: 500;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-}
-
-/* ---------- anyone vs named takers ---------- */
 
 .wm-swarm {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  margin-top: 56px;
-  padding-top: 16px;
-  border-top: 1px solid var(--wm-ink);
+  gap: 24px;
 }
 
 .wm-swarm figure {
   margin: 0;
-}
-
-.wm-swarm figure {
-  position: relative;
 }
 
 .wm-swarm canvas {
@@ -338,55 +325,20 @@ body:has(.wm-landing) {
   aspect-ratio: 560 / 360;
 }
 
-/* The panel's small print sits inside its top corner, as on a TypeSafe window. */
-.wm-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  /* Narrow enough to stay left of the ENS ring, which starts at 31% of the panel. */
-  max-width: 27%;
-  margin: 0;
-  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
-  font-size: 15px;
-  line-height: 1.3;
-  opacity: 0.85;
-  pointer-events: none;
-}
-
 .wm-swarm figcaption {
-  margin-top: 12px;
-  font-size: clamp(24px, 2.4vw, 32px);
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  margin-top: 16px;
 }
 
-.wm-caption {
-  margin: 32px 0 0;
-  font-size: clamp(24px, 2.4vw, 32px);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-/* ---------- section 3: centred ---------- */
-
-.wm-section-center {
-  text-align: center;
-}
-
-.wm-section-center .wm-h2 {
-  margin-inline: auto;
-}
-
-.wm-section-center .wm-swarm {
+.wm-body-center {
+  margin: 48px auto 0;
   text-align: left;
 }
 
-
-/* ---------- section 4: text left, orbit right ---------- */
+/* ---------- section 4: claim and paragraph left, proof right ---------- */
 
 .wm-split {
   display: grid;
-  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: 56px;
   align-items: start;
 }
@@ -397,99 +349,11 @@ body:has(.wm-landing) {
 }
 
 .wm-split .wm-h2 {
-  font-size: clamp(40px, 4vw, 56px);
+  font-size: clamp(44px, 4.6vw, 68px);
 }
 
-.wm-split .wm-dense {
-  margin-top: 40px;
-}
+/* ---------- the water field ---------- */
 
-
-
-
-
-
-.wm-orbit {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-.wm-orbit-figure {
-  margin: 0;
-}
-
-.wm-orbit-figure canvas {
-  display: block;
-  width: 100%;
-  aspect-ratio: 640 / 400;
-}
-
-
-.wm-orbit-data {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--wm-ink);
-}
-
-.wm-orbit-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 18px;
-}
-
-.wm-orbit-table th {
-  padding: 0 0 10px;
-  font-family: "LisaTerminal Paper", "Courier New", monospace;
-  font-size: 16px;
-  font-weight: 400;
-  text-align: left;
-  opacity: 0.6;
-}
-
-.wm-orbit-table td {
-  padding: 10px 0;
-  border-top: 1px solid #e5e5e5;
-  font-variant-numeric: tabular-nums;
-}
-
-.wm-orbit-name {
-  font-family: "LisaTerminal Paper", "Courier New", monospace;
-  font-size: 16px;
-}
-
-.wm-orbit-table tr[data-tier="tight"] .wm-orbit-tier {
-  color: var(--wm-water-strong);
-  font-weight: 500;
-}
-
-.wm-orbit-change {
-  opacity: 0.7;
-}
-
-
-.wm-orbit-log {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.wm-orbit-log li {
-  padding: 6px 0;
-  font-family: "LisaTerminal Paper", "Courier New", monospace;
-  font-size: 16px;
-  line-height: 1.35;
-}
-
-.wm-orbit-log li:not(:first-child) {
-  opacity: 0.45;
-}
-
-/* ---------- section fields ---------- */
-
-/* One section stands on the water field, as a break from the white. */
 .wm-band-water {
   --wm-on-water: #ffffff;
   background: var(--wm-water-strong);
@@ -497,86 +361,42 @@ body:has(.wm-landing) {
 }
 
 /* The Astryx reset colours p and h2 itself, so text in this band takes the band's colour. */
-.wm-band-water :is(h2, p, figcaption) {
+.wm-band-water :is(h2, p, figcaption, span) {
   color: inherit;
 }
 
-.wm-band-water .wm-label {
-  color: var(--field-sky);
+.wm-band-water .wm-panel-field {
+  background: radial-gradient(circle, rgb(255 255 255 / 0.28) 0.9px, transparent 1.1px) 0 0 / 6px 6px;
 }
 
-.wm-band-water .wm-swarm {
-  border-color: rgb(255 255 255 / 0.6);
-}
-
-
-/* ---------- dense small print, one block per section ---------- */
-
-.wm-note-kicker {
-  margin: 0 0 8px;
-  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
-  font-size: 16px;
-}
-
-.wm-dense {
-  max-width: 380px;
-  padding-left: 14px;
-  border-left: 1px solid currentColor;
-}
-
-.wm-dense p {
-  margin: 0 0 10px;
-  font-size: 15px;
-  line-height: 1.38;
-}
-
-.wm-dense p:last-child {
-  margin-bottom: 0;
-}
-
-.wm-dense-kicker {
-  font-family: "LisaTerminal Paper", "Courier New", monospace;
-  font-size: 15px;
+.wm-band-water .wm-tag {
+  background: var(--wm-white);
   color: var(--wm-water-strong);
 }
 
-.wm-close-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
-  gap: 64px;
-  align-items: end;
-  margin-top: 48px;
-  padding-top: 24px;
-  border-top: 1px solid var(--wm-ink);
-}
-
-.wm-close-row .wm-leak {
-  margin: 0;
-  padding: 0;
-  border: 0;
+.wm-band-water .wm-swarm canvas {
+  background: var(--wm-water-strong);
 }
 
 @media (max-width: 900px) {
-  .wm-close-row,
-  .wm-split {
+  .wm-after,
+  .wm-split,
+  .wm-swarm {
     grid-template-columns: 1fr;
   }
 
   .wm-split-text {
     position: static;
   }
+}
 
-  .wm-swarm {
-    grid-template-columns: 1fr;
+@media (max-width: 600px) {
+  .wm-rows-labels {
+    font-size: 13px;
+    line-height: 16px;
   }
 
-  .wm-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 16px 24px;
-  }
-
-  .wm-row-label,
-  .wm-row-head > :first-child {
-    grid-column: 1 / -1;
+  .wm-rows-labels span {
+    padding: 2px 6px;
   }
 }

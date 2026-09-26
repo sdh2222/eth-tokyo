@@ -26,21 +26,23 @@ type Tier = "tight" | "standard" | "limit";
 const RADIUS: Record<Tier, number> = { tight: 36, standard: 58, limit: 86 };
 
 type Taker = { name: string; start: Tier; angle: number; speed: number };
+// All three start on the default spread. mm-a trades small and steady and is pulled in;
+// mm-b trades big and the price jumps its way after, so it is pushed out to the limit.
 const TAKERS: Taker[] = [
-  { name: "mm-a", start: "limit", angle: 0.4, speed: 0.55 },
-  { name: "mm-b", start: "limit", angle: 2.6, speed: 0.42 },
+  { name: "mm-a", start: "standard", angle: 0.4, speed: 0.55 },
+  { name: "mm-b", start: "standard", angle: 2.6, speed: 0.42 },
   { name: "mm-c", start: "standard", angle: 4.5, speed: 0.5 },
 ];
 
 type Event = { at: number; who: number; trade: string; to: Tier };
 const EVENTS: Event[] = [
-  { at: 1.0, who: 0, trade: "0.8 ETH", to: "standard" },
-  { at: 2.6, who: 1, trade: "0.6 ETH", to: "standard" },
-  { at: 4.2, who: 0, trade: "0.5 ETH", to: "tight" },
-  { at: 5.8, who: 2, trade: "3 ETH", to: "standard" },
-  { at: 7.4, who: 1, trade: "22 ETH", to: "limit" },
-  { at: 9.0, who: 0, trade: "0.7 ETH", to: "tight" },
-  { at: 10.4, who: 1, trade: "25 ETH", to: "limit" },
+  { at: 1.0, who: 0, trade: "0.8 ETH", to: "tight" },
+  { at: 2.4, who: 1, trade: "22 ETH", to: "limit" },
+  { at: 4.0, who: 2, trade: "3 ETH", to: "standard" },
+  { at: 5.6, who: 0, trade: "0.5 ETH", to: "tight" },
+  { at: 7.2, who: 1, trade: "25 ETH", to: "limit" },
+  { at: 8.8, who: 0, trade: "0.7 ETH", to: "tight" },
+  { at: 10.2, who: 2, trade: "2 ETH", to: "standard" },
 ];
 
 function smooth(t: number) {
@@ -163,18 +165,6 @@ function rowsAt(t: number): Row[] {
   });
 }
 
-// The last three trades, newest first, each with the spread it moved from and to.
-function logAt(t: number) {
-  const tiers = TAKERS.map((taker) => taker.start);
-  const lines: { at: number; who: number; trade: string; from: Tier; to: Tier }[] = [];
-  for (const event of EVENTS) {
-    if (t < event.at + DASH) break;
-    lines.push({ at: event.at, who: event.who, trade: event.trade, from: tiers[event.who]!, to: event.to });
-    tiers[event.who] = event.to;
-  }
-  return lines.slice(-3).reverse();
-}
-
 export function LandingOrbit() {
   const copy = LANDING.orbit;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -257,48 +247,23 @@ export function LandingOrbit() {
   }, []);
 
   const rows = rowsAt(shown);
-  const log = logAt(shown);
 
   return (
-    <div className="wm-orbit">
-      <figure className="wm-orbit-figure">
-        <canvas ref={canvasRef} aria-hidden="true" />
-      </figure>
-      <div className="wm-orbit-data">
-        <table className="wm-orbit-table">
-          <thead>
-            <tr>
-              <th>{copy.table.taker}</th>
-              <th>{copy.table.now}</th>
-              <th>{copy.table.change}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.name} data-tier={row.tier}>
-                <td className="wm-orbit-name">{row.name}</td>
-                <td className="wm-orbit-tier">{copy.tier[row.tier]}</td>
-                <td className="wm-orbit-change">
-                  {row.from && row.from !== row.tier ? `${copy.short[row.from]} → ${copy.short[row.tier]}` : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div>
-          <p className="wm-note-kicker">{copy.logTitle}</p>
-          <ul className="wm-orbit-log">
-            {log.map((line) => (
-              <li key={line.at}>
-                {TAKERS[line.who]!.name} {copy.traded} {line.trade}
-                {line.to === "limit" ? copy.why : ""}.{" "}
-                {line.from === line.to
-                  ? `${copy.stays} ${copy.short[line.to]}.`
-                  : `${copy.spread} ${copy.short[line.from]} → ${copy.short[line.to]}.`}
-              </li>
-            ))}
-          </ul>
-        </div>
+    <div className="wm-panel-field">
+      <span className="wm-tag">{copy.tag}</span>
+      <canvas ref={canvasRef} className="wm-orbit-canvas" aria-hidden="true" />
+      <div className="wm-stats">
+        {rows
+          .filter((row) => row.name !== "mm-c")
+          .map((row) => (
+            <p key={row.name} className="wm-stat">
+              <span className="wm-stat-name">
+                {row.name} · {copy.style[row.name as keyof typeof copy.style]}
+              </span>
+              <span className="wm-stat-value">{copy.tier[row.tier]}</span>
+              <span className="wm-stat-note">{copy.statNote}</span>
+            </p>
+          ))}
       </div>
     </div>
   );

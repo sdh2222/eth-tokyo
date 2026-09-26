@@ -1,107 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { LANDING } from "../copy/en";
+import { LandingDump } from "./LandingDump";
 import { LandingOrbit } from "./LandingOrbit";
 import { LandingSwarm } from "./LandingSwarm";
 import "./landing.css";
-
-// Squares on a time axis. "dump" is the whole amount in the first columns; "fills" is the
-// same 36 squares as small fills across the axis.
-const COLUMNS = 36;
-const ROWS = 8;
-const CELL = 10;
-const STEP = 14;
-const DUMP = [8, 8, 8, 7, 5];
-const FILLS = [1, 0, 2, 1, 0, 1, 2, 0, 1, 1, 1, 2];
-
-function Timeline({ kind }: { kind: "dump" | "fills" }) {
-  const heightAt = (col: number) => (kind === "dump" ? DUMP[col] : FILLS[col % FILLS.length]) ?? 0;
-  const cells = [];
-  for (let col = 0; col < COLUMNS; col += 1) {
-    const filled = heightAt(col);
-    for (let row = 0; row < ROWS; row += 1) {
-      const on = row >= ROWS - filled;
-      const x = col * STEP;
-      const y = row * STEP;
-      // The dump lands in one beat, bottom row first. The fills arrive column by column.
-      const delay = kind === "dump" ? (ROWS - row) * 24 : col * 70 + (ROWS - row) * 20;
-      cells.push(
-        on ? (
-          <rect
-            key={`${col}-${row}`}
-            className="wm-cell-on"
-            x={x}
-            y={y}
-            width={CELL}
-            height={CELL}
-            style={{ transitionDelay: `${delay}ms` }}
-          />
-        ) : (
-          <rect key={`${col}-${row}`} className="wm-cell-off" x={x + 4} y={y + 4} width={2} height={2} />
-        ),
-      );
-    }
-  }
-  return (
-    <svg className={`wm-timeline wm-timeline-${kind}`} viewBox={`0 0 ${COLUMNS * STEP - 4} ${ROWS * STEP - 4}`} aria-hidden="true">
-      {cells}
-    </svg>
-  );
-}
-
-// One comparison, row by row: how it sells, signatures, who prices it, and the result.
-function CompareTable() {
-  const copy = LANDING.compare;
-  const { when, signatures, price } = copy.rows;
-  return (
-    <div className="wm-table" role="table" aria-label={copy.label}>
-      <div className="wm-row wm-row-head" role="row">
-        <span role="columnheader" />
-        <p className="wm-panel-label" role="columnheader">
-          {copy.today}
-        </p>
-        <p className="wm-panel-label" role="columnheader">
-          {copy.ours}
-        </p>
-      </div>
-      <div className="wm-row" role="row">
-        <p className="wm-row-label" role="rowheader">
-          {when.label}
-        </p>
-        <figure className="wm-figure" role="cell">
-          <Timeline kind="dump" />
-          <figcaption>{when.today}</figcaption>
-        </figure>
-        <figure className="wm-figure" role="cell">
-          <Timeline kind="fills" />
-          <figcaption>{when.ours}</figcaption>
-        </figure>
-      </div>
-      <div className="wm-row" role="row">
-        <p className="wm-row-label" role="rowheader">
-          {signatures.label}
-        </p>
-        <p className="wm-value" role="cell">
-          {signatures.today}
-        </p>
-        <p className="wm-value" role="cell">
-          {signatures.ours}
-        </p>
-      </div>
-      <div className="wm-row" role="row">
-        <p className="wm-row-label" role="rowheader">
-          {price.label}
-        </p>
-        <p className="wm-value" role="cell">
-          {price.today}
-        </p>
-        <p className="wm-value wm-value-ours" role="cell">
-          {price.ours}
-        </p>
-      </div>
-    </div>
-  );
-}
 
 // The hero clouds are baked at three widths (landing-dither.mjs), so the dots stay whole
 // and each screen loads the one that is at least as wide as it is. 1920 is the fallback.
@@ -110,41 +13,19 @@ const SKY_WIDTHS = [
   [1600, "(max-width: 1600px)"],
 ] as const;
 
-// All of a section's small print in one dense block: a mono kicker, then the text, run in.
-function Dense({ items }: { items: readonly { kicker: string; body: string }[] }) {
+// The four layers every section keeps to: the claim, then the picture that proves it
+// (with its numbers), then one paragraph beside it.
+function Claim({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div className="wm-dense">
-      {items.map((item) => (
-        <p key={item.kicker}>
-          <span className="wm-dense-kicker">{item.kicker}</span> {item.body}
-        </p>
-      ))}
-    </div>
+    <header className="wm-claim">
+      <h2 className="wm-h2">{title}</h2>
+      {sub ? <p className="wm-claim-sub">{sub}</p> : null}
+    </header>
   );
-}
-
-// True once the element has been a third on screen. It stays true.
-function useSeen<T extends Element>() {
-  const ref = useRef<T>(null);
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || seen) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) setSeen(true);
-      },
-      { threshold: 0.33 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [seen]);
-  return [ref, seen] as const;
 }
 
 export function LandingPage() {
   const [skyLoaded, setSkyLoaded] = useState(false);
-  const [compareRef, compareSeen] = useSeen<HTMLDivElement>();
 
   return (
     <div className="wm-landing">
@@ -203,31 +84,34 @@ export function LandingPage() {
       </section>
 
       <section id="how" className="wm-section">
-        <p className="wm-label">{LANDING.compare.label}</p>
-        <h2 className="wm-h2">{LANDING.compare.title}</h2>
-        <div className="wm-compare" ref={compareRef} data-seen={compareSeen}>
-          <CompareTable />
-        </div>
-        <div className="wm-close-row">
-          <p className="wm-leak">{LANDING.compare.leak}</p>
-          <Dense items={LANDING.compare.notes} />
+        <Claim title={LANDING.sell.title} />
+        <LandingDump />
+        <div className="wm-after">
+          <div className="wm-stats">
+            {LANDING.sell.stats.map((stat) => (
+              <p key={stat.name} className="wm-stat">
+                <span className="wm-stat-name">{stat.name}</span>
+                <span className="wm-stat-value">{stat.value}</span>
+                <span className="wm-stat-note">{stat.note}</span>
+              </p>
+            ))}
+          </div>
+          <p className="wm-body">{LANDING.sell.body}</p>
         </div>
       </section>
 
       <div className="wm-band wm-band-water">
-      <section className="wm-section wm-section-center">
-        <p className="wm-label">{LANDING.gate.label}</p>
-        <h2 className="wm-h2">{LANDING.gate.title}</h2>
-        <LandingSwarm named="#ffffff" unnamed="#111111" />
-        <p className="wm-caption">{LANDING.gate.caption}</p>
-      </section>
+        <section className="wm-section wm-section-center">
+          <Claim title={LANDING.gate.title} sub={LANDING.gate.sub} />
+          <LandingSwarm named="#ffffff" unnamed="#111111" />
+          <p className="wm-body wm-body-center">{LANDING.gate.body}</p>
+        </section>
       </div>
 
       <section className="wm-section wm-split">
         <div className="wm-split-text">
-          <p className="wm-label">{LANDING.orbit.label}</p>
-          <h2 className="wm-h2">{LANDING.orbit.title}</h2>
-          <Dense items={LANDING.orbit.steps} />
+          <Claim title={LANDING.orbit.title} />
+          <p className="wm-body">{LANDING.orbit.body}</p>
         </div>
         <LandingOrbit />
       </section>
