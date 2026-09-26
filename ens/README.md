@@ -61,7 +61,7 @@ npm run handoff -- --safe <Safe>   # Safe 인계 드라이런. --execute로 전�
 
 ## Safe 인계
 
-팀 설계 §6.1·§6.3대로 이름과 권한은 트레저리 Safe가 가진다. `01`–`04`가 만든 것은 지금 설정용 EOA(`TREASURY_PK`)에 있고, `npm run handoff`가 이를 Safe로 넘긴다(requirement 014, 016).
+팀 설계 §6.1·§6.3대로 이름과 권한은 트레저리 Safe가 가진다. `01`–`04`가 만든 것은 설정용 EOA(`TREASURY_PK`)가 갖고 있었고, `npm run handoff`가 이를 Safe로 넘긴다(requirement 014, 016). Sepolia에서는 2026-09-26에 실행했다(기록: PR #19).
 
 ```bash
 npm run handoff -- --safe <Safe>                      # 드라이런: 상태, 보낼 호출 목록, 미리 할 수 있는 시뮬레이션. 아무것도 보내지 않는다
