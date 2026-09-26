@@ -26,7 +26,7 @@
   --v-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
   /* The dither cells (web/src/ui/cells.tsx) read these. */
   --wk-ink: var(--v-text);
-  --wk-dot: #a3a3a3;
+  --wk-dot: #6ec1ea;
   --wk-off: #dcdcdc;
   display: flex;
   flex-direction: column;
@@ -689,8 +689,10 @@ textarea.v-input {
   height: 100%;
 }
 
+/* Filled dots are water blue; the opacity ramp in slider.tsx takes them from sky pale to
+   deep at the handle. */
 .v-slider-dot-on {
-  fill: var(--v-text);
+  fill: var(--v-accent);
 }
 
 .v-slider-dot {
