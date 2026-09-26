@@ -26,8 +26,8 @@
   --v-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
   /* The dither cells (web/src/ui/cells.tsx) read these. */
   --wk-ink: var(--v-text);
-  --wk-dot: #6ec1ea;
-  --wk-off: #d9d9d9;
+  --wk-dot: #a3a3a3;
+  --wk-off: #dcdcdc;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -374,7 +374,7 @@
   border: 0;
   background: none;
   padding: 0;
-  color: var(--v-accent);
+  color: var(--v-text);
   font: inherit;
   text-decoration: none;
   cursor: pointer;
@@ -396,14 +396,17 @@
 }
 
 /* Badge: 20 px pill, 12 px 500, subtle tone background. */
+/* Badge: a monochrome pill (Geist: "use colour only when it adds meaning"). A tone is a
+   6 px dot in front of the word, never a coloured fill. */
 .v-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 20px;
   padding: 0 8px;
+  border: 1px solid var(--v-border);
   border-radius: 999px;
-  background: var(--v-gray-1);
+  background: var(--v-bg);
   color: var(--v-text-2);
   font-size: 12px;
   line-height: 16px;
@@ -411,10 +414,22 @@
   white-space: nowrap;
 }
 
-.v-badge[data-tone="green"] { background: var(--v-green-bg); color: var(--v-green); }
-.v-badge[data-tone="amber"] { background: var(--v-amber-bg); color: var(--v-amber); }
-.v-badge[data-tone="red"] { background: var(--v-red-bg); color: var(--v-red); }
-.v-badge[data-tone="blue"] { background: var(--v-accent-bg); color: var(--v-accent); }
+.v-badge[data-tone="green"]::before,
+.v-badge[data-tone="amber"]::before,
+.v-badge[data-tone="red"]::before,
+.v-badge[data-tone="blue"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--v-text-3);
+}
+
+.v-badge[data-tone="green"]::before { background: #2f9e44; }
+.v-badge[data-tone="amber"]::before { background: #f08c00; }
+.v-badge[data-tone="red"]::before { background: #e03131; }
+.v-badge[data-tone="blue"]::before { background: var(--v-text); }
 
 /* Status dot: 8 px dot and a 14 px label (Geist "Status"). */
 .v-status {
@@ -515,9 +530,24 @@ textarea.v-input {
   background: var(--v-bg-2);
 }
 
-.v-note[data-tone="green"] { border-color: #b7e3c3; background: var(--v-green-bg); color: var(--v-green); }
-.v-note[data-tone="amber"] { border-color: #ffd8a8; background: var(--v-amber-bg); color: var(--v-amber); }
-.v-note[data-tone="red"] { border-color: #f5c2c3; background: var(--v-red-bg); color: var(--v-red); }
+.v-note[data-tone] > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v-note[data-tone] > span:first-child::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--v-text-3);
+}
+
+.v-note[data-tone="green"] > span:first-child::before { background: #2f9e44; }
+.v-note[data-tone="amber"] > span:first-child::before { background: #f08c00; }
+.v-note[data-tone="red"] > span:first-child::before { background: #e03131; }
 
 /* Empty state: the dither clouds, one line, one action, centred in a card. */
 .v-empty {
@@ -571,8 +601,8 @@ textarea.v-input {
   overflow-wrap: anywhere;
 }
 
-.v-bid { color: var(--v-green); }
-.v-ask { color: var(--v-red); }
+.v-bid,
+.v-ask { color: var(--v-text); }
 
 .v-sr {
   position: absolute;
@@ -611,4 +641,19 @@ textarea.v-input {
 [data-active="true"] { background: var(--v-accent-bg); }
 @media (max-width: 600px) {
   .v-dl { grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); gap: 8px 16px; }
+}
+
+/* Dither cells in the kit: an "on" unit is a round dot, not a square block (the dotted
+   track the team pointed at), so a chart reads as texture rather than a bar. */
+.v-page .wk-cell-on {
+  rx: 5px;
+}
+
+.v-page .wk-cell-mark {
+  rx: 1px;
+}
+
+.v-page .wk-cell-fence {
+  rx: 5px;
+  stroke: var(--v-text-3);
 }
