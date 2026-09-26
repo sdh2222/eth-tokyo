@@ -71,7 +71,8 @@ contract MockEnsResolver {
             if (!rec.present) {
                 rec = _data[bytes32(0)][key];
             }
-            return rec.value;
+            // Same wrapping as PermissionedResolver: resolve()'s bytes are the ABI encoding of data()'s bytes.
+            return abi.encode(rec.value);
         }
         revert UnsupportedResolverProfile(sel);
     }

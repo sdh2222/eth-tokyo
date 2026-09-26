@@ -14,19 +14,19 @@
     "usdc": "0xf9c632dc8A3de673B95FF8F0645024C541D54d42"
   },
   "oracle": "0xbD625C653F6f703a4040d892882d3Ed254947404",
-  "router": "0x5Ce9Ab38F1bC579B6738b3492467A9a339933Ae3",
+  "router": "0xB4e89F4D45bE2419Be4fe55F82a4C23D133f0c22",
   "safe": "0x213C5832c77F8e27b544881325f9E68C0434027a",
   "desk": {
     "oracleDecimals": 8,
     "baseDecimals": 18,
     "quoteDecimals": 6,
-    "maxBlocks": 3,
+    "maxBlocks": 50,
     "wStarBps": 7000,
     "sSellBps": 3,
     "sBuyBps": 10,
     "strategyTtlDays": 30,
-    "shipWeth": "900000000000000000000",
-    "shipUsdc": "400000000000"
+    "shipWeth": "899974881907287110350",
+    "shipUsdc": "400100000000"
   },
   "mms": [
     {
@@ -38,7 +38,7 @@
       "address": "0x32737088c3116eF4A4f030991f26E9f958D80D71"
     }
   ],
-  "deployBlock": 11784705,
+  "deployBlock": 11787268,
   "logChunk": 50000,
   "explorer": "https://sepolia.etherscan.io"
 }

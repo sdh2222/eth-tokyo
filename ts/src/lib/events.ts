@@ -1,4 +1,4 @@
-import type { Address, Hex } from "viem";
+import { type Address, type Hex } from "viem";
 import { decodeEventLog } from "viem";
 
 export const deskFillAbi = [
@@ -36,6 +36,20 @@ export type DeskFillEvent = {
   sBuyBps: number;
   wBeforeWad: bigint;
 };
+
+/** WETH the taker bought or sold in this fill. The side is the taker's. */
+export function filledWeth(
+  fill: Pick<DeskFillEvent, "tokenIn" | "tokenOut" | "amountIn" | "amountOut">,
+  weth: Address,
+): { side: "buy" | "sell"; sizeWeth: bigint } {
+  if (fill.tokenOut.toLowerCase() === weth.toLowerCase()) {
+    return { side: "buy", sizeWeth: fill.amountOut };
+  }
+  if (fill.tokenIn.toLowerCase() === weth.toLowerCase()) {
+    return { side: "sell", sizeWeth: fill.amountIn };
+  }
+  throw new Error("fill has no WETH leg");
+}
 
 export function decodeDeskFill(log: {
   topics: Hex[];

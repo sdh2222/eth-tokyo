@@ -1,6 +1,7 @@
 import {
   encodeAbiParameters,
   encodePacked,
+  hexToBytes,
   type Address,
   type Hex,
 } from "viem";
@@ -14,6 +15,21 @@ export function dnsEncode(name: string): Hex {
   }
   bytes.push(0);
   return `0x${bytes.map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** DNS wire bytes from a `DeskFill` name, back to a dotted name. */
+export function dnsDecode(wire: Hex): string {
+  const bytes = hexToBytes(wire);
+  const labels: string[] = [];
+  let i = 0;
+  while (i < bytes.length) {
+    const len = bytes[i] ?? 0;
+    if (len === 0) break;
+    i += 1;
+    labels.push(new TextDecoder().decode(bytes.slice(i, i + len)));
+    i += len;
+  }
+  return labels.join(".");
 }
 
 export function encodeGateArgs(a: {
