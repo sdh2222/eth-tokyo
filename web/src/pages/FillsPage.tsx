@@ -1,14 +1,15 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { formatWadUsd } from "../desk/book";
+import { formatWadUsd, shortName } from "../desk/book";
 import { buysEth, fillEth, fillPrice } from "../desk/fills";
 import type { FillRecord } from "../desk/types";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
+import { useConnectWallet } from "../hooks/useConnectWallet";
 import { useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Badge, Card, Empty, Header, Metric, Metrics, Page } from "../ui/v";
+import { Card, Empty, Header, Metric, Metrics, Page } from "../ui/v";
 
 // Fills: what traded, with whom, at what price. /fills?mine is the counterparty's "My fills"
 // (only the connected wallet's fills). Vercel-style: totals card, then the table card with
@@ -35,9 +36,9 @@ function FillRow({ fill, now }: { fill: FillRecord; now: number }) {
   return (
     <tr>
       <td className="v-muted">{formatWhen(fill.blockTime, now)}</td>
-      <td>{fill.name}</td>
+      <td>{shortName(fill.name)}</td>
       <td>
-        <Badge tone={buys ? "red" : "green"}>{buys ? "Bought ETH" : "Sold ETH"}</Badge>
+        {buys ? "Bought ETH" : "Sold ETH"}
       </td>
       <td className="v-right">{formatWeth(fillEth(fill))}</td>
       <td className="v-right">{`$${formatWadUsd(fillPrice(fill))}`}</td>
@@ -59,10 +60,11 @@ export function FillsPage() {
   const side: SideFilter = sideParam === "buy" || sideParam === "sell" ? sideParam : "all";
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1);
   const { address } = useAccount();
+  const wallet = useConnectWallet();
   const book = useBook();
   const now = useClock();
   const strategy = useLiveStrategy();
-  const fills = useFills(strategy.data ?? null);
+  const fills = useFills(strategy.data ?? null, strategy.isLoading);
 
   function set(next: Record<string, string | null>) {
     const merged = new URLSearchParams(params);
@@ -74,10 +76,11 @@ export function FillsPage() {
   }
 
   const all = fills.data ?? [];
-  const names = [...new Set([...(book.data?.names ?? []).map((name) => name.name), ...all.map((fill) => fill.name)])];
+  // Fills carry the short label (mm-a) and the book the full ENS name; both key on the label.
+  const names = [...new Set([...(book.data?.names ?? []).map((name) => shortName(name.name)), ...all.map((fill) => shortName(fill.name))])];
   const filtered = all.filter((fill) => {
     if (mine && (!address || fill.taker.toLowerCase() !== address.toLowerCase())) return false;
-    if (!mine && mm && fill.name !== mm) return false;
+    if (!mine && mm && shortName(fill.name) !== shortName(mm)) return false;
     if (side === "buy" && !buysEth(fill)) return false;
     if (side === "sell" && buysEth(fill)) return false;
     return true;
@@ -91,22 +94,22 @@ export function FillsPage() {
   const isFiltered = (!mine && mm !== null) || side !== "all";
   const reset = () => set({ mm: null, side: null, page: null });
 
-  let empty = (
-    <Empty
-      picture="pier"
-      title="No fills yet"
-      description="Counterparties fill from the Trade page."
-      action={
-        <Link className="v-btn v-btn-secondary" to="/trade">
-          Trade
-        </Link>
-      }
-    />
-  );
+  // Treasury view: fills come from counterparties, so there is nothing for the treasury to do here.
+  let empty = <Empty picture="pier" title="No fills yet" description="Fills appear here as counterparties trade against the desk." />;
   if (fills.isLoading) {
     empty = <Empty title="Reading the fills…" />;
   } else if (mine && !address) {
-    empty = <Empty title="Connect a wallet" description="My fills lists the fills your wallet made on the Trade page." />;
+    empty = (
+      <Empty
+        title="Connect a wallet"
+        description={wallet.problem ?? "My fills lists the fills your wallet made on the Trade page."}
+        action={
+          <button type="button" className="v-btn" onClick={wallet.connectWallet}>
+            Connect wallet
+          </button>
+        }
+      />
+    );
   } else if (all.length > 0 && isFiltered) {
     empty = (
       <Empty
@@ -139,7 +142,7 @@ export function FillsPage() {
         <select
           className="v-input"
           aria-label="Counterparty"
-          value={mm ?? ""}
+          value={mm ? shortName(mm) : ""}
           onChange={(event) => set({ mm: event.target.value || null, page: null })}
         >
           <option value="">All counterparties</option>
@@ -177,14 +180,16 @@ export function FillsPage() {
         description={mine ? "Every fill your wallet made against this desk." : "Every fill against the desk, each with its own proof."}
       />
 
-      <Card flush>
-        <Metrics>
-          <Metric label="Fills" value={String(filtered.length)} />
-          <Metric label={mine ? "ETH you bought" : "ETH bought by counterparties"} value={formatWeth(bought)} />
-          <Metric label={mine ? "ETH you sold" : "ETH sold by counterparties"} value={formatWeth(sold)} />
-          <Metric label="USDC volume" value={formatUsdc(usdc)} />
-        </Metrics>
-      </Card>
+      {mine && !address ? null : (
+        <Card flush>
+          <Metrics>
+            <Metric label="Fills" value={String(filtered.length)} />
+            <Metric label={mine ? "ETH you bought" : "ETH bought by counterparties"} value={formatWeth(bought)} />
+            <Metric label={mine ? "ETH you sold" : "ETH sold by counterparties"} value={formatWeth(sold)} />
+            <Metric label="USDC volume" value={formatUsdc(usdc)} />
+          </Metrics>
+        </Card>
+      )}
 
       <Card
         title={mine ? "Your fills" : "All fills"}
