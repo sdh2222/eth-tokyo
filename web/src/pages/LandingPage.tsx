@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LANDING } from "../copy/en";
+import { CLIENT_SUFFIX, clientName } from "../ens/names";
 import "./landing.css";
 
 // Squares on a time axis. "dump" is the whole amount in the first columns; "fills" is the
@@ -108,6 +109,52 @@ const SKY_WIDTHS = [
   [1600, "(max-width: 1600px)"],
 ] as const;
 
+// Takers arrive at the desk one lane at a time. A name that passes the ENS check goes
+// through to the DAO's price; no name, or an expired one, is turned back at the gate.
+const GATE_LANES = [
+  { who: clientName("mm-a"), pass: true },
+  { who: "0x7a3f…c21e", why: LANDING.gate.noName, pass: false },
+  { who: clientName("mm-b"), pass: true },
+  { who: clientName("mm-c"), why: LANDING.gate.expired, pass: false },
+  { who: "0x91c2…04ab", why: LANDING.gate.noName, pass: false },
+] as const;
+
+function Gate() {
+  const copy = LANDING.gate;
+  return (
+    <div className="wm-gate">
+      <div className="wm-gate-head" aria-hidden="true">
+        <p>{copy.takers}</p>
+        <div className="wm-gate-track">
+          <p className="wm-gate-at-check">
+            {copy.check} · {CLIENT_SUFFIX}
+          </p>
+          <p className="wm-gate-at-price">{copy.price}</p>
+        </div>
+        <p />
+      </div>
+      {GATE_LANES.map((lane, index) => (
+        <div
+          key={lane.who}
+          className={`wm-lane ${lane.pass ? "wm-lane-pass" : "wm-lane-block"}`}
+          style={{ ["--lane" as string]: index }}
+        >
+          <p className="wm-lane-who">
+            {lane.who}
+            {"why" in lane ? <span> · {lane.why}</span> : null}
+          </p>
+          <div className="wm-gate-track" aria-hidden="true">
+            <span className="wm-lane-rail" />
+            <span className="wm-lane-gate" />
+            <span className="wm-lane-token" />
+          </div>
+          <p className="wm-lane-result">{lane.pass ? copy.filled : copy.refused}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // True once the element has been a third on screen. It stays true.
 function useSeen<T extends Element>() {
   const ref = useRef<T>(null);
@@ -130,6 +177,7 @@ function useSeen<T extends Element>() {
 export function LandingPage() {
   const [skyLoaded, setSkyLoaded] = useState(false);
   const [compareRef, compareSeen] = useSeen<HTMLDivElement>();
+  const [gateRef, gateSeen] = useSeen<HTMLDivElement>();
 
   return (
     <div className="wm-landing">
@@ -194,6 +242,15 @@ export function LandingPage() {
           <CompareTable />
         </div>
         <p className="wm-leak">{LANDING.compare.leak}</p>
+      </section>
+
+      <section className="wm-section">
+        <p className="wm-label">{LANDING.gate.label}</p>
+        <h2 className="wm-h2">{LANDING.gate.title}</h2>
+        <div className="wm-gate-wrap" ref={gateRef} data-seen={gateSeen}>
+          <Gate />
+        </div>
+        <p className="wm-caption">{LANDING.gate.caption}</p>
       </section>
     </div>
   );
