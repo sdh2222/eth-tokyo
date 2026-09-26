@@ -1,0 +1,26 @@
+{
+  "name": "@otc-desk/ens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "keys": "tsx scripts/00-keys.ts",
+    "check": "tsx scripts/00-check.ts",
+    "register": "tsx scripts/01-register.ts",
+    "setup": "tsx scripts/02-setup.ts",
+    "clients": "tsx scripts/03-clients.ts",
+    "agent": "tsx scripts/04-agent.ts",
+    "export": "tsx scripts/05-export-config.ts",
+    "verify": "tsx scripts/99-verify.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.3",
+    "viem": "^2.56.9"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

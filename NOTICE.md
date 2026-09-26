@@ -8,6 +8,8 @@ Every file that is derived from SwapVM or modifies it, with its change and date 
 
 | File | Derived from | Change | Date |
 | --- | --- | --- | --- |
+| contracts/src/opcodes/DeskOpcodes.sol | swap-vm v1.0.2 src/opcodes/AquaOpcodes.sol | opcode table drops fees and AMMs; adds EnsGate and DeskPrice | 2026-09-25 |
+| contracts/src/DeskRouter.sol | swap-vm v1.0.2 src/routers/AquaSwapVMRouter.sol | Desk opcode table; no AquaOpcodes constructor arg | 2026-09-25 |
 
 ## Build
 
