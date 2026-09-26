@@ -93,7 +93,7 @@ export function FillsPage() {
 
   let empty = (
     <Empty
-      picture
+      picture="pier"
       title="No fills yet"
       description="Counterparties fill from the Trade page."
       action={
@@ -121,7 +121,7 @@ export function FillsPage() {
   } else if (mine) {
     empty = (
       <Empty
-        picture
+        picture="pier"
         title="No fills yet"
         description="Your fills appear here after you fill from the Trade page."
         action={

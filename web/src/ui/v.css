@@ -527,17 +527,20 @@ textarea.v-input {
   text-align: center;
 }
 
-.v-empty-picture {
-  width: 100%;
-  height: 140px;
-  overflow: hidden;
+.v-picture {
   position: relative;
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
 }
 
-.v-empty-picture img {
+.v-picture[data-height="160"] { height: 160px; }
+.v-picture[data-height="200"] { height: 200px; }
+
+.v-picture img {
   position: absolute;
   left: 50%;
-  top: -300px;
+  bottom: 0;
   transform: translateX(-50%);
   width: auto;
   max-width: none;

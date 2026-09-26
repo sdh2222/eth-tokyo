@@ -108,15 +108,34 @@ function DlRow({ k, v }: { k: ReactNode; v: ReactNode }) {
   );
 }
 
-// An empty state with the dither clouds (only "No desk is open" and "No fills yet").
-export function Empty({ title, description, action, picture }: { title: ReactNode; description?: ReactNode; action?: ReactNode; picture?: boolean }) {
+// Dither pictures: Higgsfield images run through web/scripts/landing-dither.mjs (blue
+// noise, 2 px dots, #6ec1ea), 960 x 412, shown at their own size and cropped from the bottom.
+export type PictureName = "sea" | "pier" | "lighthouse";
+
+export function Picture({ name, height = 240 }: { name: PictureName; height?: number }) {
+  return (
+    <div className="v-picture" data-height={height} aria-hidden="true">
+      <img src={`/app/${name}.png`} alt="" width={960} height={412} />
+    </div>
+  );
+}
+
+// An empty state with a dither picture: the sea for "No desk is open", the pier for
+// "No fills yet".
+export function Empty({
+  title,
+  description,
+  action,
+  picture,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  picture?: boolean | PictureName;
+}) {
   return (
     <div className="v-empty">
-      {picture ? (
-        <div className="v-empty-picture" aria-hidden="true">
-          <img src="/app/empty-clouds.png" alt="" width={1280} height={550} />
-        </div>
-      ) : null}
+      {picture ? <Picture name={picture === true ? "sea" : picture} /> : null}
       <p className="v-card-title">{title}</p>
       {description ? <p className="v-muted">{description}</p> : null}
       {action}

@@ -181,7 +181,7 @@ export function DeskPage() {
         }
       >
         {rows.length === 0 ? (
-          <Empty picture title="No fills yet" description="Counterparties fill from the Trade page." />
+          <Empty picture="pier" title="No fills yet" description="Counterparties fill from the Trade page." />
         ) : (
           <div className="v-table-wrap">
             <table className="v-table">
