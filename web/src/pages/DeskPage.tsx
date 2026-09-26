@@ -37,7 +37,7 @@ export function DeskPage() {
   const now = useClock();
   const strategy = useLiveStrategy();
   const desk = useDeskState(strategy.data ?? null);
-  const fills = useFills(strategy.data ?? null);
+  const fills = useFills(strategy.data ?? null, strategy.isLoading);
   const writes = useAgentWrites();
   const b = book.data;
   const live = Boolean(strategy.data);
@@ -140,7 +140,9 @@ export function DeskPage() {
           </Link>
         }
       >
-        {rows.length === 0 ? (
+        {rows.length === 0 && fills.isLoading ? (
+          <Empty title="Reading the fills…" />
+        ) : rows.length === 0 ? (
           <Empty picture="pier" title="No fills yet" description="Counterparties fill from the Trade page." />
         ) : (
           <div className="v-table-wrap">

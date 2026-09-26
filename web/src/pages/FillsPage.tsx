@@ -64,7 +64,7 @@ export function FillsPage() {
   const book = useBook();
   const now = useClock();
   const strategy = useLiveStrategy();
-  const fills = useFills(strategy.data ?? null);
+  const fills = useFills(strategy.data ?? null, strategy.isLoading);
 
   function set(next: Record<string, string | null>) {
     const merged = new URLSearchParams(params);
@@ -180,14 +180,16 @@ export function FillsPage() {
         description={mine ? "Every fill your wallet made against this desk." : "Every fill against the desk, each with its own proof."}
       />
 
-      <Card flush>
-        <Metrics>
-          <Metric label="Fills" value={String(filtered.length)} />
-          <Metric label={mine ? "ETH you bought" : "ETH bought by counterparties"} value={formatWeth(bought)} />
-          <Metric label={mine ? "ETH you sold" : "ETH sold by counterparties"} value={formatWeth(sold)} />
-          <Metric label="USDC volume" value={formatUsdc(usdc)} />
-        </Metrics>
-      </Card>
+      {mine && !address ? null : (
+        <Card flush>
+          <Metrics>
+            <Metric label="Fills" value={String(filtered.length)} />
+            <Metric label={mine ? "ETH you bought" : "ETH bought by counterparties"} value={formatWeth(bought)} />
+            <Metric label={mine ? "ETH you sold" : "ETH sold by counterparties"} value={formatWeth(sold)} />
+            <Metric label="USDC volume" value={formatUsdc(usdc)} />
+          </Metrics>
+        </Card>
+      )}
 
       <Card
         title={mine ? "Your fills" : "All fills"}

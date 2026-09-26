@@ -29,7 +29,7 @@ export const PROBLEM = [
 ] as const;
 export const STEPS = [
   "The Safe ships a pricing program to 1inch Aqua.",
-  "Named market makers (ENS names) trade against it; the price shades toward a 70/30 target.",
+  "Named market makers (ENS names) trade against it at the oracle mid plus their own widths; it stops selling ETH at 70%.",
   "Tokens move Safe ↔ MM only at fill time.",
 ] as const;
 export const VERIFY_LINE = "Every fill can be recomputed from public data.";
