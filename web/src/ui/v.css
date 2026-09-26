@@ -5,28 +5,29 @@
    and the dither cells for charts. Classes are `v-`. Imported into the `app` layer. */
 
 .v-page {
-  /* Geist light: gray-100 #f2f2f2, gray-200 #ebebeb, gray-alpha-400 border, gray-900 #666
-     secondary text, gray-1000 #171717 primary text. Accent: watermark water blue. */
+  /* The watermark palette, four colours and nothing else: ENS blue #0080bc, light blue
+     #cce6f2 (ENS blue at 20% on white; the palette's #cee1e8 read grey), dark blue #011a25,
+     white #f6f6f6. Secondary text is dark blue at 66% and 48%
+     on white; borders stay a neutral gray. States use the palette too: in force is light
+     blue, a warning is a dark blue outline, a stop is dark blue filled. */
+  --v-blue: #0080bc;
+  --v-light: #cce6f2;
+  --v-dark: #011a25;
+  --v-white: #f6f6f6;
   --v-bg: #ffffff;
-  --v-bg-2: #fafafa;
-  --v-gray-1: #f2f2f2;
-  --v-border: #ebebeb;
-  --v-border-strong: #d9d9d9;
-  --v-text: #171717;
-  --v-text-2: #666666;
-  --v-text-3: #8f8f8f;
-  --v-accent: #0077af;
-  --v-accent-bg: #e8f4fb;
-  --v-green: #1a7f37;
-  --v-green-bg: #e9f7ee;
-  --v-amber: #a35200;
-  --v-amber-bg: #fff4e5;
-  --v-red: #cb2a2f;
-  --v-red-bg: #fdecec;
+  --v-bg-2: var(--v-white);
+  --v-gray-1: #eef1f2;
+  --v-border: #e6e9ea;
+  --v-border-strong: #cfd5d8;
+  --v-text: var(--v-dark);
+  --v-text-2: #57686f;
+  --v-text-3: #859196;
+  --v-accent: var(--v-blue);
+  --v-accent-bg: var(--v-light);
   --v-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
   /* The dither cells (web/src/ui/cells.tsx) read these. */
   --wk-ink: var(--v-text);
-  --wk-dot: #a3a3a3;
+  --wk-dot: var(--v-blue);
   --wk-off: #dcdcdc;
   display: flex;
   flex-direction: column;
@@ -313,7 +314,7 @@
 }
 
 .v-btn:hover {
-  background: #383838;
+  background: #0d3547;
 }
 
 .v-btn-lg {
@@ -341,14 +342,16 @@
   background: var(--v-gray-1);
 }
 
+/* A stop (Stop the desk, Cut off): a dark blue outline, so it sits apart from the neutral
+   secondary buttons without a new colour. The confirm dialog carries the weight. */
 .v-btn-error {
   background: var(--v-bg);
-  border-color: #f5c2c3;
-  color: var(--v-red);
+  border-color: var(--v-dark);
+  color: var(--v-dark);
 }
 
 .v-btn-error:hover {
-  background: var(--v-red-bg);
+  background: var(--v-light);
 }
 
 .v-btn:disabled {
@@ -368,13 +371,14 @@
   color: var(--v-text);
 }
 
-/* Links: the accent, underline on hover. */
+/* Links: watermark water blue, underline on hover, so anything that navigates reads as
+   clickable. */
 .v-page a:not(.v-btn),
 .v-link {
   border: 0;
   background: none;
   padding: 0;
-  color: var(--v-text);
+  color: var(--v-accent);
   font: inherit;
   text-decoration: none;
   cursor: pointer;
@@ -392,12 +396,11 @@
 .v-input:focus-visible,
 .v-seg button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(0, 119, 175, 0.5);
+  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(1, 26, 37, 0.35);
 }
 
-/* Badge: 20 px pill, 12 px 500, subtle tone background. */
-/* Badge: a monochrome pill (Geist: "use colour only when it adds meaning"). A tone is a
-   6 px dot in front of the word, never a coloured fill. */
+/* Badge: a 20 px pill, 12 px 500. Gray is a bordered pill; a tone is a tinted fill with
+   the tone's text (Geist badge), used only for a state: live, can't trade, expiring. */
 .v-badge {
   display: inline-flex;
   align-items: center;
@@ -414,22 +417,10 @@
   white-space: nowrap;
 }
 
-.v-badge[data-tone="green"]::before,
-.v-badge[data-tone="amber"]::before,
-.v-badge[data-tone="red"]::before,
-.v-badge[data-tone="blue"]::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--v-text-3);
-}
-
-.v-badge[data-tone="green"]::before { background: #2f9e44; }
-.v-badge[data-tone="amber"]::before { background: #f08c00; }
-.v-badge[data-tone="red"]::before { background: #e03131; }
-.v-badge[data-tone="blue"]::before { background: var(--v-text); }
+.v-badge[data-tone="green"],
+.v-badge[data-tone="blue"] { border-color: transparent; background: var(--v-light); color: var(--v-dark); }
+.v-badge[data-tone="amber"] { border-color: var(--v-dark); background: var(--v-bg); color: var(--v-dark); }
+.v-badge[data-tone="red"] { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
 
 /* Status dot: 8 px dot and a 14 px label (Geist "Status"). */
 .v-status {
@@ -447,10 +438,11 @@
   background: var(--v-text-3);
 }
 
-.v-status[data-tone="green"]::before { background: #2f9e44; }
-.v-status[data-tone="amber"]::before { background: #f08c00; }
-.v-status[data-tone="red"]::before { background: #e03131; }
-.v-status[data-tone="blue"]::before { background: var(--v-accent); }
+/* In force: ENS blue. Warning: a dark blue ring. Stopped: dark blue filled. */
+.v-status[data-tone="green"]::before,
+.v-status[data-tone="blue"]::before { background: var(--v-blue); }
+.v-status[data-tone="amber"]::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--v-dark); }
+.v-status[data-tone="red"]::before { background: var(--v-dark); }
 
 /* Inputs: 36 px, 6 px radius, 1 px border. */
 .v-field {
@@ -485,9 +477,23 @@ textarea.v-input {
   resize: vertical;
 }
 
+/* A field error: dark blue, 500, after a dark blue ring (the palette's warning mark). */
 .v-error {
-  color: var(--v-red);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--v-dark);
   font-size: 13px;
+  font-weight: 500;
+}
+
+.v-error::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--v-dark);
 }
 
 /* Segmented control (Geist "Switch"): gray track, white selected option. */
@@ -517,7 +523,8 @@ textarea.v-input {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
-/* Note (Geist "Note"): a bordered strip with a tone. */
+/* Note (Geist "Note"): a bordered strip. A tone tints the ground and the border and puts a
+   dot of that tone before the text; the text stays ink. */
 .v-note {
   display: flex;
   align-items: center;
@@ -545,9 +552,20 @@ textarea.v-input {
   background: var(--v-text-3);
 }
 
-.v-note[data-tone="green"] > span:first-child::before { background: #2f9e44; }
-.v-note[data-tone="amber"] > span:first-child::before { background: #f08c00; }
-.v-note[data-tone="red"] > span:first-child::before { background: #e03131; }
+/* Tones stay light: in force is a light blue ground, a warning or a stop a white ground with
+   a border (dark blue for a stop). An icon, not a dot, leads the text (Note in v.tsx). */
+.v-note[data-tone="green"],
+.v-note[data-tone="blue"] { border-color: transparent; background: var(--v-light); }
+.v-note[data-tone="amber"] { border-color: var(--v-border-strong); background: var(--v-bg); }
+.v-note[data-tone="red"] { border-color: var(--v-dark); background: var(--v-bg); }
+.v-note[data-tone] > span:first-child::before { display: none; }
+.v-note-icon { flex: 0 0 auto; width: 16px; height: 16px; color: var(--v-dark); }
+.v-note[data-tone="green"] .v-note-icon,
+.v-note[data-tone="blue"] .v-note-icon { color: var(--v-blue); }
+
+/* Verify's verdict card: tinted green when the recompute matches, red when it does not. */
+.v-card.v-verdict-green { border-color: transparent; background: var(--v-light); }
+.v-card.v-verdict-red { border-color: var(--v-dark); background: var(--v-bg); }
 
 /* Empty state: the dither clouds, one line, one action, centred in a card. */
 .v-empty {
@@ -639,6 +657,11 @@ textarea.v-input {
 .v-page ol.v-ol { list-style: decimal; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .v-page ul.v-ul { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 [data-active="true"] { background: var(--v-accent-bg); }
+/* An open table row (the one being edited): a quiet ground and an ENS blue edge, so the
+   row's own light blue badges still read. */
+.v-table tr[data-active="true"] { background: none; }
+.v-table tr[data-active="true"] td { background: var(--v-bg-2); }
+.v-table tr[data-active="true"] td:first-child { box-shadow: inset 2px 0 0 var(--v-blue); }
 @media (max-width: 600px) {
   .v-dl { grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); gap: 8px 16px; }
 }
@@ -664,4 +687,69 @@ textarea.v-input {
   white-space: normal;
   padding-top: 12px;
   padding-bottom: 12px;
+}
+
+/* Dotted slider (web/src/ui/slider.tsx): a rounded gray track of dots that darken up to a
+   white handle; a transparent native range input on top does the work. */
+.v-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v-slider-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.v-slider-track {
+  position: relative;
+  height: 40px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: var(--v-gray-1);
+}
+
+.v-slider-track svg {
+  display: block;
+  width: calc(100% - 28px);
+  height: 100%;
+}
+
+/* Filled dots are water blue; the opacity ramp in slider.tsx takes them from sky pale to
+   deep at the handle. */
+.v-slider-dot-on {
+  fill: var(--v-accent);
+}
+
+.v-slider-dot {
+  fill: var(--v-text-3);
+}
+
+.v-slider-handle {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 28px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--v-border), 0 1px 3px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+.v-slider-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Keyboard focus rings the handle, not the track; a mouse drag shows no ring. */
+.v-slider-track:has(.v-slider-input:focus-visible) .v-slider-handle {
+  box-shadow: 0 0 0 1px var(--v-text), 0 0 0 4px rgba(1, 26, 37, 0.12);
 }

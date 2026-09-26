@@ -9,10 +9,11 @@ import { Popover } from "@astryxdesign/core/Popover";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import sepoliaConfig from "@config";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { CONNECT_WALLET } from "../copy/en";
 import type { DeskConfig } from "../desk/types";
 import { useWalletLabel } from "../hooks/useCanAct";
+import { INSTALL_WALLET_URL, NO_WALLET, useConnectWallet } from "../hooks/useConnectWallet";
 import { formatAddr } from "../lib/format";
 
 const EXPLORER = (sepoliaConfig as DeskConfig).explorer;
@@ -60,7 +61,7 @@ function WalletInfo({ address, onLogout }: { address: string; onLogout: () => vo
 
 export function WalletControl() {
   const { address, status } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { connectWallet, problem, clearProblem } = useConnectWallet();
   const { disconnect } = useDisconnect();
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -75,12 +76,34 @@ export function WalletControl() {
         className={connected ? "watermark-wallet watermark-wallet-on" : "watermark-wallet"}
         aria-label={connected ? short : CONNECT_WALLET}
         onClick={() => {
-          const connector = connectors[0];
-          if (!connected && connector) connect({ connector });
+          if (!connected) connectWallet();
         }}
       >
         {connected ? short : CONNECT_WALLET}
       </button>
+      {!connected && problem ? (
+        <Popover
+          label="Wallet"
+          placement="below"
+          alignment="end"
+          className="watermark-wallet-popover"
+          anchorRef={anchorRef as RefObject<HTMLElement>}
+          isOpen
+          onOpenChange={(isOpen) => {
+            if (!isOpen) clearProblem();
+          }}
+          content={
+            <div className="watermark-wallet-info" role="status">
+              <Text type="body">{problem}</Text>
+              {problem === NO_WALLET ? (
+                <a href={INSTALL_WALLET_URL} target="_blank" rel="noreferrer">
+                  Get MetaMask
+                </a>
+              ) : null}
+            </div>
+          }
+        />
+      ) : null}
       {connected && address ? (
         <Popover
           label="Wallet"

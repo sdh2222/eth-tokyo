@@ -47,7 +47,7 @@ function rawEvent(fill: FillRecord): [string, string][] {
 export function VerifyPage() {
   const { tx = "" } = useParams();
   const strategy = useLiveStrategy();
-  const fills = useFills(strategy.data ?? null);
+  const fills = useFills(strategy.data ?? null, strategy.isLoading);
   const port = useDeskPort();
   const now = useClock();
   const [copied, setCopied] = useState(false);
@@ -95,7 +95,7 @@ export function VerifyPage() {
       />
 
       {check ? (
-        <Card>
+        <Card className={`v-verdict v-verdict-${verdict.tone}`}>
           <div className="v-stack v-stack-8">
             <div className="v-figure">
               <Status tone={verdict.tone}>{verdict.title}</Status>
