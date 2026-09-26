@@ -17,14 +17,32 @@ type Need = { label: string; href: string; action: string };
 
 function needs(book: DeskBook, now: number, windowLeft: number): Need[] {
   const items: Need[] = [];
-  if (windowLeft <= 0) items.push({ label: "The price window is closed until the next oracle update.", href: "/controls", action: "Controls" });
+  if (windowLeft <= 0)
+    items.push({
+      label: "The price window is closed until the next oracle update.",
+      href: "/controls",
+      action: "Controls",
+    });
   if (book.spread === null || !book.spread.live) {
-    items.push({ label: "No live agent spread: the desk quotes on the terms widths.", href: "/agent", action: "Risk agent" });
+    items.push({
+      label: "No live agent spread: the desk quotes on the terms widths.",
+      href: "/agent",
+      action: "Risk agent",
+    });
   }
   for (const name of book.names) {
-    if (!name.live) items.push({ label: `${name.name} can't trade right now.`, href: "/counterparties", action: "Counterparties" });
+    if (!name.live)
+      items.push({
+        label: `${name.name} can't trade right now.`,
+        href: "/counterparties",
+        action: "Counterparties",
+      });
     else if (name.expiry > 0n && Number(name.expiry) - now < 7 * 86400) {
-      items.push({ label: `${name.name} expires within a week.`, href: "/counterparties", action: "Counterparties" });
+      items.push({
+        label: `${name.name} expires within a week.`,
+        href: "/counterparties",
+        action: "Counterparties",
+      });
     }
   }
   return items;
@@ -81,16 +99,12 @@ export function DeskPage() {
 
   return (
     <Page>
-      <PageHead
-        kicker={b.name}
-        title="Dashboard"
-        lede="Is the desk trading, and does anything need you?"
-      />
+      <PageHead kicker={b.name} title="Dashboard" lede="Is the desk trading, and does anything need you?" />
 
       <div className="wm-stats">
         <Stat
           label="Desk"
-          value={live ? <Pill tone="success">Live</Pill> : <Pill>Not open</Pill>}
+          value={live ? "Live" : "Not open"}
           note={live ? "The Safe's program is shipped to Aqua." : "No program is shipped."}
         />
         <Stat
@@ -103,10 +117,36 @@ export function DeskPage() {
           value={formatBpsShare(b.inventory.wBps)}
           note={`Stops selling ETH at ${formatBpsShare(b.inventory.wStarBps)}.`}
         />
-        <Stat label="Oracle mid" value={`$${formatWadUsd(midWad)}`} note={b.oracle.fresh ? "Fresh" : "Older than the window"} />
+        <Stat
+          label="Oracle mid"
+          value={`$${formatWadUsd(midWad)}`}
+          note={b.oracle.fresh ? "Fresh" : "Older than the window"}
+        />
       </div>
 
       <div className="wm-grid">
+        <Section title="Needs you" className="wm-span-12">
+          {todo.length === 0 ? (
+            <p>
+              <Pill tone="success">Clear</Pill> Nothing needs you.
+            </p>
+          ) : (
+            <ul className="wm-list">
+              {todo.map((item) => (
+                <li key={item.label}>
+                  <span className="wm-row wm-row-8">
+                    <Pill tone="warning">Check</Pill>
+                    {item.label}
+                  </span>
+                  <Link className="wm-link" to={item.href}>
+                    {item.action}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
         <Section title="Inventory" className="wm-span-5">
           <Bar
             label="ETH share of the Safe"
@@ -133,50 +173,43 @@ export function DeskPage() {
           }
         >
           {b.quote ? (
-            <Window title="Quote board" meta={windowLeft > 0 ? `window ${formatCountdown(windowLeft)}` : "window closed"}>
-              <div className="wm-window-line">
-                <span>ASK · counterparty buys ETH</span>
-                <span className="wm-mark">{`$${formatWadUsd(b.quote.ask)}`}</span>
-              </div>
-              <div className="wm-window-line">
-                <span>BID · counterparty sells ETH</span>
-                <span className="wm-mark">{`$${formatWadUsd(b.quote.bid)}`}</span>
-              </div>
-              <div className="wm-window-line">
-                <span>MID · oracle</span>
-                <span>{`$${formatWadUsd(midWad)}`}</span>
-              </div>
-              {b.terms ? (
-                <div className="wm-window-line">
-                  <span>FENCE · terms</span>
-                  <span>{`sell ${b.terms.sellBps} bp · buy ${b.terms.buyBps} bp · cap ${formatWeth(b.terms.cap)}`}</span>
+            <>
+              <div className="wm-quote">
+                <div className="wm-stack wm-stack-4">
+                  <span className="wm-label">Ask · counterparty buys ETH</span>
+                  <span className="wm-big">
+                    <span className="wm-mark">{`$${formatWadUsd(b.quote.ask)}`}</span>
+                  </span>
                 </div>
-              ) : null}
-            </Window>
+                <div className="wm-stack wm-stack-4">
+                  <span className="wm-label">Bid · counterparty sells ETH</span>
+                  <span className="wm-big">
+                    <span className="wm-mark">{`$${formatWadUsd(b.quote.bid)}`}</span>
+                  </span>
+                </div>
+              </div>
+              <Window
+                title="Quote board"
+                meta={windowLeft > 0 ? `window ${formatCountdown(windowLeft)}` : "window closed"}
+              >
+                <div className="wm-window-line">
+                  <span>SOURCE</span>
+                  <span>{b.quote.source === "spread" ? "agent spread" : "terms widths"}</span>
+                </div>
+                <div className="wm-window-line">
+                  <span>MID · oracle</span>
+                  <span>{`$${formatWadUsd(midWad)}`}</span>
+                </div>
+                {b.terms ? (
+                  <div className="wm-window-line">
+                    <span>FENCE · terms</span>
+                    <span>{`sell ${b.terms.sellBps} bp · buy ${b.terms.buyBps} bp · cap ${formatWeth(b.terms.cap)}`}</span>
+                  </div>
+                ) : null}
+              </Window>
+            </>
           ) : (
             <Empty title="No quote: the terms on the client names disagree or are missing." />
-          )}
-        </Section>
-
-        <Section title="Needs you" className="wm-span-12">
-          {todo.length === 0 ? (
-            <p>
-              <Pill tone="success">Clear</Pill> Nothing needs you.
-            </p>
-          ) : (
-            <ul className="wm-list">
-              {todo.map((item) => (
-                <li key={item.label}>
-                  <span className="wm-row wm-row-8">
-                    <Pill tone="warning">Check</Pill>
-                    {item.label}
-                  </span>
-                  <Link className="wm-link" to={item.href}>
-                    {item.action}
-                  </Link>
-                </li>
-              ))}
-            </ul>
           )}
         </Section>
 

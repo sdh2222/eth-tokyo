@@ -57,7 +57,7 @@ export function Section({
 export function Stat({ label, value, note }: { label: ReactNode; value: ReactNode; note?: ReactNode }) {
   return (
     <div className="wm-stat">
-      <span className="wm-muted">{label}</span>
+      <span className="wm-stat-label">{label}</span>
       <span className="wm-stat-value">{value}</span>
       {note ? <span className="wm-muted">{note}</span> : null}
     </div>
@@ -108,8 +108,8 @@ export function Bar({ label, value, mark, markLabel }: { label: string; value: n
   return (
     <div className="wm-stack wm-stack-8">
       <div className="wm-row wm-between">
-        <span>{label}</span>
-        <span className="wm-num">{`${value.toFixed(1)}%`}</span>
+        <span className="wm-label">{label}</span>
+        <span className="wm-stat-value">{`${value.toFixed(1)}%`}</span>
       </div>
       <div className="wm-bar" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}>
         <div className="wm-bar-fill" style={{ width: `${clamp(value)}%` }} />

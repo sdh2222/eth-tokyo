@@ -7,8 +7,8 @@
   --wm-ink: #111111;
   --wm-paper: #f3f3f3;
   --wm-sky: #b7e4f8;
-  --wm-muted: rgba(17, 17, 17, 0.64);
-  --wm-hair: rgba(17, 17, 17, 0.16);
+  --wm-muted: #4d4d4d;
+  --wm-hair: rgba(17, 17, 17, 0.2);
   --wm-success: #2f9e44;
   --wm-warning: #f08c00;
   --wm-danger: #e03131;
@@ -55,16 +55,25 @@
 }
 
 .wm-title {
-  font-size: 32px;
-  line-height: 26px;
+  font-size: 48px;
+  line-height: 44px;
   font-weight: 500;
   letter-spacing: -0.03em;
-  padding-top: 4px;
 }
 
-.wm-lede,
+.wm-lede {
+  font-size: 20px;
+  line-height: 28px;
+  color: var(--wm-muted);
+}
+
 .wm-muted {
   color: var(--wm-muted);
+}
+
+/* A label that names a value: ink, 500. */
+.wm-label {
+  font-weight: 500;
 }
 
 /* Section: a 16 px label on a 1 px ink left rule (CP-07), 16 px to its body. */
@@ -83,10 +92,10 @@
 }
 
 .wm-section-title {
-  border-left: 1px solid var(--wm-ink);
+  border-left: 3px solid var(--wm-ink);
   padding-left: 12px;
-  font-size: 20px;
-  line-height: 24px;
+  font-size: 24px;
+  line-height: 28px;
   font-weight: 500;
   letter-spacing: -0.03em;
 }
@@ -135,15 +144,20 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-top: 1px solid var(--wm-ink);
+  border-top: 2px solid var(--wm-ink);
   padding-top: 12px;
   min-width: 0;
 }
 
-.wm-stat-value {
-  font-size: 24px;
-  line-height: 36px;
+.wm-stat-label {
   font-weight: 500;
+}
+
+.wm-stat-value {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -193,8 +207,8 @@
 }
 
 .wm-big {
-  font-size: 32px;
-  line-height: 40px;
+  font-size: 40px;
+  line-height: 48px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
@@ -215,7 +229,8 @@
   text-align: left;
   font-weight: 500;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--wm-ink);
+  background: var(--wm-paper);
+  border-bottom: 2px solid var(--wm-ink);
   white-space: nowrap;
 }
 
@@ -227,7 +242,7 @@
 
 .wm-table th:first-child,
 .wm-table td:first-child {
-  padding-left: 0;
+  padding-left: 12px;
 }
 
 .wm-table .wm-right {
@@ -349,9 +364,9 @@
   border: 1px solid var(--wm-ink);
   border-radius: 999px;
   background: #ffffff;
-  padding: 4px 8px;
-  font-size: 12px;
-  line-height: 16px;
+  padding: 4px 10px;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 500;
   white-space: nowrap;
   vertical-align: middle;
@@ -359,8 +374,8 @@
 
 .wm-pill::before {
   content: "";
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
   background: var(--wm-muted);
 }
@@ -382,6 +397,7 @@
 }
 
 .wm-facts dd {
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -463,7 +479,7 @@ textarea.wm-input {
 }
 
 .wm-note {
-  border-left: 1px solid var(--wm-ink);
+  border-left: 2px solid var(--wm-ink);
   padding-left: 12px;
   color: var(--wm-muted);
 }
@@ -537,4 +553,11 @@ textarea.wm-input {
   .wm-btn {
     transition: none;
   }
+}
+
+/* The two headline prices of a quote, side by side. */
+.wm-quote {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
 }
