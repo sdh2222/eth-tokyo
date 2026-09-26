@@ -6,7 +6,6 @@ import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { SpreadStrip } from "../ui/cells";
 import { Badge, Card, Dl, Header, Page, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
@@ -15,6 +14,11 @@ import { SafeDialog } from "./open/SafeDialog";
 // desk.stats from desk.policy. Vercel-style: metrics, spreads by counterparty, how it
 // decides, the policy, then identity and permissions. Read-only except the policy edit,
 // which opens the Safe signing overlay (O1).
+
+// Widths as bid / ask around the mid, e.g. "−9 / +1 bp" (the Dashboard's order).
+function widths(sellBps: number, buyBps: number): string {
+  return `−${buyBps} / +${sellBps} bp`;
+}
 
 function headerState(agentCount: number, liveCount: number): { label: string; tone: Tone } {
   if (agentCount === 0) return { label: "No live spread", tone: "amber" };
@@ -77,7 +81,8 @@ export function AgentPage() {
             <thead>
               <tr>
                 <th>Counterparty</th>
-                <th>Widths inside its terms</th>
+                <th className="v-right">Widths now</th>
+                <th className="v-right">Terms</th>
                 <th className="v-right">Set</th>
                 <th>Why</th>
               </tr>
@@ -89,11 +94,8 @@ export function AgentPage() {
                 return (
                   <tr key={name.name}>
                     <td>{shortName(name.name)}</td>
-                    <td>
-                      {q ? (
-                        <SpreadStrip sellBps={q.sellBps} buyBps={q.buyBps} fenceSellBps={name.terms?.sellBps} fenceBuyBps={name.terms?.buyBps} />
-                      ) : null}
-                    </td>
+                    <td className="v-right">{q ? widths(q.sellBps, q.buyBps) : "—"}</td>
+                    <td className="v-right v-muted">{name.terms ? widths(name.terms.sellBps, name.terms.buyBps) : "—"}</td>
                     <td className="v-right v-muted">{write ? formatWhen(write.writtenAt, now) : "—"}</td>
                     <td className="v-muted">{write ? write.note || write.tier || "—" : q?.source === "terms" ? "On its terms" : "No write yet"}</td>
                   </tr>
