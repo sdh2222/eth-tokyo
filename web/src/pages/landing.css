@@ -334,6 +334,10 @@ body:has(.wm-landing) {
   aspect-ratio: 560 / 360;
 }
 
+.wm-swarm-wide canvas {
+  aspect-ratio: 560 / 260;
+}
+
 .wm-swarm figcaption {
   margin-top: 12px;
   font-size: clamp(24px, 2.4vw, 32px);
@@ -394,6 +398,12 @@ body:has(.wm-landing) {
   background: radial-gradient(circle, var(--wm-dot) 1px, transparent 1.2px) 0 0 / 3px 3px;
   border-top: 2px solid var(--wm-dot);
   border-bottom: 2px solid var(--wm-dot);
+}
+
+.wm-key-terms {
+  width: 24px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--wm-ink) 0 4px, transparent 4px 8px);
 }
 
 .wm-key-sign {

@@ -2,73 +2,130 @@ import { useEffect, useRef } from "react";
 import { LANDING } from "../copy/en";
 import { blueNoise, packed } from "./landing-dots";
 
-// Two panels over the same market. The ink line is the market; the sky band is the DAO's
-// quote, sell width above its price and buy width below. Time scrolls right to left.
-// Left, the spread lives in the program: the quote moves only when the Safe signs (an ink
-// square on the strip), and between signatures the market walks out of the band.
-// Right, the spread lives on the ENS name: the agent rewrites it every quarter second (a
-// sky tick), so the band follows the market and the Safe never signs again.
+// Two takers, one session each, replayed. The ink line is the oracle mid. The sky band is
+// that taker's quote: its sell width above the mid and its buy width below. Both start at
+// the Safe's terms (3 / 10 bp, the dotted limit). After every fill (an ink square on the
+// ask) the agent writes that name's next spread (a sky tick below), and the band steps.
+// mm-a fills small and calmly, so its band tightens. mm-b turns large and fills just
+// before the mid moves its way, so its band goes back out to the terms and stays there.
 
 const W = 560;
-const H = 360;
+const H = 260;
 const DOT = 2;
 const GW = W / DOT;
 const GH = H / DOT;
-const WINDOW = 8;
-const SIGN_EVERY = 2;
-const WRITE_EVERY = 0.25;
-const PLOT_TOP = 15;
-const PLOT_H = 115;
-const SELL = 5;
-const BUY = 9;
-const STRIP = 152;
+const RUN = 10;
+const HOLD = 2.5;
+const WRITE_DELAY = 0.35;
+const BP = 3.4;
+const MID = 44;
+const STRIP = 112;
+const TERMS = { sell: 3, buy: 10 };
 
-function market(t: number) {
-  return 0.5 + 0.22 * Math.sin(0.5 * t) + 0.1 * Math.sin(1.1 * t + 1.3) + 0.04 * Math.sin(2.3 * t + 0.4);
+type Fill = { at: number; next: { sell: number; buy: number }; jump?: number };
+
+const SESSIONS: Fill[][] = [
+  [
+    { at: 1.5, next: { sell: 2, buy: 8 } },
+    { at: 4.5, next: { sell: 1, buy: 4 } },
+    { at: 7.5, next: { sell: 1, buy: 4 } },
+  ],
+  [
+    { at: 1.5, next: { sell: 1, buy: 4 } },
+    { at: 4.5, next: { sell: 3, buy: 10 }, jump: 12 },
+    { at: 6.3, next: { sell: 3, buy: 10 }, jump: 10 },
+  ],
+];
+
+function smooth(t: number) {
+  const c = Math.min(1, Math.max(0, t));
+  return c * c * (3 - 2 * c);
 }
 
-function toY(m: number) {
-  return PLOT_TOP + (1 - m) * PLOT_H;
+function midAt(t: number, fills: Fill[]) {
+  let y = MID + 3 * Math.sin(0.9 * t) + 1.5 * Math.sin(2.3 * t + 1);
+  // A taker that bought just before the mid rose: the mid lifts right after its fill.
+  for (const fill of fills) if (fill.jump) y -= fill.jump * smooth((t - fill.at - 0.1) / 0.5);
+  return y;
 }
 
-function paint(image: ImageData, t: number, signed: boolean, colors: { quote: string; line: string }) {
+function widthsAt(t: number, fills: Fill[]) {
+  let widths = TERMS;
+  for (const fill of fills) if (t >= fill.at + WRITE_DELAY) widths = fill.next;
+  return widths;
+}
+
+function paint(image: ImageData, now: number, fills: Fill[], colors: { quote: string; line: string }) {
   const noise = blueNoise();
   const pixels = new Uint32Array(image.data.buffer);
   const sky = packed(colors.quote);
   const ink = packed(colors.line);
-  const period = signed ? SIGN_EVERY : WRITE_EVERY;
+  pixels.fill(0);
   for (let x = 0; x < GW; x += 1) {
-    const tau = t - ((GW - 1 - x) * WINDOW) / GW;
-    const ym = toY(market(tau));
-    const yp = toY(market(Math.floor(tau / period) * period));
-    const top = yp - SELL;
-    const bottom = yp + BUY;
-    // Where the last update sits, in grid columns from this one.
-    const k = Math.round(tau / period) * period;
-    const dx = ((tau - k) * GW) / WINDOW;
+    const t = (x / (GW - 1)) * RUN;
+    if (t > now) break;
+    const mid = midAt(t, fills);
+    const { sell, buy } = widthsAt(t, fills);
+    const ask = mid - sell * BP;
+    const bid = mid + buy * BP;
+    const termsAsk = mid - TERMS.sell * BP;
+    const termsBid = mid + TERMS.buy * BP;
     for (let y = 0; y < GH; y += 1) {
       let skyTone = 0;
       let inkTone = 0;
-      if (y >= top && y <= bottom) skyTone = Math.abs(y - top) < 1 || Math.abs(y - bottom) < 1 ? 0.95 : 0.4;
-      if (Math.abs(y - ym) <= 1.1) inkTone = 1;
-      else if (signed && ym < top && y > ym && y < top) inkTone = 0.3;
-      else if (signed && ym > bottom && y < ym && y > bottom) inkTone = 0.3;
-      if (signed && Math.abs(dx) <= 2.5 && y >= STRIP - 2 && y <= STRIP + 2) inkTone = 1;
-      if (!signed && Math.abs(dx) <= 0.8 && y >= STRIP - 1 && y <= STRIP + 1) skyTone = 1;
+      if (y >= ask && y <= bid) skyTone = Math.abs(y - ask) < 1 || Math.abs(y - bid) < 1 ? 0.95 : 0.4;
+      if ((Math.abs(y - termsAsk) < 0.6 || Math.abs(y - termsBid) < 0.6) && x % 4 < 2) inkTone = 0.8;
+      if (Math.abs(y - mid) <= 1.1) inkTone = 1;
       const i = y * GW + x;
       const threshold = noise[(y % 64) * 64 + (x % 64)]!;
-      pixels[i] = inkTone > threshold ? ink : skyTone > threshold ? sky : 0;
+      if (inkTone > threshold) pixels[i] = ink;
+      else if (skyTone > threshold) pixels[i] = sky;
+    }
+  }
+  // Fills: an ink square on the ask where the taker hit it. Writes: a sky tick on the strip.
+  for (const fill of fills) {
+    if (fill.at <= now) {
+      const fx = Math.round((fill.at / RUN) * (GW - 1));
+      const fy = Math.round(midAt(fill.at, fills) - widthsAt(fill.at, fills).sell * BP);
+      for (let dy = -3; dy <= 2; dy += 1) {
+        for (let dx = -2; dx <= 3; dx += 1) {
+          const x = fx + dx;
+          const y = fy + dy - 3;
+          if (x >= 0 && x < GW && y >= 0 && y < GH) pixels[y * GW + x] = ink;
+        }
+      }
+    }
+    const wt = fill.at + WRITE_DELAY;
+    if (wt <= now) {
+      const wx = Math.round((wt / RUN) * (GW - 1));
+      for (let dy = -2; dy <= 2; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const x = wx + dx;
+          const y = STRIP + dy;
+          if (x >= 0 && x < GW) pixels[y * GW + x] = sky;
+        }
+      }
+      // A short burst of sky dots where the agent writes, while it is fresh.
+      const age = now - wt;
+      if (age < 0.6) {
+        const r = 4 + age * 18;
+        for (let a = 0; a < 24; a += 1) {
+          const x = Math.round(wx + Math.cos((a / 24) * Math.PI * 2) * r);
+          const y = Math.round(STRIP - 10 + Math.sin((a / 24) * Math.PI * 2) * r * 0.6);
+          if (x >= 0 && x < GW && y >= 0 && y < GH) pixels[y * GW + x] = sky;
+        }
+      }
     }
   }
 }
 
 export function LandingAgent({ quote = "#6ec1ea", line = "#111111" }: { quote?: string; line?: string }) {
   const copy = LANDING.agent;
-  const programRef = useRef<HTMLCanvasElement>(null);
-  const nameRef = useRef<HTMLCanvasElement>(null);
+  const aRef = useRef<HTMLCanvasElement>(null);
+  const bRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvases = [programRef.current, nameRef.current];
+    const canvases = [aRef.current, bRef.current];
     if (canvases.some((c) => !c)) return;
     const buffer = document.createElement("canvas");
     buffer.width = GW;
@@ -80,7 +137,7 @@ export function LandingAgent({ quote = "#6ec1ea", line = "#111111" }: { quote?: 
     let start = 0;
     let visible = false;
 
-    const render = (t: number) => {
+    const render = (now: number) => {
       if (!bufferCtx || !image) return;
       canvases.forEach((canvas, i) => {
         if (!canvas) return;
@@ -91,7 +148,7 @@ export function LandingAgent({ quote = "#6ec1ea", line = "#111111" }: { quote?: 
           canvas.width = width;
           canvas.height = height;
         }
-        paint(image, t, i === 0, { quote, line });
+        paint(image, now, SESSIONS[i]!, { quote, line });
         bufferCtx.putImageData(image, 0, 0);
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
@@ -101,21 +158,23 @@ export function LandingAgent({ quote = "#6ec1ea", line = "#111111" }: { quote?: 
       });
     };
 
-    // Start a few seconds in, so the window is already full of market.
-    const OFFSET = 11;
     if (reduce) {
-      render(OFFSET);
+      render(RUN);
       return;
     }
 
-    const tick = (now: number) => {
-      if (!start) start = now;
-      render(OFFSET + (now - start) / 1000);
+    const tick = (time: number) => {
+      if (!start) start = time;
+      const cycle = ((time - start) / 1000) % (RUN + HOLD);
+      render(Math.min(RUN, cycle));
       frame = visible ? requestAnimationFrame(tick) : 0;
     };
     const observer = new IntersectionObserver(([entry]) => {
       visible = Boolean(entry?.isIntersecting);
-      if (visible && !frame) frame = requestAnimationFrame(tick);
+      if (visible && !frame) {
+        start = 0;
+        frame = requestAnimationFrame(tick);
+      }
     });
     observer.observe(canvases[0]!);
     return () => {
@@ -126,34 +185,38 @@ export function LandingAgent({ quote = "#6ec1ea", line = "#111111" }: { quote?: 
 
   return (
     <>
-      <div className="wm-swarm">
+      <div className="wm-swarm wm-swarm-wide">
         <figure>
-          <canvas ref={programRef} aria-hidden="true" />
+          <canvas ref={aRef} aria-hidden="true" />
           <figcaption>
-            {copy.program}
-            <span className="wm-fig-note">{copy.programNote}</span>
+            {copy.a}
+            <span className="wm-fig-note">{copy.aNote}</span>
           </figcaption>
         </figure>
         <figure>
-          <canvas ref={nameRef} aria-hidden="true" />
+          <canvas ref={bRef} aria-hidden="true" />
           <figcaption>
-            {copy.name}
-            <span className="wm-fig-note">{copy.nameNote}</span>
+            {copy.b}
+            <span className="wm-fig-note">{copy.bNote}</span>
           </figcaption>
         </figure>
       </div>
       <ul className="wm-legend" aria-hidden="true">
         <li>
           <span className="wm-key wm-key-line" />
-          {copy.legend.market}
+          {copy.legend.mid}
         </li>
         <li>
           <span className="wm-key wm-key-band" />
           {copy.legend.quote}
         </li>
         <li>
+          <span className="wm-key wm-key-terms" />
+          {copy.legend.terms}
+        </li>
+        <li>
           <span className="wm-key wm-key-sign" />
-          {copy.legend.signature}
+          {copy.legend.fill}
         </li>
         <li>
           <span className="wm-key wm-key-write" />
