@@ -4,6 +4,7 @@ import {
   describeProgram,
   findLiveStrategy,
   findStrategies,
+  quoteFor as routerQuote,
   readDeskState,
   readFills,
 } from "@desk/browser";
@@ -175,54 +176,38 @@ export function createLivePort(): DeskPort {
       const raw = await readDeskState(ctx, strategy as StrategyInfo);
       return toState(raw, ctx.cfg, strategy.decoded.deadline);
     },
-    async quoteFor(_ctx, _strategy, q) {
-      try {
-        const response = await fetch("https://desk-api-latest.onrender.com/v1/quote", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            mm: q.mm,
-            side: q.side,
-            leg: q.leg,
-            amount: q.amount.toString(),
-          }),
-        });
-        const body = (await response.json()) as {
-          ok?: boolean;
-          amountIn?: string;
-          amountOut?: string;
-          priceWad?: string;
-          spreadBps?: number;
-          spreadSource?: 0 | 1 | 2;
-        };
-        if (!response.ok || !body.ok || body.amountIn === undefined || body.amountOut === undefined || body.priceWad === undefined) {
-          const err = (body as { error?: { title?: string; hint?: string; code?: string } }).error;
-          return {
-            ok: false as const,
-            error: {
-              code: err?.code ?? "QUOTE_FAILED",
-              args: {},
-              title: err?.title ?? "Quote is read from the contract",
-              hint: err?.hint ?? "The router did not return a price.",
-              severity: "user",
-            },
-          };
-        }
-        const amountIn = BigInt(body.amountIn);
-        const amountOut = BigInt(body.amountOut);
-        return {
-          ok: true as const,
-          amountIn,
-          amountOut,
-          priceWad: BigInt(body.priceWad),
-          spreadBps: body.spreadBps ?? 0,
-          spreadSource: body.spreadSource ?? 0,
-          mirror: { amountIn, amountOut },
-          mirrorMatches: true as const,
-        };
-      } catch {
-        return { ok: false as const, error: tradeNotOpen() };
-      }
+    // The router's own quote for this taker's name (main's quoteFor in ts/src/lib/client/quote.ts):
+    // it prices from that name's live desk.spread, else its desk.terms (sell 3 bp, buy 10 bp).
+    // Amounts are the router's; the price and the width follow from them and the oracle mid.
+    async quoteFor(ctx, strategy, q) {
+      if (!chainReady(ctx.cfg)) return { ok: false as const, error: tradeNotOpen() };
+      const cfg = ctx.cfg as DeskConfig & { mms?: { name: string; address: string }[] };
+      const mm = (cfg.mms ?? []).find((row) => row.address.toLowerCase() === q.mm.toLowerCase());
+      if (!mm) return { ok: false as const, error: decodeDeskError({ code: "EnsGateTakerMismatch" }) };
+      const quote = await routerQuote(ctx, strategy as StrategyInfo, {
+        mm: { name: mm.name, address: q.mm },
+        side: q.side,
+        leg: q.leg,
+        amount: q.amount,
+      });
+      if (!quote.ok) return { ok: false as const, error: quote.error };
+      const usdc = q.side === "buy" ? quote.amountIn : quote.amountOut;
+      const weth = q.side === "buy" ? quote.amountOut : quote.amountIn;
+      const priceWad = weth > 0n ? (usdc * 10n ** 12n * 10n ** 18n) / weth : 0n;
+      // quote.priceWad is the oracle mid (priceMirror's rWad); the width is the price against it.
+      const mid = quote.priceWad;
+      const spreadBps = mid > 0n ? Math.round(Math.abs(Number(((priceWad - mid) * 1_000_000n) / mid)) / 100) : 0;
+      const termsBps = q.side === "buy" ? quote.sSellBps : quote.sBuyBps;
+      return {
+        ok: true as const,
+        amountIn: quote.amountIn,
+        amountOut: quote.amountOut,
+        priceWad,
+        spreadBps,
+        spreadSource: spreadBps === termsBps ? (2 as const) : (1 as const),
+        mirror: { amountIn: quote.amountIn, amountOut: quote.amountOut },
+        mirrorMatches: true as const,
+      };
     },
     buildSwapTx() {
       return tx("Fill");
