@@ -88,7 +88,7 @@ export function DeskPage() {
         <PageHead kicker={b.name} title="Dashboard" />
         <Empty
           picture
-          title="No desk is open. The treasury hasn't shipped a program yet, or it was stopped."
+          title="Opening a desk ships the program to Aqua in one Safe transaction. The tokens stay in the Safe."
           action={
             <Link className="wk-btn" to="/open">
               Open a desk
