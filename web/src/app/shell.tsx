@@ -35,20 +35,13 @@ const NAV: Record<Role, { to: string; label: string; end: boolean }[]> = {
     { to: "/fills", label: NAV_LABEL.fills, end: false },
     { to: "/program", label: NAV_LABEL.program, end: true },
   ],
-  observer: [
-    { to: "/desk", label: NAV_LABEL.dashboard, end: true },
-    { to: "/fills", label: NAV_LABEL.fills, end: false },
-    { to: "/program", label: NAV_LABEL.program, end: true },
-    { to: "/counterparties", label: NAV_LABEL.counterparties, end: true },
-    { to: "/agent", label: NAV_LABEL.agent, end: true },
-  ],
 };
 
-const ROLES: Role[] = ["treasury", "mm", "observer"];
+const ROLES: Role[] = ["treasury", "mm"];
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const showHeader = pathname !== "/";
+  const showHeader = pathname !== "/" && !pathname.startsWith("/dev/shell");
 
   return (
     <ToastProvider>
@@ -65,7 +58,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {children}
           {showHeader ? <DemoDrawer /> : null}
         </main>
-        <footer className="break-words px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
+        {pathname.startsWith("/dev/shell") ? null : (
+          <footer className="break-words px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
+        )}
       </div>
     </ToastProvider>
   );

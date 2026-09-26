@@ -1,0 +1,18 @@
+/* One entry stylesheet. The layer order follows the Astryx migration guide's
+   "Tailwind v3 coexistence" snippet: reset lowest, Tailwind preflight layered below
+   astryx-base, the built watermark theme on top, Tailwind utilities unlayered so the
+   old pages keep working until they are rebuilt. */
+@layer reset, tw-preflight, legacy, astryx-base, astryx-theme;
+
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "../themes/watermark.css";
+@import "./fonts.css";
+@import "./tokens.css" layer(legacy);
+@import "./legacy.css" layer(legacy);
+
+@layer tw-preflight {
+  @tailwind base;
+}
+@tailwind components;
+@tailwind utilities;

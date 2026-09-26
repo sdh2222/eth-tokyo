@@ -45,3 +45,7 @@ If it is clear:
 A review that fails the implementation lists defects against the same requirement. Fix those defects only.
 
 A review that fails the requirement, or a new commit that edits the requirement file, sends you back to the clarity check. Do not keep implementing against the old wording.
+
+## Screens
+
+Before building or changing a screen, read `docs/design/astryx.md`. Use the Astryx component page's Do list, Don't list, and example code. Read the latest pull request on this repository before treating a number, a route, or a field as current.

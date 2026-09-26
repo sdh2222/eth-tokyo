@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Styles for the pre-Astryx pages. Imported into the `legacy` layer by app.css, below
+   astryx-base, so Astryx components always win. Deleted once the last old page is rebuilt. */
 
 body {
   margin: 0;
@@ -188,75 +187,73 @@ h3,
   line-height: 18px;
 }
 
-@layer components {
-  button {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    border-radius: var(--radius-control);
-    padding: 8px 14px;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 500;
-    color: var(--text);
-    box-shadow: none;
-  }
+button:where(:not(.mul-page *)) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius-control);
+  padding: 8px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text);
+  box-shadow: none;
+}
 
-  button::before {
-    display: none;
-  }
+button:where(:not(.mul-page *))::before {
+  display: none;
+}
 
-  button:hover:not(:disabled) {
-    background: var(--surface);
-  }
+button:where(:not(.mul-page *)):hover:not(:disabled) {
+  background: var(--surface);
+}
 
-  button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
+button:where(:not(.mul-page *)):disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
-  input,
-  select,
-  textarea {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-control);
-    padding: 8px 12px;
-    font: inherit;
-    font-weight: 400;
-    background: var(--bg);
-    color: var(--text);
-    box-shadow: none;
-  }
+input:where(:not(.mul-page *)),
+select:where(:not(.mul-page *)),
+textarea:where(:not(.mul-page *)) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 400;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: none;
+}
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
+table:where(:not(.mul-page *)) {
+  width: 100%;
+  border-collapse: collapse;
+}
 
-  th {
-    text-align: left;
-    font-size: var(--text-small-size);
-    line-height: var(--text-small-leading);
-    color: var(--text-muted);
-    font-weight: 500;
-    padding: 8px 12px 8px 0;
-  }
+th:where(:not(.mul-page *)) {
+  text-align: left;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 8px 12px 8px 0;
+}
 
-  td {
-    padding: 12px 12px 12px 0;
-    vertical-align: middle;
-  }
+td:where(:not(.mul-page *)) {
+  padding: 12px 12px 12px 0;
+  vertical-align: middle;
+}
 
-  a {
-    color: var(--text);
-    text-decoration: none;
-  }
+a:where(:not(.mul-page *)) {
+  color: var(--text);
+  text-decoration: none;
+}
 
-  a:hover {
-    text-decoration: underline;
-  }
+a:where(:not(.mul-page *)):hover {
+  text-decoration: underline;
 }
 
 .landing-hero {
