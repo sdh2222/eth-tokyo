@@ -109,7 +109,7 @@ function DlRow({ k, v }: { k: ReactNode; v: ReactNode }) {
 }
 
 // Dither pictures: Higgsfield images run through web/scripts/landing-dither.mjs (blue
-// noise, 2 px dots, #6ec1ea), 960 x 412, shown at their own size and cropped from the bottom.
+// noise, 2 px dots, ENS blue #0080bc), 960 x 412, shown at their own size and cropped from the bottom.
 export type PictureName = "sea" | "pier" | "lighthouse";
 
 export function Picture({ name, height = 240 }: { name: PictureName; height?: number }) {

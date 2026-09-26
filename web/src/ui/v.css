@@ -5,28 +5,28 @@
    and the dither cells for charts. Classes are `v-`. Imported into the `app` layer. */
 
 .v-page {
-  /* Geist light: gray-100 #f2f2f2, gray-200 #ebebeb, gray-alpha-400 border, gray-900 #666
-     secondary text, gray-1000 #171717 primary text. Accent: watermark water blue. */
+  /* The watermark palette, four colours and nothing else: ENS blue #0080bc, light blue
+     #cee1e8, dark blue #011a25, white #f6f6f6. Secondary text is dark blue at 66% and 48%
+     on white; borders stay a neutral gray. States use the palette too: in force is light
+     blue, a warning is a dark blue outline, a stop is dark blue filled. */
+  --v-blue: #0080bc;
+  --v-light: #cee1e8;
+  --v-dark: #011a25;
+  --v-white: #f6f6f6;
   --v-bg: #ffffff;
-  --v-bg-2: #fafafa;
-  --v-gray-1: #f2f2f2;
-  --v-border: #ebebeb;
-  --v-border-strong: #d9d9d9;
-  --v-text: #171717;
-  --v-text-2: #666666;
-  --v-text-3: #8f8f8f;
-  --v-accent: #0077af;
-  --v-accent-bg: #e8f4fb;
-  --v-green: #1a7f37;
-  --v-green-bg: #e9f7ee;
-  --v-amber: #a35200;
-  --v-amber-bg: #fff4e5;
-  --v-red: #cb2a2f;
-  --v-red-bg: #fdecec;
+  --v-bg-2: var(--v-white);
+  --v-gray-1: #eef1f2;
+  --v-border: #e6e9ea;
+  --v-border-strong: #cfd5d8;
+  --v-text: var(--v-dark);
+  --v-text-2: #57686f;
+  --v-text-3: #859196;
+  --v-accent: var(--v-blue);
+  --v-accent-bg: var(--v-light);
   --v-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
   /* The dither cells (web/src/ui/cells.tsx) read these. */
   --wk-ink: var(--v-text);
-  --wk-dot: #6ec1ea;
+  --wk-dot: var(--v-blue);
   --wk-off: #dcdcdc;
   display: flex;
   flex-direction: column;
@@ -313,7 +313,7 @@
 }
 
 .v-btn:hover {
-  background: #383838;
+  background: #0d3547;
 }
 
 .v-btn-lg {
@@ -341,14 +341,16 @@
   background: var(--v-gray-1);
 }
 
+/* A stop (Stop the desk, Cut off): a dark blue outline, so it sits apart from the neutral
+   secondary buttons without a new colour. The confirm dialog carries the weight. */
 .v-btn-error {
   background: var(--v-bg);
-  border-color: #f5c2c3;
-  color: var(--v-red);
+  border-color: var(--v-dark);
+  color: var(--v-dark);
 }
 
 .v-btn-error:hover {
-  background: var(--v-red-bg);
+  background: var(--v-light);
 }
 
 .v-btn:disabled {
@@ -393,7 +395,7 @@
 .v-input:focus-visible,
 .v-seg button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(23, 23, 23, 0.35);
+  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(1, 26, 37, 0.35);
 }
 
 /* Badge: a 20 px pill, 12 px 500. Gray is a bordered pill; a tone is a tinted fill with
@@ -414,10 +416,10 @@
   white-space: nowrap;
 }
 
-.v-badge[data-tone="green"] { border-color: transparent; background: var(--v-green-bg); color: var(--v-green); }
-.v-badge[data-tone="amber"] { border-color: transparent; background: var(--v-amber-bg); color: var(--v-amber); }
-.v-badge[data-tone="red"] { border-color: transparent; background: var(--v-red-bg); color: var(--v-red); }
-.v-badge[data-tone="blue"] { border-color: transparent; background: var(--v-accent-bg); color: var(--v-accent); }
+.v-badge[data-tone="green"],
+.v-badge[data-tone="blue"] { border-color: transparent; background: var(--v-light); color: var(--v-dark); }
+.v-badge[data-tone="amber"] { border-color: var(--v-dark); background: var(--v-bg); color: var(--v-dark); }
+.v-badge[data-tone="red"] { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
 
 /* Status dot: 8 px dot and a 14 px label (Geist "Status"). */
 .v-status {
@@ -435,10 +437,11 @@
   background: var(--v-text-3);
 }
 
-.v-status[data-tone="green"]::before { background: #2f9e44; }
-.v-status[data-tone="amber"]::before { background: #f08c00; }
-.v-status[data-tone="red"]::before { background: #e03131; }
-.v-status[data-tone="blue"]::before { background: var(--v-accent); }
+/* In force: ENS blue. Warning: a dark blue ring. Stopped: dark blue filled. */
+.v-status[data-tone="green"]::before,
+.v-status[data-tone="blue"]::before { background: var(--v-blue); }
+.v-status[data-tone="amber"]::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--v-dark); }
+.v-status[data-tone="red"]::before { background: var(--v-dark); }
 
 /* Inputs: 36 px, 6 px radius, 1 px border. */
 .v-field {
@@ -473,9 +476,23 @@ textarea.v-input {
   resize: vertical;
 }
 
+/* A field error: dark blue, 500, after a dark blue ring (the palette's warning mark). */
 .v-error {
-  color: var(--v-red);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--v-dark);
   font-size: 13px;
+  font-weight: 500;
+}
+
+.v-error::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--v-dark);
 }
 
 /* Segmented control (Geist "Switch"): gray track, white selected option. */
@@ -534,18 +551,20 @@ textarea.v-input {
   background: var(--v-text-3);
 }
 
-.v-note[data-tone="green"] { border-color: #b7e2c4; background: var(--v-green-bg); }
-.v-note[data-tone="amber"] { border-color: #ffd8a8; background: var(--v-amber-bg); }
-.v-note[data-tone="red"] { border-color: #f5c2c2; background: var(--v-red-bg); }
-.v-note[data-tone="blue"] { border-color: #bfe0f2; background: var(--v-accent-bg); }
-.v-note[data-tone="green"] > span:first-child::before { background: #2f9e44; }
-.v-note[data-tone="amber"] > span:first-child::before { background: #f08c00; }
-.v-note[data-tone="red"] > span:first-child::before { background: #e03131; }
-.v-note[data-tone="blue"] > span:first-child::before { background: var(--v-accent); }
+.v-note[data-tone="green"],
+.v-note[data-tone="blue"] { border-color: transparent; background: var(--v-light); }
+.v-note[data-tone="amber"] { border-color: var(--v-dark); background: var(--v-bg); }
+.v-note[data-tone="red"] { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
+.v-note[data-tone="green"] > span:first-child::before,
+.v-note[data-tone="blue"] > span:first-child::before { background: var(--v-blue); }
+.v-note[data-tone="amber"] > span:first-child::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--v-dark); }
+.v-note[data-tone="red"] > span:first-child::before { background: var(--v-white); }
 
 /* Verify's verdict card: tinted green when the recompute matches, red when it does not. */
-.v-card.v-verdict-green { border-color: #b7e2c4; background: var(--v-green-bg); }
-.v-card.v-verdict-red { border-color: #f5c2c2; background: var(--v-red-bg); }
+.v-card.v-verdict-green { border-color: transparent; background: var(--v-light); }
+.v-card.v-verdict-red { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
+.v-card.v-verdict-red .v-muted { color: var(--v-light); }
+.v-card.v-verdict-red .v-status::before { background: var(--v-white); }
 
 /* Empty state: the dither clouds, one line, one action, centred in a card. */
 .v-empty {
@@ -726,5 +745,5 @@ textarea.v-input {
 
 /* Keyboard focus rings the handle, not the track; a mouse drag shows no ring. */
 .v-slider-track:has(.v-slider-input:focus-visible) .v-slider-handle {
-  box-shadow: 0 0 0 1px var(--v-text), 0 0 0 4px rgba(23, 23, 23, 0.12);
+  box-shadow: 0 0 0 1px var(--v-text), 0 0 0 4px rgba(1, 26, 37, 0.12);
 }
