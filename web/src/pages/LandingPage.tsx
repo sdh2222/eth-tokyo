@@ -69,23 +69,32 @@ function ComparePanel({ side, kind }: { side: "today" | "ours"; kind: "dump" | "
   );
 }
 
-// The price board. Widths are basis points from the mark; the numbers are an example.
-const MARK = 4000;
-const LOT = 100;
-const SPREAD_CELLS = 30;
-const usd = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const whole = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+// The DAO's quote around an example mark. Each square is one basis point.
+const SPREAD_CELLS = 16;
+const QUOTE = { buy: "3,996.00", buyBps: 10, sell: "4,001.20", sellBps: 3 };
 
-function SpreadStrip({ sellBps, buyBps }: { sellBps: number; buyBps: number }) {
+function SpreadStrip() {
   const cells = [];
   for (let bp = -SPREAD_CELLS; bp <= SPREAD_CELLS; bp += 1) {
     const x = (bp + SPREAD_CELLS) * STEP;
-    const kind = bp === 0 ? "mark" : (bp > 0 && bp <= sellBps) || (bp < 0 && -bp <= buyBps) ? "on" : "off";
+    const on = (bp > 0 && bp <= QUOTE.sellBps) || (bp < 0 && -bp <= QUOTE.buyBps);
+    // The squares open outward from the mark, one basis point at a time.
+    const delay = Math.abs(bp) * 60;
     cells.push(
-      kind === "off" ? (
-        <rect key={bp} className="wm-cell-off" x={x + 4} y={4} width={2} height={2} />
+      bp === 0 ? (
+        <rect key={bp} className="wm-cell-mark" x={x} y={0} width={CELL} height={CELL} />
+      ) : on ? (
+        <rect
+          key={bp}
+          className="wm-cell-on wm-cell-spread"
+          x={x}
+          y={0}
+          width={CELL}
+          height={CELL}
+          style={{ transitionDelay: `${delay}ms` }}
+        />
       ) : (
-        <rect key={bp} className={kind === "mark" ? "wm-cell-mark" : "wm-cell-spread"} x={x} y={0} width={CELL} height={CELL} />
+        <rect key={bp} className="wm-cell-off" x={x + 4} y={4} width={2} height={2} />
       ),
     );
   }
@@ -96,56 +105,39 @@ function SpreadStrip({ sellBps, buyBps }: { sellBps: number; buyBps: number }) {
   );
 }
 
-function PriceBoard() {
-  const copy = LANDING.price;
-  const [sellBps, setSellBps] = useState(3);
-  const [buyBps, setBuyBps] = useState(10);
-  const ask = (MARK * (10000 + sellBps)) / 10000;
-  const bid = (MARK * (10000 - buyBps)) / 10000;
-  const lotOurs = (LOT * MARK * sellBps) / 10000;
-  const lotToday = LOT * MARK * 0.02;
+function WhoPanel({ side }: { side: "today" | "ours" }) {
+  const copy = LANDING.price[side];
+  return (
+    <article className={`wm-panel wm-panel-${side}`}>
+      <p className="wm-panel-label">{copy.label}</p>
+      <p className="wm-number">{copy.who}</p>
+      <p className="wm-who-body">{copy.body}</p>
+    </article>
+  );
+}
 
+function QuoteStrip() {
+  const copy = LANDING.price;
   return (
     <div className="wm-board">
-      <div className="wm-quotes">
+      <p className="wm-panel-label">{copy.quote}</p>
+      <div className="wm-quote-row">
         <div className="wm-quote">
-          <p className="wm-panel-label">{copy.buy}</p>
-          <p className="wm-quote-price">{usd(bid)}</p>
-          <p className="wm-quote-bps">−{buyBps} bp</p>
+          <p className="wm-quote-side">{copy.buy}</p>
+          <p className="wm-quote-price">{QUOTE.buy}</p>
+          <p className="wm-quote-bps">−{QUOTE.buyBps} bp</p>
+        </div>
+        <div className="wm-quote-mid">
+          <SpreadStrip />
+          <p className="wm-spread-mark">{copy.mark}</p>
         </div>
         <div className="wm-quote">
-          <p className="wm-panel-label">{copy.sell}</p>
-          <p className="wm-quote-price">{usd(ask)}</p>
-          <p className="wm-quote-bps">+{sellBps} bp</p>
+          <p className="wm-quote-side">{copy.sell}</p>
+          <p className="wm-quote-price">{QUOTE.sell}</p>
+          <p className="wm-quote-bps">+{QUOTE.sellBps} bp</p>
         </div>
       </div>
-      <div className="wm-spread-wrap">
-        <SpreadStrip sellBps={sellBps} buyBps={buyBps} />
-        <p className="wm-spread-mark">{copy.mark}</p>
-      </div>
-      <div className="wm-sliders">
-        <label className="wm-slider">
-          <span>
-            {copy.buyWidth} <output>{buyBps} bp</output>
-          </span>
-          <input type="range" min={1} max={SPREAD_CELLS} value={buyBps} onChange={(e) => setBuyBps(Number(e.target.value))} />
-        </label>
-        <label className="wm-slider">
-          <span>
-            {copy.sellWidth} <output>{sellBps} bp</output>
-          </span>
-          <input
-            type="range"
-            min={1}
-            max={SPREAD_CELLS}
-            value={sellBps}
-            onChange={(e) => setSellBps(Number(e.target.value))}
-          />
-        </label>
-      </div>
-      <p className="wm-lot">
-        {copy.lot}: <strong>+${whole(lotOurs)}</strong> {copy.lotOurs}. <span>−${whole(lotToday)}</span> {copy.lotToday}.
-      </p>
+      <p className="wm-close">{copy.close}</p>
     </div>
   );
 }
@@ -172,6 +164,7 @@ function useSeen<T extends Element>() {
 export function LandingPage() {
   const [skyLoaded, setSkyLoaded] = useState(false);
   const [compareRef, compareSeen] = useSeen<HTMLDivElement>();
+  const [priceRef, priceSeen] = useSeen<HTMLDivElement>();
 
   return (
     <div className="wm-landing">
@@ -226,14 +219,12 @@ export function LandingPage() {
       <section className="wm-section">
         <p className="wm-label">{LANDING.price.label}</p>
         <h2 className="wm-h2">{LANDING.price.title}</h2>
-        <PriceBoard />
-        <div className="wm-three">
-          {LANDING.price.points.map((point) => (
-            <div key={point.title}>
-              <p className="wm-three-title">{point.title}</p>
-              <p className="wm-three-body">{point.body}</p>
-            </div>
-          ))}
+        <div className="wm-seen" ref={priceRef} data-seen={priceSeen}>
+          <div className="wm-compare">
+            <WhoPanel side="today" />
+            <WhoPanel side="ours" />
+          </div>
+          <QuoteStrip />
         </div>
       </section>
     </div>
