@@ -19,6 +19,7 @@ import sepoliaConfig from "@config";
 import { recomputeFill } from "../verify";
 import curveFile from "./preview-curve.json";
 import { CAP_MM_A, FILL_CAP_WETH, lookupQuote } from "./quotes";
+import { fixtureAgentWrite, LAST_FILL } from "./agent";
 
 export const NOW = 1790337600;
 
@@ -198,12 +199,19 @@ export function createFixture(which: "qa" | "demo"): {
       memory.block += 1n;
     },
     seedFill() {
-      // Alternates mm-a selling 2 ETH at its bid (9 bp) and mm-b buying 1.5 ETH at its ask
-      // (2 bp), each on its own agent spread at mid 4000, so Verify recomputes a match.
+      // Alternates each name's last fill (agent.ts): mm-a selling 2 ETH at its bid and mm-b
+      // buying 1.5 ETH at its ask, each on its own agent spread at mid 4000, so Verify
+      // recomputes a match and the amounts follow the widths the agent derived.
       const n = memory.fills.length;
       const buys = n % 2 === 1;
       const tx = `0x${(0xa1 + n).toString(16).padStart(2, "0").repeat(32)}` as Hex;
       const mid = 4000n * WAD;
+      const a = fixtureAgentWrite("mm-a");
+      const b = fixtureAgentWrite("mm-b");
+      const ask = (mid * BigInt(10_000 + b.sellBps)) / 10_000n;
+      const bid = (mid * BigInt(10_000 - a.buyBps)) / 10_000n;
+      const bSize = LAST_FILL["mm-b"].sizeWeth;
+      const aSize = LAST_FILL["mm-a"].sizeWeth;
       const { weth, usdc } = (sepoliaConfig as DeskConfig).tokens as { weth: Address; usdc: Address };
       const fill: FillRecord = buys
         ? {
@@ -217,10 +225,10 @@ export function createFixture(which: "qa" | "demo"): {
             name: "mm-b",
             tokenIn: usdc,
             tokenOut: weth,
-            amountIn: 6001200000n,
-            amountOut: 1500000000000000000n,
+            amountIn: (bSize * ask + WAD * 10n ** 12n - 1n) / (WAD * 10n ** 12n),
+            amountOut: bSize,
             midWad: mid,
-            spreadBps: 2,
+            spreadBps: b.sellBps,
             spreadSource: 1,
             wBeforeWad: 900000000000000000n,
           }
@@ -235,10 +243,10 @@ export function createFixture(which: "qa" | "demo"): {
             name: "mm-a",
             tokenIn: weth,
             tokenOut: usdc,
-            amountIn: 2n * WAD,
-            amountOut: 7992800000n,
+            amountIn: aSize,
+            amountOut: (aSize * bid) / (WAD * 10n ** 12n),
             midWad: mid,
-            spreadBps: 9,
+            spreadBps: a.buyBps,
             spreadSource: 1,
             wBeforeWad: 900000000000000000n,
           };

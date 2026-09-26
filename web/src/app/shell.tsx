@@ -33,7 +33,9 @@ function Shell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [role, setRole] = useRole();
   const live = useLiveStrategy();
-  const deskLive = Boolean(live.data);
+  // "Open a desk" joins the tabs only once the read says there is no desk, so it does not
+  // flash in while the strategy is still loading.
+  const deskLive = Boolean(live.data) || !live.isSuccess;
 
   // The page in view decides the role: Trade and My fills belong to the counterparty.
   const pageRole = roleOf(location);
@@ -66,11 +68,12 @@ function Shell({ children }: { children: ReactNode }) {
           }
           endContent={<WalletControl />}
         />
-        <div className="watermark-role-row" role="radiogroup" aria-label="Role">
+        <div className="watermark-role-row" role="group" aria-label="Role">
           {ROLES.map((item) => (
             <Button
               key={item}
               label={ROLE_WORD[item]}
+              aria-pressed={item === role}
               variant={item === role ? "primary" : "ghost"}
               onClick={() => {
                 setRole(item);

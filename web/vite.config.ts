@@ -12,6 +12,7 @@ export default defineConfig({
       "@desk/browser": fileURLToPath(new URL("../ts/src/lib/client/browser.ts", import.meta.url)),
       "@desk/book": fileURLToPath(new URL("../ts/src/lib/book.ts", import.meta.url)),
       "@desk/verify": fileURLToPath(new URL("../ts/src/lib/client/verify.ts", import.meta.url)),
+      "@desk/counterparty": fileURLToPath(new URL("../ts/src/lib/counterparty.ts", import.meta.url)),
     },
   },
 });

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import sepoliaConfig from "@config";
@@ -108,14 +108,20 @@ export function useDeskState(strategy: StrategyInfo | null) {
 
 // Fills come from the router's DeskFill logs in both modes. The Render API's indexer still
 // decodes the old DeskFill signature, so live mode reads the chain directly (every block).
-export function useFills(strategy: StrategyInfo | null) {
+// Fills for the desk. The key moves with each block, so the last list is kept while the next
+// one loads. isLoading is true until a read has come back (the first block, the strategy
+// or the request itself may still be on its way), so pages don't paint "No fills yet" early.
+export function useFills(strategy: StrategyInfo | null, strategyLoading = false) {
   const desk = useDeskPort();
   const client = usePublicClient();
   const { block } = useBlock();
   const cfg = deskConfig();
-  return useQuery({
+  const query = useQuery({
     queryKey: ["fills", mode, strategy?.strategyHash, block?.toString()],
     queryFn: () => desk.readFills({ client, cfg }, mode === "live" ? undefined : (strategy ?? undefined)),
     enabled: block !== undefined && (mode === "live" || strategy !== null),
+    placeholderData: keepPreviousData,
   });
+  const waiting = query.data === undefined && !query.isError && (mode === "live" || strategy !== null || strategyLoading);
+  return { ...query, isLoading: waiting };
 }
