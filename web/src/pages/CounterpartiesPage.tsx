@@ -1,26 +1,33 @@
 import { Fragment, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import sepoliaConfig from "@config";
 import { useImperativeAlertDialog } from "@astryxdesign/core/AlertDialog";
 import { formatUnits } from "viem";
-import type { DeskBook } from "../desk/book";
+import { formatWadUsd, nameQuote, shortName, type AgentWrite, type DeskBook, type NameQuote } from "../desk/book";
 import { CLIENT_SUFFIX } from "../ens/names";
+import { useAgentWrites, writeFor } from "../hooks/useAgentWrites";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
-import { formatAddr, formatWeth } from "../lib/format";
+import { formatAddr, formatHash, formatWeth } from "../lib/format";
+import { formatWhen } from "../lib/time";
 import { Badge, Card, Dl, Empty, Header, Metric, Metrics, Page, Status, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
-// Counterparties (IA: "Who can trade with my desk, and on what terms?"). Vercel-style: the
-// terms in one metrics card, then the client names in a flush table card. Edit expands the
-// row (SC-10) and saving opens the Safe signing overlay (O1). Cut off shows one confirm
-// sentence first (SC-05).
+// Counterparties (IA: "Who can trade with my desk, and on what terms?"). Main's flow (PR #34):
+// each name has its own terms and its own agent spread, and is quoted from that spread while
+// it is live, else from its terms. Vercel-style: metrics, then the client names in a flush
+// table card. Edit expands the row (SC-10) and saving opens the Safe signing overlay (O1).
+// Cut off shows one confirm sentence first (SC-05).
 
 const SAFE_WALLET = "Safe{Wallet}";
-const COLUMNS = 6;
+const COLUMNS = 8;
 
 type NameStatus = "Live" | "Expired" | "Cut off";
 
 const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Expired: "red", "Cut off": "gray" };
+
+type Terms = DeskBook["names"][number]["terms"];
+type Spread = DeskBook["names"][number]["spread"];
 
 type NameRow = {
   id: string;
@@ -28,40 +35,44 @@ type NameRow = {
   addr: string;
   expiry: number;
   status: NameStatus;
-  terms: string;
+  terms: Terms;
+  spread: Spread;
+  quote: NameQuote | null;
   reason: string;
 };
 
 type Draft = { sell: string; buy: string; cap: string };
 type Proposal = { isOpen: boolean; title: string; description: string };
 
-function termsText(terms: DeskBook["terms"]): string {
-  if (!terms) return "No agreed terms";
-  return `sell ${terms.sellBps} bp · buy ${terms.buyBps} bp · cap ${formatWeth(terms.cap)}`;
-}
-
-// The widths a live name pays now: the agent spread while it is live, otherwise the terms.
-function widthNow(book: DeskBook): { widths: string; source: string } | null {
-  if (book.spread?.live) return { widths: `sell ${book.spread.sellBps} · buy ${book.spread.buyBps} bp`, source: "agent spread" };
-  if (book.terms) return { widths: `sell ${book.terms.sellBps} · buy ${book.terms.buyBps} bp`, source: "terms" };
-  return null;
+// Widths as ask / bid around the mid, e.g. "+3 / −10 bp".
+function widths(sellBps: number, buyBps: number): string {
+  return `+${sellBps} / −${buyBps} bp`;
 }
 
 function toRows(book: DeskBook, now: number): NameRow[] {
-  const terms = termsText(book.terms);
   return book.names.map((entry) => {
     const expiry = Number(entry.expiry);
     const expired = expiry > 0 && expiry <= now;
     const status: NameStatus = expired ? "Expired" : entry.live ? "Live" : "Cut off";
     let reason = "Its address is the wallet, it has terms, and it has not expired.";
     if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
-    else if (status === "Cut off" && !book.terms) reason = "The client names do not store the same valid desk.terms.";
+    else if (status === "Cut off" && !entry.terms) reason = "The name has no valid desk.terms.";
     else if (status === "Cut off") reason = "Its address or resolver does not pass the gate.";
-    return { id: entry.name, name: entry.name, addr: entry.addr, expiry, status, terms, reason };
+    return {
+      id: entry.name,
+      name: entry.name,
+      addr: entry.addr,
+      expiry,
+      status,
+      terms: entry.terms,
+      spread: entry.spread,
+      quote: nameQuote(book, entry),
+      reason,
+    };
   });
 }
 
-function draftFrom(terms: DeskBook["terms"]): Draft {
+function draftFrom(terms: Terms): Draft {
   if (!terms) return { sell: "", buy: "", cap: "" };
   return { sell: String(terms.sellBps), buy: String(terms.buyBps), cap: formatUnits(terms.cap, 18) };
 }
@@ -84,6 +95,8 @@ function Expiry({ seconds }: { seconds: number }) {
 
 function TermsEditor({
   row,
+  write,
+  now,
   draft,
   onDraft,
   onSave,
@@ -91,6 +104,8 @@ function TermsEditor({
   onCutOff,
 }: {
   row: NameRow;
+  write: AgentWrite | undefined;
+  now: number;
   draft: Draft;
   onDraft: (draft: Draft) => void;
   onSave: () => void;
@@ -104,21 +119,45 @@ function TermsEditor({
 
   return (
     <div className="v-stack v-stack-24">
-      <div className="v-stack">
-        <Dl
-          items={[
-            ["Can trade", row.reason],
-            ["Terms now", row.terms],
-          ]}
-        />
-        <details className="v-details">
-          <summary>Show raw</summary>
-          <div className="v-code">
-            <div>{`addr ${row.addr}`}</div>
-            <div>{`expiry ${row.expiry > 0 ? String(row.expiry) : "none"}`}</div>
-          </div>
-        </details>
+      <div className="v-grid">
+        <div className="v-col-6">
+          <Dl
+            items={[
+              ["ENS name", row.name],
+              ["Can trade", row.reason],
+              ["Address", <span className="v-mono">{formatAddr(row.addr)}</span>],
+              ["Expires", <Expiry seconds={row.expiry} />],
+            ]}
+          />
+        </div>
+        <div className="v-col-6">
+          <Dl
+            items={[
+              ["Agent's last write", write ? formatWhen(write.writtenAt, now) : "No write yet"],
+              ...(write?.tier ? ([["Tier", write.tier]] as const) : []),
+              ...(write?.note ? ([["Note", write.note]] as const) : []),
+              ...(write?.fillTx
+                ? ([
+                    [
+                      "After fill",
+                      <Link className="v-mono" to={`/fills/${write.fillTx}`}>
+                        {formatHash(write.fillTx)}
+                      </Link>,
+                    ],
+                  ] as const)
+                : []),
+            ]}
+          />
+        </div>
       </div>
+
+      <details className="v-details">
+        <summary>Show raw</summary>
+        <div className="v-code">
+          <div>{`addr ${row.addr}`}</div>
+          <div>{`expiry ${row.expiry > 0 ? String(row.expiry) : "none"}`}</div>
+        </div>
+      </details>
 
       <form className="v-stack" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
         <div className="v-row">
@@ -181,6 +220,7 @@ function TermsEditor({
 export function CounterpartiesPage() {
   const book = useBook();
   const now = useClock();
+  const writes = useAgentWrites();
   const alert = useImperativeAlertDialog();
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ sell: "", buy: "", cap: "" });
@@ -191,7 +231,7 @@ export function CounterpartiesPage() {
       setOpenId(null);
       return;
     }
-    setDraft(draftFrom(book.data?.terms ?? null));
+    setDraft(draftFrom(row.terms));
     setOpenId(row.id);
   }
 
@@ -204,7 +244,7 @@ export function CounterpartiesPage() {
   }
 
   function cutOff(row: NameRow) {
-    const label = row.name.split(".")[0];
+    const label = shortName(row.name);
     alert.show({
       title: `Cut off ${row.name}?`,
       description: `The Safe clears this name's desk.terms. Once 2 of 3 owners sign in ${SAFE_WALLET}, fills from ${label} fail the gate. Other names keep trading.`,
@@ -232,7 +272,8 @@ export function CounterpartiesPage() {
   const b = book.data;
   const rows = toRows(b, now);
   const liveCount = rows.filter((row) => row.status === "Live").length;
-  const width = widthNow(b);
+  const agentCount = rows.filter((row) => row.status === "Live" && row.quote?.source === "agent").length;
+  const fence = b.terms;
 
   return (
     <Page>
@@ -241,15 +282,9 @@ export function CounterpartiesPage() {
       <Card flush>
         <Metrics>
           <Metric label="Can trade" value={`${liveCount} of ${rows.length}`} hint="Names that pass the gate now." />
-          {b.terms ? (
-            <>
-              <Metric label="Sell width limit" value={`${b.terms.sellBps} bp`} />
-              <Metric label="Buy width limit" value={`${b.terms.buyBps} bp`} />
-              <Metric label="Cap per fill" value={formatWeth(b.terms.cap)} />
-            </>
-          ) : (
-            <Metric label="Terms" value="None" hint="The client names disagree or are missing." />
-          )}
+          <Metric label="Names on an agent spread" value={`${agentCount} of ${rows.length}`} />
+          <Metric label="Terms fence" value={fence ? widths(fence.sellBps, fence.buyBps) : "—"} hint={fence ? undefined : "No terms"} />
+          <Metric label="Cap per fill" value={fence ? formatWeth(fence.cap) : "—"} />
         </Metrics>
       </Card>
 
@@ -263,9 +298,11 @@ export function CounterpartiesPage() {
                 <tr>
                   <th>Name</th>
                   <th>Status</th>
-                  <th>Expires</th>
-                  <th>Width now</th>
-                  <th>Address</th>
+                  <th>Terms</th>
+                  <th>Widths now</th>
+                  <th className="v-right">Bid</th>
+                  <th className="v-right">Ask</th>
+                  <th>Valid until</th>
                   <th className="v-right">
                     <span className="v-sr">Edit</span>
                   </th>
@@ -275,28 +312,29 @@ export function CounterpartiesPage() {
                 {rows.map((row) => {
                   const isOpen = openId === row.id;
                   const panelId = `terms-${row.id.replace(/\./g, "-")}`;
+                  const q = row.status === "Live" ? row.quote : null;
                   return (
                     <Fragment key={row.id}>
                       <tr>
-                        <td>{row.name}</td>
+                        <td>{shortName(row.name)}</td>
                         <td>
                           <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
                         </td>
+                        <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
                         <td>
-                          <Expiry seconds={row.expiry} />
-                        </td>
-                        <td>
-                          {row.status === "Live" && width ? (
-                            <>
-                              {width.widths}
-                              <span className="v-muted">{` · ${width.source}`}</span>
-                            </>
+                          {q ? (
+                            <span className="v-row v-row-8">
+                              <span>{widths(q.sellBps, q.buyBps)}</span>
+                              {q.source === "agent" ? <Badge tone="blue">Agent spread</Badge> : <Badge>Terms</Badge>}
+                            </span>
                           ) : (
                             <span className="v-muted">—</span>
                           )}
                         </td>
-                        <td>
-                          <span className="v-mono">{formatAddr(row.addr)}</span>
+                        <td className="v-right">{q ? `$${formatWadUsd(q.bid)}` : "—"}</td>
+                        <td className="v-right">{q ? `$${formatWadUsd(q.ask)}` : "—"}</td>
+                        <td className={row.spread?.live ? undefined : "v-muted"}>
+                          {row.spread ? formatWhen(Number(row.spread.validUntil), now) : "—"}
                         </td>
                         <td className="v-right">
                           <button
@@ -316,6 +354,8 @@ export function CounterpartiesPage() {
                           <td className="v-expand" colSpan={COLUMNS}>
                             <TermsEditor
                               row={row}
+                              write={writeFor(writes.data, row.name)}
+                              now={now}
                               draft={draft}
                               onDraft={setDraft}
                               onSave={() => saveTerms(row)}
