@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { encodeAbiParameters } from "viem";
 import { LANDING } from "../copy/en";
 import { LandingSwarm } from "./LandingSwarm";
 import "./landing.css";
@@ -109,6 +110,32 @@ const SKY_WIDTHS = [
   [1600, "(max-width: 1600px)"],
 ] as const;
 
+// Small columns under a section, each with a rule, a mono kicker and a short paragraph.
+function Notes({ notes, raw }: { notes: readonly { kicker: string; body: string }[]; raw?: { label: string; hex: string } }) {
+  return (
+    <div className={`wm-notes${raw ? " wm-notes-raw" : ""}`}>
+      {notes.map((note) => (
+        <div key={note.kicker} className="wm-note">
+          <p className="wm-note-kicker">{note.kicker}</p>
+          <p className="wm-note-body">{note.body}</p>
+        </div>
+      ))}
+      {raw ? (
+        <div className="wm-note">
+          <p className="wm-note-kicker">[{raw.label}]</p>
+          <p className="wm-note-raw">{raw.hex}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// mm-a's desk.terms as the router reads it (#29): version 1, sell 3 bp, buy 10 bp, cap 50 WETH.
+const TERMS_HEX = encodeAbiParameters(
+  [{ type: "uint8" }, { type: "uint16" }, { type: "uint16" }, { type: "uint128" }],
+  [1, 3, 10, 50n * 10n ** 18n],
+);
+
 // True once the element has been a third on screen. It stays true.
 function useSeen<T extends Element>() {
   const ref = useRef<T>(null);
@@ -195,6 +222,7 @@ export function LandingPage() {
           <CompareTable />
         </div>
         <p className="wm-leak">{LANDING.compare.leak}</p>
+        <Notes notes={LANDING.compare.notes} />
       </section>
 
       <section className="wm-section">
@@ -202,6 +230,7 @@ export function LandingPage() {
         <h2 className="wm-h2">{LANDING.gate.title}</h2>
         <LandingSwarm />
         <p className="wm-caption">{LANDING.gate.caption}</p>
+        <Notes notes={LANDING.gate.notes} raw={{ label: LANDING.gate.raw, hex: TERMS_HEX }} />
       </section>
     </div>
   );

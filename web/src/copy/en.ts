@@ -154,6 +154,20 @@ export const LANDING = {
       price: { label: "Who sets the price", today: "The solver", ours: "The DAO" },
     },
     leak: "And whoever takes that dump, a solver or a pool, eats the DAO's spread.",
+    notes: [
+      {
+        kicker: "Why all at once",
+        body: "A treasury sale runs through a multisig. Splitting it into slices means a proposal, signatures and a fresh price for every slice, so the whole amount usually goes out in one trade.",
+      },
+      {
+        kicker: "Why it costs",
+        body: "A pool charges slippage on size. A solver quotes a price that already holds what it can extract from the order. The treasury is large, and it is still the taker.",
+      },
+      {
+        kicker: "What watermark changes",
+        body: "The Safe signs one SwapVM program and one 1inch Aqua order. Takers then fill small amounts on the DAO's own price, and each fill pulls tokens from the Safe only at that moment.",
+      },
+    ],
   },
   gate: {
     label: "Named takers",
@@ -161,5 +175,20 @@ export const LANDING = {
     open: "Anyone can take it",
     named: "Only named takers",
     caption: "Every fill reads the taker's ENS name. No name, no fill.",
+    notes: [
+      {
+        kicker: "An open quote",
+        body: "An Aqua order that anyone can fill is a free option. When the market moves, the fastest bot takes the DAO's price before the DAO can change it.",
+      },
+      {
+        kicker: "A name per taker",
+        body: "Each counterparty is a name under the desk's clients name. At every fill the router reads it: the name must point to the taker's wallet, it must not have expired, and it must carry the DAO's terms.",
+      },
+      {
+        kicker: "Terms on the name",
+        body: "desk.terms on each name holds the sell width, the buy width and the cap. Changing them, or letting a name expire, changes who can fill. The program and the Aqua order stay as they are.",
+      },
+    ],
+    raw: "desk.terms · mm-a",
   },
 } as const;
