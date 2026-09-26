@@ -64,8 +64,8 @@ export async function readRecords(resolver: Address, fullName: string, now: bigi
 
 export type ClientView = Records & {
   name: string
-  /** Pre-clamp spread the router starts from: the agent's spread if valid, else the tier from desk.terms. */
-  rawSpread: { bps: number; source: 'agent' | 'tier' } | null
+  /** Stored desk.spread when the 96-byte record is still inside validUntil. The router does not read it. */
+  storedSpread: { bps: number; validUntil: bigint } | null
   expiries: { name: string; expiry: bigint }[]
   expiryOk: boolean
   resolver: Address
@@ -87,15 +87,13 @@ export async function readClient(fullName: string): Promise<ClientView> {
       : await readRecords(resolver, fullName, block.timestamp)
   const expiryOk = levels.every((l) => l.expiry > block.timestamp)
   const resolverOk = resolver !== zeroAddress && resolver.toLowerCase() === expected.toLowerCase()
-  const rawSpread = records.spreadValid
-    ? { bps: records.spread!.spreadBps, source: 'agent' as const }
-    : records.termsValid
-      ? { bps: records.terms!.tierBps, source: 'tier' as const }
-      : null
+  const storedSpread = records.spreadValid
+    ? { bps: records.spread!.spreadBps, validUntil: records.spread!.validUntil }
+    : null
   return {
     name: fullName,
     ...records,
-    rawSpread,
+    storedSpread,
     expiries: levels.map((l) => ({ name: l.name, expiry: l.expiry })),
     expiryOk,
     resolver,

@@ -1,7 +1,7 @@
 // Acceptance checks for the ENS part (ENS_구현_매뉴얼.md §7 step 6 and §10). Exits 1 if a required check fails.
 // After the handoff to the treasury Safe (requirement 014), run it as `npm run verify -- --safe <address>`.
 import { parseArgs } from 'node:util'
-import { decodeAbiParameters, encodeFunctionData, getAddress, namehash, parseAbi, parseUnits } from 'viem'
+import { decodeAbiParameters, encodeFunctionData, getAddress, namehash, parseAbi } from 'viem'
 import { profileAbi, registryAbi, resolverAbi } from '../src/abis.js'
 import { ADDR, CLIENTS_NAME, DESK_LABEL, DESK_NAME, publicClient } from '../src/config.js'
 import { loadDeployment, requireField } from '../src/deployments.js'
@@ -47,18 +47,19 @@ check(same(deskSub, d.registries?.desk ?? ''), `${DESK_NAME} subregistry wired`)
 const mmA = await readClient(`mm-a.${CLIENTS_NAME}`)
 check(mmA.gateOk, `${mmA.name} passes the gate (3-level expiry + resolver + terms)`)
 check(same(mmA.addr, requireField(d.clients?.[mmA.name]?.address, 'mm-a', 'clients')), `${mmA.name} addr = the recorded MM_A address`)
-check(mmA.termsValid && mmA.terms?.tierBps === 10 && mmA.terms?.capPerFill === parseUnits('100000', 6), `${mmA.name} desk.terms = tier 10 bps / cap 100,000 USDC (96 bytes)`, JSON.stringify(mmA.terms, (_, v) => (typeof v === 'bigint' ? v.toString() : v)))
+const cap = 50n * 10n ** 18n
+check(mmA.termsValid && mmA.terms?.sSellBps === 3 && mmA.terms?.sBuyBps === 10 && mmA.terms?.cap === cap, `${mmA.name} desk.terms = sell 3 bp / buy 10 bp / cap 50 ETH`, JSON.stringify(mmA.terms, (_, v) => (typeof v === 'bigint' ? v.toString() : v)))
 check(mmA.expiries.length === 3, `${mmA.name} expiry read at 3 levels`, mmA.expiries.map((e) => `${e.name} ${iso(e.expiry)}`).join(' | '))
 
 const mmB = await readClient(`mm-b.${CLIENTS_NAME}`)
-check(mmB.gateOk && mmB.terms?.tierBps === 25, `${mmB.name} passes with a different tier (25 bps)`)
+check(mmB.gateOk && mmB.terms?.sSellBps === 3 && mmB.terms?.sBuyBps === 10 && mmB.terms?.cap === cap, `${mmB.name} desk.terms = sell 3 bp / buy 10 bp / cap 50 ETH`)
 
 const mmC = await readClient(`mm-c.${CLIENTS_NAME}`)
 info(`${mmC.name} expires ${iso(mmC.expiries.at(-1)!.expiry)} → gate ${mmC.gateOk ? 'OPEN' : 'CLOSED (NameExpired)'} — rerun 03-clients before demo scene 3`)
 
-// 3. Default record: a name with no record of its own must read capPerFill = 0
+// 3. A name with no record of its own must not be a valid 128-byte terms record.
 const orphan = await readRecords(resolver, `nobody.${CLIENTS_NAME}`, now)
-check(orphan.terms?.capPerFill === DEFAULT_TERMS.capPerFill && !orphan.termsValid, 'unrecorded name falls back to the default record: capPerFill 0, so the router reverts DeskPriceNoTerms')
+check(!orphan.termsValid && (orphan.terms === null || orphan.terms.cap === DEFAULT_TERMS.cap), 'unrecorded name is not valid desk.terms, so the router reverts DeskPriceNoTerms')
 
 // 4. Agent boundary
 const agent = requireField(d.agent, 'agent', 'agent').address
@@ -71,7 +72,7 @@ const [canSpread, canTerms, isRoot] = await Promise.all([
 check(canSpread, 'agent can write desk.spread')
 check(!canTerms, 'agent cannot write desk.terms')
 check(!isRoot, 'agent has no root data role')
-info(`${mmA.name} pre-clamp spread: ${mmA.rawSpread ? `${mmA.rawSpread.bps} bps from ${mmA.rawSpread.source}` : 'none'}`)
+info(`${mmA.name} stored desk.spread (router does not read it): ${mmA.storedSpread ? `${mmA.storedSpread.bps} bp until ${iso(mmA.storedSpread.validUntil)}` : 'none'}`)
 
 // 5. Standard clients: UniversalResolverV2 walks the same hierarchy
 const ur = parseAbi(['function resolve(bytes name, bytes data) view returns (bytes result, address resolver)'])

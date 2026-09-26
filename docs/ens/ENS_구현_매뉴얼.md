@@ -1,4 +1,4 @@
-> **상태: 구현 완료.** 이 지시서대로 만든 코드가 `ens/setup` 브랜치의 `ens/`에 있다(모든 수용 기준 통과, Sepolia 배포). 레코드 형식은 팀 설계 §6.2로 맞췄다. 실제 API는 `ens/src/read.ts`와 `ens/README.md`를 따른다.
+> **상태: 아래 96바이트 `tierBps` 초안은 폐기됐다.** 라이브 `desk.terms`는 128바이트 `abi.encode(uint8 1, uint16 sSellBps, uint16 sBuyBps, uint128 cap)`이고 cap은 WETH wei다. 지금 두 이름은 매도 3 bp, 매수 10 bp, cap 50 ETH다. 라우터는 `desk.spread`를 읽지 않는다. 쓸 코드는 `ens/src/encode.ts`와 `ens/README.md`다.
 
 # ENS 파트 구현 매뉴얼 (코딩 에이전트용)
 
@@ -177,7 +177,7 @@ desk.eth                        트레저리(Safe) 소유. 데스크 자체
 
 ```solidity
 // desk.terms — 멀티시그만 쓴다
-abi.encode(uint8 version, uint16 tierBps, uint128 capPerFill)   // 96바이트, capPerFill은 USDC 6자리
+abi.encode(uint8 version, uint16 sSellBps, uint16 sBuyBps, uint128 cap)   // 128바이트, cap은 WETH wei. 아래 96바이트 문장은 옛 초안이다.
 
 // desk.spread — 리스크 에이전트만 쓴다
 abi.encode(uint8 version, uint16 spreadBps, uint64 validUntil)   // 96바이트

@@ -44,18 +44,21 @@ export const labelId = (label: string) => BigInt(labelhash(label))
 /** EAC resource for a string argument, as PermissionedResolverLib.resource(string). */
 export const keyResource = (key: string) => BigInt(keccak256(stringToBytes(key)))
 
-// Record formats from desk-system §6.2 / D5. abi.encode, so each value is exactly 96 bytes.
-// desk.terms  = abi.encode(uint8 version, uint16 tierBps, uint128 capPerFill)  — Safe only. capPerFill is in USDC base units (6 dp)
-// desk.spread = abi.encode(uint8 version, uint16 spreadBps, uint64 validUntil)  — risk agent only
-const TERMS = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint128' }] as const
+// desk.terms is what DeskPrice reads after one abi.decode of resolve(): 128 bytes,
+// abi.encode(uint8 version, uint16 sSellBps, uint16 sBuyBps, uint128 cap). cap is WETH wei.
+// The router reverts DeskPriceNoTerms unless version is 1, sell < buy < 10000, and cap > 0.
+// desk.spread stays abi.encode(uint8 version, uint16 spreadBps, uint64 validUntil), 96 bytes.
+// The router does not read desk.spread. This decoder only reports what is stored.
+const TERMS = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint16' }, { type: 'uint128' }] as const
 const SPREAD = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint64' }] as const
-const RECORD_BYTES = 96
+const TERMS_BYTES = 128
+const SPREAD_BYTES = 96
 
-export type Terms = { version: number; tierBps: number; capPerFill: bigint }
+export type Terms = { version: number; sSellBps: number; sBuyBps: number; cap: bigint }
 export type Spread = { version: number; spreadBps: number; validUntil: bigint }
 
-export const encodeTerms = (t: { tierBps: number; capPerFill: bigint }) =>
-  encodeAbiParameters(TERMS, [RECORD_VERSION, t.tierBps, t.capPerFill])
+export const encodeTerms = (t: { sSellBps: number; sBuyBps: number; cap: bigint }) =>
+  encodeAbiParameters(TERMS, [RECORD_VERSION, t.sSellBps, t.sBuyBps, t.cap])
 
 export const encodeSpread = (s: { spreadBps: number; validUntil: bigint }) =>
   encodeAbiParameters(SPREAD, [RECORD_VERSION, s.spreadBps, s.validUntil])
@@ -63,19 +66,21 @@ export const encodeSpread = (s: { spreadBps: number; validUntil: bigint }) =>
 const byteLength = (value: Hex) => (value.length - 2) / 2
 
 /**
- * The router's reading of desk.terms (desk-system §5.4 step 6): 96 bytes, version 1, capPerFill > 0.
- * Anything else means "no terms" and the fill reverts with DeskPriceNoTerms. Decoding does not throw.
+ * DeskPrice's reading of desk.terms: 128 bytes, version 1, sell < buy < 10000, cap > 0.
+ * Anything else is not a fill. Decoding does not throw.
  */
 export function decodeTerms(value: Hex): { terms: Terms | null; valid: boolean } {
-  if (byteLength(value) !== RECORD_BYTES) return { terms: null, valid: false }
-  const [version, tierBps, capPerFill] = decodeAbiParameters(TERMS, value)
-  const terms = { version, tierBps, capPerFill }
-  return { terms, valid: version === RECORD_VERSION && capPerFill > 0n }
+  if (byteLength(value) !== TERMS_BYTES) return { terms: null, valid: false }
+  const [version, sSellBps, sBuyBps, cap] = decodeAbiParameters(TERMS, value)
+  const terms = { version, sSellBps, sBuyBps, cap }
+  const valid =
+    version === RECORD_VERSION && sSellBps < sBuyBps && sBuyBps < 10_000 && cap > 0n && cap <= 2n ** 128n - 1n
+  return { terms, valid }
 }
 
-/** The router's reading of desk.spread: 96 bytes, version 1, and not past validUntil. Otherwise it is ignored. */
+/** Stored desk.spread. The router does not read this record. */
 export function decodeSpread(value: Hex, now: bigint): { spread: Spread | null; valid: boolean } {
-  if (byteLength(value) !== RECORD_BYTES) return { spread: null, valid: false }
+  if (byteLength(value) !== SPREAD_BYTES) return { spread: null, valid: false }
   const [version, spreadBps, validUntil] = decodeAbiParameters(SPREAD, value)
   const spread = { version, spreadBps, validUntil }
   return { spread, valid: version === RECORD_VERSION && now <= validUntil }

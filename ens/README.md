@@ -2,7 +2,7 @@
 
 지갑 안의 OTC 데스크의 ENS 파트. 트레저리가 소유한 이름 계층을 만들고, MM별 거래 조건을 레코드로 기록하고, 리스크 에이전트에게 스프레드 키 하나만 위임한다. 라우터가 읽는 계약은 `docs/code/desk-system.md` §6(브랜치 `claude/sleepy-ritchie-5lp65m`)이 기준이다.
 
-레코드 형식과 단위는 팀 설계 §6.2·D5를 따른다: `desk.terms = abi.encode(uint8 1, uint16 tierBps, uint128 capPerFill)`, `desk.spread = abi.encode(uint8 1, uint16 spreadBps, uint64 validUntil)`, 둘 다 96바이트, `capPerFill`은 USDC 6자리.
+라이브 `desk.terms`는 `abi.encode(uint8 1, uint16 sSellBps, uint16 sBuyBps, uint128 cap)` 128바이트다. cap은 WETH wei이고, 지금 두 이름은 매도 3 bp, 매수 10 bp, cap 50 ETH다. `desk.spread`는 `abi.encode(uint8 1, uint16 spreadBps, uint64 validUntil)` 96바이트로 남아 있고, 라우터는 이 기록을 읽지 않는다.
 
 ## 현재 배포 (Sepolia, 2026-09-25)
 
@@ -14,7 +14,7 @@
 | desk registry D (`dao-treasury-a.eth`의 하위) | `0x72B3d4B4adCd057c904B3bB59fa201bF10F983b2` |
 | clients registry C (`clients.dao-treasury-a.eth`의 하위) | `0x8f6c1e8DE9BDAe6Be0f028e7Ce596F9e530a984e` |
 | agents registry | `0x5A6b0C2DAb9A29FA2cc949Dbc8a38f222609b5CF` |
-| mm-a / mm-b | tier 10 / 25 bps, cap 100,000 USDC, 만료 2026-10-25 |
+| mm-a / mm-b | 매도 3 bp, 매수 10 bp, cap 50 ETH. addr는 `config/sepolia.json`의 봇 지갑 |
 | mm-c | mm-a와 같은 조건, 만료 15분 (데모 3번용 — 인계 뒤에는 데모 직전 Safe 트랜잭션으로 재등록) |
 | risk.agents.dao-treasury-a.eth | 에이전트 `0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899` (Aqua 레인 지갑, 주소만 받음, 2026-09-26). `desk.spread`·`desk.stats` 권한만 있다 |
 
@@ -195,12 +195,11 @@ calls[0] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms"));
 calls[1] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.spread"));
 bytes memory out = IExtendedResolver(treasuryResolver).resolve(dnsName, abi.encodeCall(IMulticallable.multicall, (calls)));
 bytes[] memory res = abi.decode(out, (bytes[]));
-bytes memory terms  = abi.decode(res[0], (bytes));   // abi.encode(uint8 v, uint16 tierBps, uint128 capPerFill), 96바이트
-bytes memory spread = abi.decode(res[1], (bytes));   // abi.encode(uint8 v, uint16 spreadBps, uint64 validUntil), 96바이트 또는 빈 값
+bytes memory terms  = abi.decode(res[0], (bytes));   // abi.encode(uint8 v, uint16 sSellBps, uint16 sBuyBps, uint128 cap), 128바이트
+bytes memory spread = abi.decode(res[1], (bytes));   // 라우터는 읽지 않는다
 ```
 
-- `terms`가 빈 값이면 체결 불가. 기본 레코드의 `capPerFill`이 0이라 레코드 없는 이름도 여기서 걸린다.
-- `spread`가 96바이트가 아니거나 버전이 1이 아니거나 `validUntil < block.timestamp`면 무시하고 `terms`의 `tierBps`로 폴백하고, 최종값을 `[sMinBps, sMaxBps]`로 clamp한다(§5.4).
-- `terms`가 96바이트가 아니거나 버전이 1이 아니거나 `capPerFill == 0`이면 `DeskPriceNoTerms`로 revert한다(D7).
+- `terms`가 128바이트가 아니거나 버전이 1이 아니거나 매도 폭이 매수 폭 이상이거나 cap이 0이면 `DeskPriceNoTerms`로 revert한다.
+- 라우터는 `desk.spread`를 읽지 않는다. 스프레드 기록은 가격을 바꾸지 않는다.
 
 `takerData`는 팀 설계 §5.3에 따라 `uint8 len ‖ dnsName`이다. `dnsEncode()`는 그중 `dnsName` 부분만 만든다. `npm run verify`가 mm-a의 `dnsName`을 출력한다.

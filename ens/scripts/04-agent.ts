@@ -78,7 +78,7 @@ if (agentWallet) {
   console.log(`  ✓ agent can write ${KEY_SPREAD} (simulated from ${agent}; its key stays with its lane)`)
 }
 
-const deniedTerms = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_TERMS, encodeTerms({ tierBps: 1, capPerFill: 10n ** 12n })] as const }
+const deniedTerms = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_TERMS, encodeTerms({ sSellBps: 3, sBuyBps: 10, cap: 50n * 10n ** 18n })] as const }
 const deniedAddr = { ...R, functionName: 'setAddress' as const, args: [dnsEncode(target), COIN_TYPE_ETH, agent as Hex] as const }
 for (const [what, call] of [[`${KEY_TERMS}`, deniedTerms], ['addr', deniedAddr]] as const) {
   const reason = await revertName(() => publicClient.simulateContract({ account: agent, ...call } as never))

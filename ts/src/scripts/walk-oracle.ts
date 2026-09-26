@@ -1,5 +1,6 @@
-// Moves the mock oracle one dollar per new Sepolia block. The risk-agent key stays in the
-// wallet file on this machine. It is not printed and it is not copied into .env.
+// Moves the mock oracle one dollar per new Sepolia block. The oracle key stays in the
+// wallet file on this machine, under the label oracle. It is not the risk-agent key.
+// It is not printed and it is not copied into .env.
 // contracts/script/MoveOracle.s.sol is a different script: it reads DEPLOYER_PK and fires three prices once.
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -75,19 +76,18 @@ export function parseArgs(argv: string[]): Flags {
   return flags;
 }
 
-function riskAgentAccount(): PrivateKeyAccount {
+function oracleAccount(): PrivateKeyAccount {
   const path = join(homedir(), ".aqua-eth-tokyo", "wallets.txt");
   const lines = readFileSync(path, "utf8").split(/\r?\n/);
-  const start = lines.findIndex((line) => line.trim() === "risk-agent");
-  if (start < 0)
-    throw new Error("risk-agent label is missing from the wallet file");
+  const start = lines.findIndex((line) => line.trim() === "oracle");
+  if (start < 0) throw new Error("oracle label is missing from the wallet file");
   const keyLine = lines
     .slice(start, start + 8)
     .find((line) => line.startsWith("Private key:"));
-  if (!keyLine) throw new Error("risk-agent private key line is missing");
+  if (!keyLine) throw new Error("oracle private key line is missing");
   const key = keyLine.slice("Private key:".length).trim();
   if (!/^0x[0-9a-fA-F]{64}$/.test(key)) {
-    throw new Error("risk-agent key is not a 32-byte hex private key");
+    throw new Error("oracle key is not a 32-byte hex private key");
   }
   return privateKeyToAccount(key as Hex);
 }
@@ -106,7 +106,7 @@ async function main(): Promise<void> {
   );
   const oracle = cfg.oracle;
   if (oracle === "") throw new Error("oracle is unset");
-  const account = riskAgentAccount();
+  const account = oracleAccount();
   const client = createPublicClient({ chain: sepolia, transport: http(rpc) });
   const wallet = createWalletClient({
     account,
@@ -119,11 +119,11 @@ async function main(): Promise<void> {
     functionName: "owner",
   });
   if (owner.toLowerCase() !== account.address.toLowerCase()) {
-    throw new Error("risk-agent is not the oracle owner");
+    throw new Error("oracle key is not the oracle owner");
   }
   const balance = await client.getBalance({ address: account.address });
-  if (balance === 0n) throw new Error("risk-agent has no ETH for gas");
-  console.log(`risk-agent ${account.address} balance ${balance}`);
+  if (balance === 0n) throw new Error("oracle key has no ETH for gas");
+  console.log(`oracle ${account.address} balance ${balance}`);
 
   let direction: Direction = 1n;
   let seen = await client.getBlockNumber();
