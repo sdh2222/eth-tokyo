@@ -6,9 +6,11 @@ import { REGISTRY_ROOT_ALL, RESOLVER_ROOT_ALL } from './roles.js'
 
 /**
  * The default record is the record of the root name (0x00). Names without their own record fall back to it
- * (desk-system §6.2). capPerFill = 0 means the router reverts DeskPriceNoTerms for any such name.
+ * (desk-system §6.2). cap = 0, so DeskPrice reverts DeskPriceNoTerms for any such name; the widths are the web app's
+ * cut-off values. Fresh deployments only: the Sepolia resolver keeps its pre-#21 96-byte default (cap 0), which the
+ * router rejects on length.
  */
-export const DEFAULT_TERMS = { tierBps: 0, capPerFill: 0n }
+export const DEFAULT_TERMS = { sSellBps: 3, sBuyBps: 10, cap: 0n }
 
 const salt = (tag: string) => BigInt(keccak256(stringToBytes(`${DESK_NAME}/${tag}`)))
 

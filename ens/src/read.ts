@@ -33,13 +33,22 @@ export async function treasuryResolver(deskLabel: string): Promise<Address> {
 
 export type Records = {
   addr: Address
+  /** desk.terms as data() returns it, unwrapped from its ABI encoding: the bytes DeskPrice._records checks. */
+  termsRaw: Hex
   terms: Terms | null
+  /** Whether DeskPrice._records accepts termsRaw. */
   termsValid: boolean
+  /** Why the router rejects termsRaw (the first rule it breaks), or null. */
+  termsReason: string | null
+  /** Information only: the router does not read desk.spread since #21. */
   spread: Spread | null
   spreadValid: boolean
 }
 
-/** Read addr, desk.terms and desk.spread in one resolve() call using the multicall profile (desk-system §5.4 step 6). */
+/**
+ * Read addr, desk.terms and desk.spread in one resolve() call using the multicall profile. resolve() returns each
+ * profile call's ABI-encoded return, so data() comes back as abi.encode(bytes): decode that first, then check.
+ */
 export async function readRecords(resolver: Address, fullName: string, now: bigint): Promise<Records> {
   const node = namehash(fullName)
   const calls = [
@@ -59,13 +68,11 @@ export async function readRecords(resolver: Address, fullName: string, now: bigi
   const [spreadRaw] = decodeAbiParameters([{ type: 'bytes' }], results[2] as Hex)
   const t = decodeTerms(termsRaw)
   const s = decodeSpread(spreadRaw, now)
-  return { addr, terms: t.terms, termsValid: t.valid, spread: s.spread, spreadValid: s.valid }
+  return { addr, termsRaw, terms: t.terms, termsValid: t.valid, termsReason: t.reason, spread: s.spread, spreadValid: s.valid }
 }
 
 export type ClientView = Records & {
   name: string
-  /** Pre-clamp spread the router starts from: the agent's spread if valid, else the tier from desk.terms. */
-  rawSpread: { bps: number; source: 'agent' | 'tier' } | null
   expiries: { name: string; expiry: bigint }[]
   expiryOk: boolean
   resolver: Address
@@ -83,19 +90,13 @@ export async function readClient(fullName: string): Promise<ClientView> {
   // An expired or unregistered label has no resolver (the registry returns 0x0), so there is nothing to read.
   const records: Records =
     resolver === zeroAddress
-      ? { addr: zeroAddress, terms: null, termsValid: false, spread: null, spreadValid: false }
+      ? { addr: zeroAddress, termsRaw: '0x', terms: null, termsValid: false, termsReason: 'no resolver: the name is expired or unregistered', spread: null, spreadValid: false }
       : await readRecords(resolver, fullName, block.timestamp)
   const expiryOk = levels.every((l) => l.expiry > block.timestamp)
   const resolverOk = resolver !== zeroAddress && resolver.toLowerCase() === expected.toLowerCase()
-  const rawSpread = records.spreadValid
-    ? { bps: records.spread!.spreadBps, source: 'agent' as const }
-    : records.termsValid
-      ? { bps: records.terms!.tierBps, source: 'tier' as const }
-      : null
   return {
     name: fullName,
     ...records,
-    rawSpread,
     expiries: levels.map((l) => ({ name: l.name, expiry: l.expiry })),
     expiryOk,
     resolver,

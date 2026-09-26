@@ -36,7 +36,9 @@ export const AGENTS_NAME = `agents.${DESK_NAME}`
 // One record per desk name, so a rename never overwrites an earlier deployment. Public addresses only.
 export const DEPLOYMENT_FILE = join(dirname(fileURLToPath(import.meta.url)), '..', 'deployments', `sepolia.${DESK_LABEL}.json`)
 
-export const publicClient = createPublicClient({ chain: sepolia, transport: http(RPC_URL) })
+// Reads retry rate-limited requests with backoff (500 ms doubling, 6 times). The public Sepolia RPC answers verify's
+// parallel reads with "Rate limit exceeded" (-32005 / HTTP 429), which viem's default 3 short retries do not outlast.
+export const publicClient = createPublicClient({ chain: sepolia, transport: http(RPC_URL, { retryCount: 6, retryDelay: 500 }) })
 
 /**
  * FORK_IMPERSONATE=1: fork runs with no testnet key (team security SEC-05, coding agents do not receive keys).

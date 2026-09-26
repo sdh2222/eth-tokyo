@@ -2,7 +2,10 @@
 
 지갑 안의 OTC 데스크의 ENS 파트. 트레저리가 소유한 이름 계층을 만들고, MM별 거래 조건을 레코드로 기록하고, 리스크 에이전트에게 스프레드 키 하나만 위임한다. 라우터가 읽는 계약은 `docs/code/desk-system.md` §6(브랜치 `claude/sleepy-ritchie-5lp65m`)이 기준이다.
 
-레코드 형식과 단위는 팀 설계 §6.2·D5를 따른다: `desk.terms = abi.encode(uint8 1, uint16 tierBps, uint128 capPerFill)`, `desk.spread = abi.encode(uint8 1, uint16 spreadBps, uint64 validUntil)`, 둘 다 96바이트, `capPerFill`은 USDC 6자리.
+레코드 형식과 단위는 main #21(`DeskPrice._records`)을 따른다.
+
+- `desk.terms = abi.encode(uint8 1, uint16 sSellBps, uint16 sBuyBps, uint128 cap)`, 128바이트. `cap`은 WETH 기본 단위(18자리)이고, 체결의 WETH 수량이 `cap`을 넘으면 라우터가 revert한다(`wethAmt > cap`). Safe가 쓰고, ENS 파트는 쓰지 않는다(2026-09-26 Aqua 레인 요청).
+- `desk.spread = abi.encode(uint8 1, uint16 spreadBps, uint64 validUntil)`, 96바이트. 형식과 에이전트 위임은 그대로지만, #21부터 라우터는 읽지 않는다. `npm run verify`는 정보로만 보여 준다.
 
 ## 현재 배포 (Sepolia, 2026-09-25)
 
@@ -14,7 +17,7 @@
 | desk registry D (`dao-treasury-a.eth`의 하위) | `0x72B3d4B4adCd057c904B3bB59fa201bF10F983b2` |
 | clients registry C (`clients.dao-treasury-a.eth`의 하위) | `0x8f6c1e8DE9BDAe6Be0f028e7Ce596F9e530a984e` |
 | agents registry | `0x5A6b0C2DAb9A29FA2cc949Dbc8a38f222609b5CF` |
-| mm-a / mm-b | tier 10 / 25 bps, cap 100,000 USDC, 만료 2026-10-25 |
+| mm-a / mm-b | `desk.terms` = (1, sSell 3 bps, sBuy 10 bps, cap 50 WETH): Safe가 2026-09-26 Sepolia 블록 11784991에 씀. 만료 2026-10-25 |
 | mm-c | mm-a와 같은 조건, 만료 15분 (데모 3번용 — 인계 뒤에는 데모 직전 Safe 트랜잭션으로 재등록) |
 | risk.agents.dao-treasury-a.eth | 에이전트 `0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899` (Aqua 레인 지갑, 주소만 받음, 2026-09-26). `desk.spread`·`desk.stats` 권한만 있다 |
 
@@ -163,7 +166,7 @@ npm run verify -- --safe <하네스가 출력한 Safe>
 
 - resolver 인스턴스는 `VerifiableFactory.deployProxy(PermissionedResolverImpl, salt, initData)`로 만든다. 주소는 `keccak(msg.sender, salt)` 기반 CREATE2라 미리 계산된다.
 - `initialize`의 `calls`는 권한 검사 없이 실행된다. 기본 레코드를 여기서 넣는다.
-- **기본 레코드 = 루트 이름(`0x00`)의 레코드.** 자기 레코드가 없는 이름은 이걸 통째로 쓴다. 대체는 **레코드 단위**다 — mm-a가 레코드를 하나라도 가지면 `desk.spread`가 비어도 기본값으로 가지 않고 빈 값이 온다. 스프레드 폴백은 라우터가 해야 한다.
+- **기본 레코드 = 루트 이름(`0x00`)의 레코드.** 자기 레코드가 없는 이름은 이걸 통째로 쓴다. 대체는 **레코드 단위**다 — mm-a가 레코드를 하나라도 가지면 비어 있는 키(예: `desk.spread`)도 기본값으로 가지 않고 빈 값이 온다.
 - 위임할 때 `setter`는 `setData(<아무 이름>, "desk.spread", "")`를 ABI 인코딩한 바이트다. resolver가 키에서 리소스(`keccak256("desk.spread")`)와 역할(`ROLE_SET_DATA`)을 스스로 뽑는다. 이름과 값은 무시된다.
 - 키 단위 권한은 resolver 인스턴스 전체에 걸린다. 에이전트는 모든 MM의 `desk.spread`를 쓸 수 있다(의도된 설계).
 
@@ -187,20 +190,28 @@ require(abi.decode(r, (address)) == taker);                        // TakerMisma
 
 `resolve(name, data)`는 `data`의 첫 인자(node)를 **무시하고** `name`에서 namehash를 직접 계산한다. 그래서 `bytes32(0)`을 넣어도 되고, 라우터가 namehash를 계산할 필요가 없다.
 
-**조건 읽기 (#35 앞부분)** — 한 번의 호출로 묶는다
+**조건 읽기 (#35, `DeskPrice._records`)**: #21부터 라우터는 `desk.terms` 하나만 읽는다.
 
 ```solidity
-bytes[] memory calls = new bytes[](2);
-calls[0] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms"));
-calls[1] = abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.spread"));
-bytes memory out = IExtendedResolver(treasuryResolver).resolve(dnsName, abi.encodeCall(IMulticallable.multicall, (calls)));
-bytes[] memory res = abi.decode(out, (bytes[]));
-bytes memory terms  = abi.decode(res[0], (bytes));   // abi.encode(uint8 v, uint16 tierBps, uint128 capPerFill), 96바이트
-bytes memory spread = abi.decode(res[1], (bytes));   // abi.encode(uint8 v, uint16 spreadBps, uint64 validUntil), 96바이트 또는 빈 값
+bytes memory ret = IExtendedResolver(treasuryResolver).resolve(dnsName, abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms")));
+bytes memory terms = abi.decode(ret, (bytes));   // resolve()는 data()의 반환값을 ABI 인코딩한 채로 준다: 128바이트 값이면 192바이트
+if (terms.length != 128) revert DeskPriceNoTerms();
+// 32바이트 워드 네 개를 그대로 읽는다: version, sSell, sBuy, cap
 ```
 
-- `terms`가 빈 값이면 체결 불가. 기본 레코드의 `capPerFill`이 0이라 레코드 없는 이름도 여기서 걸린다.
-- `spread`가 96바이트가 아니거나 버전이 1이 아니거나 `validUntil < block.timestamp`면 무시하고 `terms`의 `tierBps`로 폴백하고, 최종값을 `[sMinBps, sMaxBps]`로 clamp한다(§5.4).
-- `terms`가 96바이트가 아니거나 버전이 1이 아니거나 `capPerFill == 0`이면 `DeskPriceNoTerms`로 revert한다(D7).
+- `resolve()`의 반환값은 레코드 값이 아니다. 오프셋(0x20)·길이 워드가 앞에 붙은 `abi.encode(bytes)`이므로, 먼저 `abi.decode(ret, (bytes))`로 풀고 나서 길이를 본다.
+- 풀어낸 값이 128바이트가 아니면 revert한다(`DeskPriceNoTerms`).
+- 네 워드 중 다음 하나라도 맞으면 같은 에러로 revert한다.
+  - `version != 1`
+  - `sSell > 0xFFFF` 또는 `sBuy > 0xFFFF`: 워드를 그대로 비교하므로 `uint16`으로 잘라 읽지 않는다
+  - `sSell >= sBuy`
+  - `sBuy >= 10000`
+  - `cap == 0` 또는 `cap > type(uint128).max`
+- 기본 레코드(루트 이름)는 Sepolia에서 아직 #21 이전의 96바이트(cap 0)라 길이에서 걸린다. 새로 배포하면 (1, 3, 10, 0)이고 `cap == 0`에서 걸린다. 어느 쪽이든 레코드가 없는 이름은 체결되지 않는다.
+- `npm run verify`(`src/read.ts`)는 multicall 한 번으로 `addr`, `desk.terms`, `desk.spread`를 읽고, 각 결과를 `abi.decode(…, (bytes))`로 푼 뒤 `src/encode.ts`의 `decodeTerms()`로 같은 규칙을 적용한다.
+- **main의 라우터는 아직 풀지 않는다 (Aqua 레인에 보고함, 2026-09-26).**
+  - `DeskPrice._records`는 `resolve()`의 반환값 길이를 그대로 128과 비교한다. 실제 PermissionedResolver에서는 128바이트 레코드가 192바이트로 돌아오므로 모든 체결이 `DeskPriceNoTerms`로 revert한다. 테스트의 `MockEnsResolver`는 `data()`에서 값을 감싸지 않고 돌려줘서 통과한다.
+  - 포크에서 확인했다: Safe가 128바이트를 쓴 뒤, 라우터와 같은 호출이 192바이트를 돌려준다.
+  - 고치는 법: `DeskPrice`에서 `abi.decode(resolve(...), (bytes))`, 목에서 `return abi.encode(rec.value);`. 그다음 라우터를 재배포하고 전략을 다시 ship한다.
 
 `takerData`는 팀 설계 §5.3에 따라 `uint8 len ‖ dnsName`이다. `dnsEncode()`는 그중 `dnsName` 부분만 만든다. `npm run verify`가 mm-a의 `dnsName`을 출력한다.

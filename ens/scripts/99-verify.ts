@@ -1,15 +1,14 @@
 // Acceptance checks for the ENS part (ENS_구현_매뉴얼.md §7 step 6 and §10). Exits 1 if a required check fails.
 // After the handoff to the treasury Safe (requirement 014), run it as `npm run verify -- --safe <address>`.
 import { parseArgs } from 'node:util'
-import { decodeAbiParameters, encodeFunctionData, getAddress, namehash, parseAbi, parseUnits } from 'viem'
+import { decodeAbiParameters, encodeFunctionData, formatEther, getAddress, namehash, parseAbi } from 'viem'
 import { profileAbi, registryAbi, resolverAbi } from '../src/abis.js'
 import { ADDR, CLIENTS_NAME, DESK_LABEL, DESK_NAME, publicClient } from '../src/config.js'
 import { loadDeployment, requireField } from '../src/deployments.js'
 import { dnsEncode, encodeTakerName, KEY_SPREAD, KEY_TERMS, keyResource, labelId } from '../src/encode.js'
 import { describeValues, deskSubnames, readHandoffState, roleName, rootTargets, sameValues } from '../src/handoff.js'
-import { readClient, readRecords } from '../src/read.js'
+import { readClient, readRecords, type Records } from '../src/read.js'
 import { RESOLVER } from '../src/roles.js'
-import { DEFAULT_TERMS } from '../src/setup.js'
 
 let failed = 0
 const check = (ok: boolean, what: string, detail = '') => {
@@ -43,22 +42,30 @@ check(deskExpiry > now, `${DESK_NAME} not expired`, iso(deskExpiry))
 check(same(deskResolver, resolver), `${DESK_NAME} resolver is the treasury resolver`)
 check(same(deskSub, d.registries?.desk ?? ''), `${DESK_NAME} subregistry wired`)
 
-// 2. MM names, as the router's gate would see them
+// 2. MM names, as the router's gate (#34) and DeskPrice._records (#35) see them. desk.terms is judged by the router's
+// rule on the unwrapped value: 128 bytes, version 1, sSell < sBuy < 10000 (each word <= 0xFFFF), 0 < cap <= uint128 max.
+const bytes = (value: string) => (value.length - 2) / 2
+const termsDetail = (r: Records) =>
+  r.termsValid && r.terms
+    ? `sSell ${r.terms.sSellBps} bps, sBuy ${r.terms.sBuyBps} bps, cap ${formatEther(r.terms.cap)} WETH`
+    : `rejected, DeskPriceNoTerms: ${r.termsReason}${r.terms ? `; read sSell ${r.terms.sSellBps}, sBuy ${r.terms.sBuyBps}, cap ${formatEther(r.terms.cap)} WETH` : ''}`
 const mmA = await readClient(`mm-a.${CLIENTS_NAME}`)
 check(mmA.gateOk, `${mmA.name} passes the gate (3-level expiry + resolver + terms)`)
 check(same(mmA.addr, requireField(d.clients?.[mmA.name]?.address, 'mm-a', 'clients')), `${mmA.name} addr = the recorded MM_A address`)
-check(mmA.termsValid && mmA.terms?.tierBps === 10 && mmA.terms?.capPerFill === parseUnits('100000', 6), `${mmA.name} desk.terms = tier 10 bps / cap 100,000 USDC (96 bytes)`, JSON.stringify(mmA.terms, (_, v) => (typeof v === 'bigint' ? v.toString() : v)))
 check(mmA.expiries.length === 3, `${mmA.name} expiry read at 3 levels`, mmA.expiries.map((e) => `${e.name} ${iso(e.expiry)}`).join(' | '))
 
 const mmB = await readClient(`mm-b.${CLIENTS_NAME}`)
-check(mmB.gateOk && mmB.terms?.tierBps === 25, `${mmB.name} passes with a different tier (25 bps)`)
+check(mmB.gateOk, `${mmB.name} passes the gate (3-level expiry + resolver + terms)`)
+for (const mm of [mmA, mmB]) {
+  check(mm.termsValid, `${mm.name} desk.terms passes the router's rule (${bytes(mm.termsRaw)} bytes)`, termsDetail(mm))
+}
 
 const mmC = await readClient(`mm-c.${CLIENTS_NAME}`)
 info(`${mmC.name} expires ${iso(mmC.expiries.at(-1)!.expiry)} → gate ${mmC.gateOk ? 'OPEN' : 'CLOSED (NameExpired)'} — rerun 03-clients before demo scene 3`)
 
-// 3. Default record: a name with no record of its own must read capPerFill = 0
+// 3. Default record: a name with no record of its own falls back to the root record, which the router must reject
 const orphan = await readRecords(resolver, `nobody.${CLIENTS_NAME}`, now)
-check(orphan.terms?.capPerFill === DEFAULT_TERMS.capPerFill && !orphan.termsValid, 'unrecorded name falls back to the default record: capPerFill 0, so the router reverts DeskPriceNoTerms')
+check(!orphan.termsValid, `unrecorded name falls back to the default record, which the router rejects (${bytes(orphan.termsRaw)} bytes)`, termsDetail(orphan))
 
 // 4. Agent boundary
 const agent = requireField(d.agent, 'agent', 'agent').address
@@ -71,7 +78,10 @@ const [canSpread, canTerms, isRoot] = await Promise.all([
 check(canSpread, 'agent can write desk.spread')
 check(!canTerms, 'agent cannot write desk.terms')
 check(!isRoot, 'agent has no root data role')
-info(`${mmA.name} pre-clamp spread: ${mmA.rawSpread ? `${mmA.rawSpread.bps} bps from ${mmA.rawSpread.source}` : 'none'}`)
+for (const mm of [mmA, mmB]) {
+  const s = mm.spread
+  info(`${mm.name} desk.spread: ${s ? `${s.spreadBps} bps until ${iso(s.validUntil)}${mm.spreadValid ? '' : ' (expired)'}` : 'none'}. Information only: the router does not read desk.spread since #21`)
+}
 
 // 5. Standard clients: UniversalResolverV2 walks the same hierarchy
 const ur = parseAbi(['function resolve(bytes name, bytes data) view returns (bytes result, address resolver)'])

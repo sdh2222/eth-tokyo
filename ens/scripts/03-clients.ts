@@ -1,6 +1,9 @@
 // Issue MM names under clients.<desk>.eth and write their addr + desk.terms. Idempotent.
-// Seeds match the runbook (idea1/해커톤_런북.md): mm-a and mm-b price differently, mm-c expires for demo scene 3.
-import { encodeFunctionData, getAddress, parseUnits, zeroAddress, type Address, type Hex } from 'viem'
+// The seeds are the terms the Safe writes since main #21: sSell 3 bps, sBuy 10 bps, cap 50 WETH. mm-c expires for
+// demo scene 3.
+// This script sends from the setup EOA, which holds no role after the handoff to the treasury Safe (014, 016), so it
+// can never write on Sepolia any more: desk.terms there is the Safe's to write.
+import { encodeFunctionData, getAddress, parseEther, zeroAddress, type Address, type Hex } from 'viem'
 import { registryAbi, resolverAbi } from '../src/abis.js'
 import { account, CLIENTS_NAME, publicClient, wallet } from '../src/config.js'
 import { loadDeployment, requireField, saveDeployment } from '../src/deployments.js'
@@ -11,14 +14,14 @@ import { send } from '../src/tx.js'
 const DAY = 86400n
 const MM_C_TTL = BigInt(process.env.MM_C_TTL_SECONDS ?? 900) // re-run before the demo to reset the clock
 
-// capPerFill is in USDC base units and bounds the USDC leg of a fill in either direction (desk-system D5).
-const CAP = parseUnits('100000', 6)
+// cap is in WETH base units and bounds the WETH leg of a fill in either direction (DeskPrice: wethAmt > cap reverts).
+const CAP = parseEther('50')
 // addrEnv lets the Aqua lane hand over only the bot's address (no key crosses lanes): the name's addr must be the
 // account that will call the router, and that account's key stays with the lane that signs.
 const SEEDS = [
-  { label: 'mm-a', envKey: 'MM_A_PK', addrEnv: 'MM_A_ADDRESS', tierBps: 10, capPerFill: CAP, ttl: 30n * DAY },
-  { label: 'mm-b', envKey: 'MM_B_PK', addrEnv: 'MM_B_ADDRESS', tierBps: 25, capPerFill: CAP, ttl: 30n * DAY },
-  { label: 'mm-c', envKey: 'MM_C_PK', addrEnv: 'MM_C_ADDRESS', tierBps: 10, capPerFill: CAP, ttl: MM_C_TTL },
+  { label: 'mm-a', envKey: 'MM_A_PK', addrEnv: 'MM_A_ADDRESS', sSellBps: 3, sBuyBps: 10, cap: CAP, ttl: 30n * DAY },
+  { label: 'mm-b', envKey: 'MM_B_PK', addrEnv: 'MM_B_ADDRESS', sSellBps: 3, sBuyBps: 10, cap: CAP, ttl: 30n * DAY },
+  { label: 'mm-c', envKey: 'MM_C_PK', addrEnv: 'MM_C_ADDRESS', sSellBps: 3, sBuyBps: 10, cap: CAP, ttl: MM_C_TTL },
 ] as const
 
 const mmAddress = (seed: (typeof SEEDS)[number]): Address => {
@@ -65,7 +68,7 @@ for (const seed of SEEDS) {
     changed.push(`addr → ${mm}`)
   }
   const t = current.terms
-  if (!current.termsValid || !t || t.tierBps !== seed.tierBps || t.capPerFill !== seed.capPerFill) {
+  if (!current.termsValid || !t || t.sSellBps !== seed.sSellBps || t.sBuyBps !== seed.sBuyBps || t.cap !== seed.cap) {
     calls.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setData', args: [dnsEncode(name), KEY_TERMS, encodeTerms(seed)] }))
     changed.push('desk.terms')
   }

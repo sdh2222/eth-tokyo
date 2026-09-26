@@ -10,7 +10,7 @@
 // printed. They are fork-only stand-ins. On the real Safe (T6a), owners 1 and 2 are Aqua-lane people and owner 3 is
 // the ENS lane, each with their own key, so a real ENS change needs an Aqua owner to co-sign (src/safe.ts).
 import { spawnSync } from 'node:child_process'
-import { createTestClient, encodeFunctionData, http, parseEther, parseUnits, toHex, type Address, type Hex } from 'viem'
+import { createTestClient, encodeFunctionData, formatEther, http, parseEther, toHex, type Address, type Hex } from 'viem'
 import { mnemonicToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
 import { resolverAbi } from '../src/abis.js'
@@ -40,7 +40,7 @@ if (!same(eoa, requireField(d.treasury, 'treasury', 'register'))) throw new Erro
 const agent = wallet('AGENT_PK')
 const mmA = `mm-a.${CLIENTS_NAME}`
 const R = { address: resolver, abi: resolverAbi } as const
-const CAP = parseUnits('100000', 6) // mm-a's seed terms (03-clients)
+const CAP = parseEther('50') // mm-a's seed terms (03-clients): sSell 3 bps, sBuy 10 bps, cap 50 WETH
 const short = (a: Address) => `${a.slice(0, 6)}…${a.slice(-4)}`
 const step = (title: string) => console.log(`\n== ${title}`)
 function ok(cond: boolean, what: string): asserts cond {
@@ -87,7 +87,8 @@ async function snapshot(): Promise<Snapshot> {
   for (const n of state.subnames) if (n.status === 'live' && n.sub.registry.key !== 'desk') records.set(n.sub.name, await readRecords(resolver, n.sub.name, state.now))
   return { state, records }
 }
-const recordLine = (r: Records) => `addr ${r.addr}${r.terms ? `, ${KEY_TERMS} tier ${r.terms.tierBps} bps cap ${r.terms.capPerFill}` : ''}`
+const recordLine = (r: Records) =>
+  `addr ${r.addr}${r.termsRaw === '0x' ? '' : `, ${KEY_TERMS} ${r.terms ? `sSell ${r.terms.sSellBps} bps, sBuy ${r.terms.sBuyBps} bps, cap ${formatEther(r.terms.cap)} WETH` : `${(r.termsRaw.length - 2) / 2} bytes`}${r.termsValid ? '' : ` (router rejects: ${r.termsReason})`}`}`
 const who = (a: Address) => (same(a, safe) ? 'the Safe' : same(a, eoa) ? 'the setup EOA' : a)
 const s0 = await snapshot()
 for (const n of s0.state.subnames) {
@@ -100,8 +101,8 @@ for (const n of s0.state.subnames) {
 }
 
 step('3. handoff (npm run handoff), sent from the setup EOA')
-const termsCall = (tierBps: number) => ({ ...R, functionName: 'setData' as const, args: [dnsEncode(mmA), KEY_TERMS, encodeTerms({ tierBps, capPerFill: CAP })] as const })
-const eoaTermsBefore = await revertName(() => publicClient.simulateContract({ account: eoa, ...termsCall(10) }))
+const termsCall = (sSellBps: number) => ({ ...R, functionName: 'setData' as const, args: [dnsEncode(mmA), KEY_TERMS, encodeTerms({ sSellBps, sBuyBps: 10, cap: CAP })] as const })
+const eoaTermsBefore = await revertName(() => publicClient.simulateContract({ account: eoa, ...termsCall(3) }))
 console.log(`  before: the setup EOA's setData(${mmA}, ${KEY_TERMS}) ${eoaTermsBefore ? `reverts ${eoaTermsBefore}` : 'is allowed (simulated)'}`)
 // Runs the CLI and reports whether anything was mined meanwhile: anvil mines one block per transaction.
 async function handoff(...flags: string[]) {
@@ -146,8 +147,7 @@ for (const n0 of reissued) {
   const r0 = s0.records.get(n0.sub.name)
   const r1 = s1.records.get(n1.sub.name)
   if (!r0) continue
-  const termsSame = JSON.stringify(r0.terms, (_, v) => (typeof v === 'bigint' ? v.toString() : v)) === JSON.stringify(r1?.terms, (_, v) => (typeof v === 'bigint' ? v.toString() : v))
-  ok(!!r1 && same(r1.addr, r0.addr) && termsSame, `${n1.sub.name}: ${recordLine(r1!)}, as before`)
+  ok(!!r1 && same(r1.addr, r0.addr) && r1.termsRaw === r0.termsRaw, `${n1.sub.name}: ${recordLine(r1!)}, as before`)
 }
 for (const n0 of s0.state.subnames.filter((x) => x.status === 'expired')) {
   const n1 = s1.state.subnames.find((x) => x.sub.name === n0.sub.name)!
@@ -163,18 +163,18 @@ const denied = await publicClient.waitForTransactionReceipt({ hash: deniedHash }
 ok(denied.status === 'reverted', `sent from the setup EOA, it is mined as reverted in block ${denied.blockNumber} (${txUrl(deniedHash)})`)
 
 // A Safe transaction in the three steps the real owners use: propose, each owner signs with only their own key, execute.
-async function safeSetTerms(tierBps: number) {
-  const pending = await proposeSafeTx(safe, { to: resolver, data: encodeFunctionData(termsCall(tierBps)) })
+async function safeSetTerms(sSellBps: number) {
+  const pending = await proposeSafeTx(safe, { to: resolver, data: encodeFunctionData(termsCall(sSellBps)) })
   const signatures = [await signSafeTx(pending, owner1.key), await signSafeTx(pending, owner2.key)]
   const { hash } = await execSafeTx(pending, signatures, owner1.key)
   const now = (await publicClient.getBlock()).timestamp
-  const terms = (await readRecords(resolver, mmA, now)).terms
+  const { terms, termsValid } = await readRecords(resolver, mmA, now)
   console.log(`  Safe tx nonce ${pending.tx.nonce} ${pending.safeTxHash}`)
   console.log(`    signed by owner 1 ${short(owner1.address)} and owner 2 ${short(owner2.address)}, executed by owner 1 in ${hash}`)
-  ok(terms?.tierBps === tierBps && terms.capPerFill === CAP, `${mmA} ${KEY_TERMS} now reads tier ${tierBps} bps, cap 100,000 USDC`)
+  ok(termsValid && terms?.sSellBps === sSellBps && terms.sBuyBps === 10 && terms.cap === CAP, `${mmA} ${KEY_TERMS} now reads sSell ${sSellBps} bps, sBuy 10 bps, cap 50 WETH, and the router accepts it`)
 }
-await safeSetTerms(11)
-await safeSetTerms(10) // back to the seed value, so `npm run verify -- --safe` still passes
+await safeSetTerms(4)
+await safeSetTerms(3) // back to the seed value, so `npm run verify -- --safe` still passes
 
 const agentAddress = agent.account.address
 const [canSpread, spreadRoles] = await Promise.all([
