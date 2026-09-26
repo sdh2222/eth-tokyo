@@ -1,0 +1,621 @@
+/* Landing. White ground, one picture in sky-blue dither (web/scripts/landing-dither.mjs),
+   the headline, and two actions. */
+
+.wm-landing {
+  --wm-ink: var(--ink);
+  --wm-white: var(--on-ink);
+  /* The wordmark's water blue from the approved header (shell.css), and the same hue a step
+     deeper for text on white (4.9:1). */
+  --wm-water: #0080bc;
+  --wm-water-strong: #0077af;
+  /* The dither's sky blue (web/scripts/landing-dither.mjs --color). */
+  --wm-dot: #6ec1ea;
+
+  min-height: 100vh;
+  overflow-x: clip;
+  background: var(--color-background-body);
+  color: var(--wm-ink);
+  font-family: var(--font-family-body);
+}
+
+/* legacy.css still paints the body sky. Behind the landing it is the page's white, so the
+   last sub-pixel and the scroll bounce do not show a sky edge. */
+body:has(.wm-landing) {
+  background: var(--color-background-body);
+}
+
+/* The Astryx reset gives p and the headings their own face. Here they follow the page. */
+.wm-landing p,
+.wm-landing h1,
+.wm-landing h2,
+.wm-landing h3 {
+  font-family: inherit;
+}
+
+.wm-landing a:focus-visible {
+  outline: 2px solid var(--wm-ink);
+  outline-offset: 3px;
+}
+
+/* ---------- top line ---------- */
+
+.wm-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 32px;
+}
+
+.wm-mark {
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 16px;
+  line-height: 28px;
+  text-decoration: none;
+}
+
+.wm-word-water {
+  color: var(--wm-water);
+}
+
+.wm-word-mark {
+  color: var(--wm-ink);
+}
+
+.wm-top-links {
+  display: flex;
+  gap: 24px;
+  font-size: 16px;
+}
+
+.wm-top-links a {
+  color: var(--wm-ink);
+  text-decoration: none;
+}
+
+.wm-top-links a:hover {
+  color: var(--wm-water-strong);
+}
+
+/* ---------- hero ---------- */
+
+.wm-hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 64px);
+  min-height: calc(100svh - 64px);
+  padding: 0 32px 64px;
+}
+
+.wm-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.wm-sky img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: auto;
+  max-width: none;
+  height: auto;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+}
+
+/* The still paints first; the moving picture fades in over it once it has loaded. */
+.wm-sky .wm-sky-moving {
+  opacity: 0;
+  transition: opacity 400ms ease-out;
+}
+
+.wm-sky .wm-sky-moving[data-loaded="true"] {
+  opacity: 1;
+}
+
+.wm-hero-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 960px;
+  text-align: center;
+}
+
+.wm-headline {
+  margin: 0;
+  font-size: clamp(48px, 6.2vw, 92px);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.wm-via {
+  margin: 24px 0 0;
+  color: var(--wm-water-strong);
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.wm-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.wm-button {
+  padding: 12px 16px;
+  background: var(--wm-ink);
+  color: var(--wm-white);
+  font-size: 16px;
+  text-decoration: none;
+  transition: background-color 150ms ease-out;
+}
+
+.wm-button:hover {
+  background: var(--wm-water-strong);
+}
+
+.wm-link {
+  color: var(--wm-ink);
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.wm-link:hover {
+  color: var(--wm-water-strong);
+}
+
+/* ---------- sections: claim, proof, numbers, one paragraph ---------- */
+
+.wm-section {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 136px 32px 120px;
+  scroll-margin-top: 0;
+}
+
+.wm-claim {
+  margin-bottom: 48px;
+}
+
+.wm-h2 {
+  max-width: 14em;
+  margin: 0;
+  font-size: clamp(48px, 6.4vw, 96px);
+  font-weight: 500;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.wm-claim-sub {
+  margin: 20px 0 0;
+  font-size: clamp(20px, 1.8vw, 26px);
+  line-height: 1.3;
+  opacity: 0.85;
+}
+
+/* The proof sits on a dotted field with a small ink tag in its corner, as on TypeSafe. */
+.wm-panel-field {
+  position: relative;
+  padding: 44px 24px 24px;
+  background: radial-gradient(circle, rgb(17 17 17 / 0.14) 0.9px, transparent 1.1px) 0 0 / 6px 6px;
+}
+
+.wm-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2px 8px;
+  background: var(--wm-ink);
+  color: var(--wm-white);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.wm-dump-canvas,
+.wm-orbit-canvas {
+  display: block;
+  width: 100%;
+  background: var(--color-background-body);
+}
+
+.wm-orbit-canvas {
+  aspect-ratio: 640 / 400;
+}
+
+.wm-rows-labels {
+  position: absolute;
+  top: 44px;
+  left: 24px;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  height: calc(100% - 68px);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.wm-rows-labels span {
+  padding: 8px 10px;
+}
+
+/* Numbers under the proof: a name, a value, a note. */
+.wm-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 48px;
+}
+
+.wm-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.wm-stat-name {
+  font-weight: 500;
+}
+
+.wm-stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-stat-note {
+  opacity: 0.6;
+}
+
+.wm-panel-field .wm-stats {
+  margin-top: 20px;
+}
+
+.wm-after {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 64px;
+  align-items: start;
+  margin-top: 32px;
+}
+
+.wm-body {
+  max-width: 34em;
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+/* ---------- section 3: centred, on the water field ---------- */
+
+.wm-section-center .wm-claim {
+  text-align: center;
+}
+
+.wm-section-center .wm-h2 {
+  margin-inline: auto;
+}
+
+.wm-swarm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.wm-swarm figure {
+  margin: 0;
+}
+
+.wm-swarm canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 560 / 360;
+}
+
+.wm-swarm figcaption {
+  margin-top: 16px;
+}
+
+.wm-body-center {
+  margin: 48px auto 0;
+  text-align: left;
+}
+
+/* ---------- section 4: claim and paragraph left, proof right ---------- */
+
+.wm-split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.wm-split-text {
+  position: sticky;
+  top: 48px;
+}
+
+.wm-split .wm-h2 {
+  font-size: clamp(44px, 4.6vw, 68px);
+}
+
+/* ---------- the water field ---------- */
+
+.wm-band-water {
+  --wm-on-water: #ffffff;
+  background: var(--wm-water-strong);
+  color: var(--wm-on-water);
+}
+
+/* The Astryx reset colours p and h2 itself, so text in this band takes the band's colour. */
+.wm-band-water :is(h2, p, figcaption, span) {
+  color: inherit;
+}
+
+.wm-band-water .wm-panel-field {
+  background: radial-gradient(circle, rgb(255 255 255 / 0.28) 0.9px, transparent 1.1px) 0 0 / 6px 6px;
+}
+
+.wm-band-water .wm-tag {
+  background: var(--wm-white);
+  color: var(--wm-water-strong);
+}
+
+.wm-band-water .wm-swarm canvas {
+  background: var(--wm-water-strong);
+}
+
+/* ---------- closing: the claim and two doors, over the sea ---------- */
+
+.wm-close {
+  /* The height of the sea picture each screen loads (1920, 1600 or 1280 wide). */
+  --wm-sea: 536px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* The sea runs along the bottom, its horizon at the top of the picture, and the doors
+   stand a little way into the water. */
+.wm-sky.wm-sea {
+  top: auto;
+  height: var(--wm-sea);
+}
+
+.wm-close-inner {
+  position: relative;
+  z-index: 1;
+  padding-bottom: calc(var(--wm-sea) - 48px);
+}
+
+@media (max-width: 1600px) {
+  .wm-close {
+    --wm-sea: 446px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .wm-close {
+    --wm-sea: 358px;
+  }
+}
+
+.wm-doors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.wm-door-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+  padding: 28px 28px 32px;
+  background: var(--color-background-body);
+}
+
+.wm-door-name {
+  margin: 0 0 20px;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.wm-door-steps {
+  flex: 1;
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.wm-door-steps li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  padding: 10px 0;
+  border-top: 1px dotted rgb(17 17 17 / 0.35);
+  font-size: 17px;
+  line-height: 1.4;
+  counter-increment: step;
+}
+
+.wm-door-name-example {
+  display: block;
+  margin-top: 4px;
+  color: var(--wm-water-strong);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.wm-door-steps li::before {
+  content: counter(step, decimal-leading-zero);
+  color: var(--wm-water-strong);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+/* ---------- footer ---------- */
+
+.wm-footer {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 32px 48px;
+}
+
+.wm-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 32px;
+}
+
+.wm-footer-row .wm-top-links {
+  flex-wrap: wrap;
+}
+
+.wm-footer .wm-mark {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.wm-footer-born {
+  margin: 12px 0 0;
+  font-size: 16px;
+}
+
+.wm-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 320px));
+  gap: 32px 64px;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px dotted rgb(17 17 17 / 0.35);
+}
+
+/* Two classes, so it outranks the rule that sets p to the page face. */
+.wm-footer .wm-footer-label {
+  margin: 0 0 12px;
+  color: var(--wm-water-strong);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+}
+
+.wm-footer-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 20px;
+}
+
+.wm-footer-cols a {
+  color: var(--wm-ink);
+  text-decoration: none;
+}
+
+.wm-footer-cols a:hover {
+  color: var(--wm-water-strong);
+}
+
+.wm-footer-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Partner marks sit at cap height beside the name, in their own brand colours. The box is
+   square so the names line up whatever the mark's shape. */
+.wm-footer-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.wm-footer-small {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.wm-footer-small a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wm-footer-note {
+  margin: 40px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.6;
+}
+
+@media (max-width: 900px) {
+  .wm-doors {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .wm-after,
+  .wm-split,
+  .wm-swarm {
+    grid-template-columns: 1fr;
+  }
+
+  .wm-split-text {
+    position: static;
+  }
+}
+
+@media (max-width: 600px) {
+  .wm-section {
+    padding-inline: 16px;
+  }
+
+  .wm-panel-field {
+    padding: 40px 12px 12px;
+  }
+
+  .wm-door-body {
+    padding: 24px 20px 28px;
+  }
+
+  .wm-footer {
+    padding-inline: 16px;
+  }
+
+  .wm-rows-labels {
+    top: 40px;
+    left: 12px;
+    height: calc(100% - 52px);
+    font-size: 13px;
+    line-height: 16px;
+  }
+
+  .wm-rows-labels span {
+    padding: 2px 6px;
+  }
+}
