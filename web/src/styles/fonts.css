@@ -1,8 +1,9 @@
-/* Locked pair. Die Grotesk C files are the Klim test cut and stay untracked. */
+/* Locked pair. Die Grotesk C is Klim's retail web font, licensed for this site and kept out of git:
+   web/scripts/fetch-fonts.mjs puts the files in public/fonts/die-grotesk/ (see NOTICE.md). */
 
 @font-face {
   font-family: "Die Grotesk C";
-  src: url("/fonts/compare/die-grotesk-c-regular.woff2") format("woff2");
+  src: url("/fonts/die-grotesk/die-grotesk-c-regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -10,7 +11,7 @@
 
 @font-face {
   font-family: "Die Grotesk C";
-  src: url("/fonts/compare/die-grotesk-c-medium.woff2") format("woff2");
+  src: url("/fonts/die-grotesk/die-grotesk-c-medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;

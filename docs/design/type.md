@@ -12,7 +12,7 @@ as_of: 2026-09-26
 This page covers the two faces, the sizes, and the letter-spacing.
 Measured on 26 Sep 2026. TypeSafe sets headlines in Die Grotesk C, weights 400 and 500. At a 1064 px viewport the headline is 94 px with a 75.2 px line (0.8 of the size) and weight 500. At a forced 1440 px width the same headline is 150 px on a 120 px line, the same 0.8 ratio. Navigation is 18 px with 0.54 px of tracking. Terminal copy is 14–16 px in LisaTerminal Paper. Devin's display tracking, measured at 625 px, is −0.96 px on 32 px type (−0.03 em). Devin's 14 px navigation is too small for this demo.
 
-The locked pair is Die Grotesk C for the page and LisaTerminal Paper for the small lines inside a window. Die Grotesk C is weights 400 and 500. LisaTerminal Paper is weight 400, and it is not a headline. The sizes below are for the 1280 frame, taken from the 94 px measurement rather than the 150 px one. The Die Grotesk files on this machine are Klim's test cut: letters, digits, space, and . , - only. Those files stay local and are not committed. A mark outside that set falls back to the system face until the retail files replace them.
+The locked pair is Die Grotesk C for the page and LisaTerminal Paper for the small lines inside a window. Die Grotesk C is weights 400 and 500. LisaTerminal Paper is weight 400, and it is not a headline. The sizes below are for the 1280 frame, taken from the 94 px measurement rather than the 150 px one. The Die Grotesk C files are Klim's retail web fonts, licensed for this site. They are not in git: `web/scripts/fetch-fonts.mjs` copies them from a private repo into `web/public/fonts/die-grotesk/` before dev and build. They cover the full character set, so no mark falls back to the system face.
 
 ## Rules
 
