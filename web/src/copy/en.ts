@@ -158,13 +158,8 @@ export const LANDING = {
   gate: {
     label: "Named takers",
     title: "Once the DAO quotes a price, who gets to take it?",
-    takers: "Takers",
-    check: "ENS check",
-    price: "The DAO's price",
-    filled: "filled",
-    refused: "refused",
-    noName: "no name",
-    expired: "expired",
+    open: "Anyone can take it",
+    named: "Only named takers",
     caption: "Every fill reads the taker's ENS name. No name, no fill.",
   },
 } as const;
