@@ -8,15 +8,17 @@ The quote on router `1.0.2-desk.4` (`0x82b5303b41E0963C10c2fdA2fe5AF3732877204C`
 
 The Safe appoints one address and records it on `risk.agents.<desk>.eth`. That address may write `desk.spread` and `desk.stats` on the desk resolver. It may not change an address, the cap, an expiry, or the oracle, and it does not dock or re-ship the order.
 
-One agent per Safe. The ENS grant covers every name on that resolver, and each treasury has its own resolver. A counterparty's key signs that counterparty's fill. It does not receive the spread grant.
+One agent per Safe, created when that Safe's resolver is deployed. `grantSetterRoles` runs then, once for `desk.spread` and once for `desk.stats`. A new Aqua order does not get a new agent. `ship` and `dock` leave the grant where it is. Replacing the agent is a separate act: the Safe revokes the old address and grants the new one.
+
+The ENS grant covers every name on that resolver, and each treasury has its own resolver. A counterparty's key signs that counterparty's fill. It does not receive the spread grant.
 
 The Safe holds the agent's key and runs the process. This repo does not hold the key and does not send the spread transaction.
 
 ## What this repo provides
 
-A read of the book in the router's units: the oracle answer and its age, the ETH share, the widths and the cap in `desk.terms`, the spread on the name and its `validUntil`, and which counterparty names are still live. The read moves when a fill lands or the oracle moves.
+A read of the book in the router's units, `GET /v1/desks/{name}`, as `DeskBook` in `ts/src/lib/agent.ts`: the oracle answer and its age, the ETH share, the widths and the cap in `desk.terms`, the spread on the name and its `validUntil`, and which counterparty names are still live. The read moves when a fill lands or the oracle moves. There is no write endpoint.
 
-The bytes their writer must match. `desk.spread` carries the live sell width, the live buy width, and `validUntil`. `desk.stats` is that decision as text for the screen: the same widths, the expiry, and the time of the write. The encoder on this branch still stores one `spreadBps`. This pass does not change it.
+The bytes their writer must match. `encodeAgentSpread` is `abi.encode(uint8 1, uint16 sellBps, uint16 buyBps, uint64 validUntil)`, 128 bytes. `encodeAgentStats` is the text JSON `{version, sellBps, buyBps, validUntil, writtenAt}`. `planAgentWrites` returns the unsigned `setData` and `setText`. The live widths have to sit inside the Safe's widths. The older `encodeSpread` still stores one `spreadBps`. This pass does not teach opcode 35 to read the new record.
 
 The screen. For the Safe: the quote a fill would pay now, the fence in `desk.terms`, the counterparty book, and the agent address with its last widths. For a counterparty: that quote, their name, and whether the gate would pass.
 
