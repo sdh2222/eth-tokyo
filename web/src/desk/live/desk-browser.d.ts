@@ -56,8 +56,8 @@ declare module "@desk/browser" {
     amountIn: bigint;
     amountOut: bigint;
     midWad: bigint;
-    spreadBps: number;
-    spreadSource: 0 | 1 | 2;
+    sSellBps: number;
+    sBuyBps: number;
     wBeforeWad: bigint;
     blockNumber: bigint;
     transactionHash: `0x${string}`;

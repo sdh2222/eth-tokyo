@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import sepoliaConfig from "@config";
-import { fetchApiDesk, fetchApiFills } from "../desk/api";
+import { fetchApiDesk } from "../desk/api";
 import { createPort } from "../desk/createPort";
 import { fixtureBlock } from "../desk/fixture";
 import { emptyConfig, FIXTURE_MMS, FIXTURE_OWNERS } from "../desk/fixture/state";
@@ -106,22 +106,16 @@ export function useDeskState(strategy: StrategyInfo | null) {
   return chain;
 }
 
+// Fills come from the router's DeskFill logs in both modes. The Render API's indexer still
+// decodes the old DeskFill signature, so live mode reads the chain directly (every block).
 export function useFills(strategy: StrategyInfo | null) {
   const desk = useDeskPort();
   const client = usePublicClient();
   const { block } = useBlock();
   const cfg = deskConfig();
-  const api = useQuery({
-    queryKey: ["v1", "fills"],
-    queryFn: fetchApiFills,
-    enabled: mode === "live",
-    refetchInterval: 15_000,
+  return useQuery({
+    queryKey: ["fills", mode, strategy?.strategyHash, block?.toString()],
+    queryFn: () => desk.readFills({ client, cfg }, mode === "live" ? undefined : (strategy ?? undefined)),
+    enabled: block !== undefined && (mode === "live" || strategy !== null),
   });
-  const chain = useQuery({
-    queryKey: ["fills", strategy?.strategyHash, block?.toString()],
-    queryFn: () => desk.readFills({ client, cfg }, strategy ?? undefined),
-    enabled: mode !== "live" && strategy !== null && block !== undefined,
-  });
-  if (mode === "live") return api;
-  return chain;
 }

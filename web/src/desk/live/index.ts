@@ -101,12 +101,15 @@ function toState(
   };
 }
 
-function toFill(raw: Awaited<ReturnType<typeof readFills>>[number]): FillRecord {
+// The DeskFill event carries both widths (sSellBps, sBuyBps). spreadBps is the width this
+// fill paid: the sell width when the counterparty bought ETH, else the buy width.
+function toFill(raw: Awaited<ReturnType<typeof readFills>>[number], weth: string, blockTime: number): FillRecord {
   const name = dnsNameToString(raw.dnsName);
+  const boughtEth = raw.tokenOut.toLowerCase() === weth.toLowerCase();
   return {
     tx: raw.transactionHash,
     blockNumber: raw.blockNumber,
-    blockTime: 0,
+    blockTime,
     orderHash: raw.orderHash,
     nameHash: raw.nameHash,
     taker: raw.taker,
@@ -117,8 +120,8 @@ function toFill(raw: Awaited<ReturnType<typeof readFills>>[number]): FillRecord 
     amountIn: raw.amountIn,
     amountOut: raw.amountOut,
     midWad: raw.midWad,
-    spreadBps: raw.spreadBps,
-    spreadSource: raw.spreadSource,
+    spreadBps: boughtEth ? raw.sSellBps : raw.sBuyBps,
+    spreadSource: 0,
     wBeforeWad: raw.wBeforeWad,
   };
 }
@@ -229,7 +232,16 @@ export function createLivePort(): DeskPort {
     async readFills(ctx, strategy, fromBlock) {
       if (!chainReady(ctx.cfg)) return [];
       const rows = await readFills(ctx, strategy, fromBlock);
-      return rows.map(toFill);
+      const client = ctx.client as { getBlock(args: { blockNumber: bigint }): Promise<{ timestamp: bigint }> };
+      const blocks = [...new Set(rows.map((row) => row.blockNumber))];
+      const times = new Map<bigint, number>();
+      await Promise.all(
+        blocks.map(async (blockNumber) => {
+          const block = await client.getBlock({ blockNumber });
+          times.set(blockNumber, Number(block.timestamp));
+        }),
+      );
+      return rows.map((row) => toFill(row, ctx.cfg.tokens.weth, times.get(row.blockNumber) ?? 0));
     },
     verifyFill() {
       return { matches: false, steps: [] };
