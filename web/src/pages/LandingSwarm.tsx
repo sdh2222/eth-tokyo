@@ -189,11 +189,15 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
         named: panels[1]!.counts.named,
       });
     const counter = window.setInterval(publish, 300);
-    const buffer = document.createElement("canvas");
-    buffer.width = GW;
-    buffer.height = GH;
-    const bufferCtx = buffer.getContext("2d");
-    const image = bufferCtx?.createImageData(GW, GH);
+    // One offscreen buffer per panel. Some browsers read a canvas used as a drawImage source
+    // lazily, so one buffer repainted for the second panel showed the gated panel in both.
+    const buffers = canvases.map(() => {
+      const buffer = document.createElement("canvas");
+      buffer.width = GW;
+      buffer.height = GH;
+      const context = buffer.getContext("2d");
+      return { buffer, context, image: context?.createImageData(GW, GH) };
+    });
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
     let last = 0;
@@ -202,9 +206,9 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
     let visible = false;
 
     const render = () => {
-      if (!bufferCtx || !image) return;
       canvases.forEach((canvas, i) => {
-        if (!canvas) return;
+        const own = buffers[i];
+        if (!canvas || !own?.context || !own.image) return;
         const ratio = window.devicePixelRatio || 1;
         const width = Math.round(canvas.clientWidth * ratio);
         const height = Math.round((width * H) / W);
@@ -212,13 +216,13 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
           canvas.width = width;
           canvas.height = height;
         }
-        paint(panels[i]!, image, { named, unnamed });
-        bufferCtx.putImageData(image, 0, 0);
+        paint(panels[i]!, own.image, { named, unnamed });
+        own.context.putImageData(own.image, 0, 0);
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(buffer, 0, 0, width, height);
+        ctx.drawImage(own.buffer, 0, 0, width, height);
       });
     };
 
