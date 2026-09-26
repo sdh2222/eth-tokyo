@@ -8,6 +8,8 @@
      deeper for text on white (4.9:1). */
   --wm-water: #0080bc;
   --wm-water-strong: #0077af;
+  /* The dither's sky blue (web/scripts/landing-dither.mjs --color). */
+  --wm-dot: #6ec1ea;
 
   min-height: 100vh;
   overflow-x: clip;
@@ -16,9 +18,16 @@
   font-family: var(--font-family-body);
 }
 
+/* legacy.css still paints the body sky. Behind the landing it is the page's white, so the
+   last sub-pixel and the scroll bounce do not show a sky edge. */
+body:has(.wm-landing) {
+  background: var(--color-background-body);
+}
+
 /* The Astryx reset gives p and h1 their own face. Here they follow the page. */
 .wm-landing p,
-.wm-landing h1 {
+.wm-landing h1,
+.wm-landing h2 {
   font-family: inherit;
 }
 
@@ -153,4 +162,123 @@
 
 .wm-link:hover {
   color: var(--wm-water-strong);
+}
+
+/* ---------- sections ---------- */
+
+.wm-section {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 160px 32px 128px;
+  scroll-margin-top: 0;
+}
+
+.wm-label {
+  margin: 0 0 16px;
+  color: var(--wm-water-strong);
+  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
+  font-size: 16px;
+}
+
+.wm-h2 {
+  max-width: 17em;
+  margin: 0;
+  font-size: clamp(40px, 4.6vw, 64px);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+/* ---------- today and with watermark ---------- */
+
+.wm-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-top: 72px;
+}
+
+.wm-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wm-ink);
+}
+
+.wm-panel-label {
+  margin: 0;
+  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
+  font-size: 16px;
+}
+
+.wm-figure {
+  margin: 0;
+}
+
+.wm-figure figcaption {
+  margin-top: 8px;
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 16px;
+  opacity: 0.5;
+}
+
+.wm-timeline {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.wm-cell-off {
+  fill: #d9d9d9;
+}
+
+.wm-timeline-dump .wm-cell-on {
+  fill: var(--wm-ink);
+}
+
+.wm-timeline-fills .wm-cell-on {
+  fill: var(--wm-dot);
+}
+
+.wm-number {
+  margin: 0;
+  font-size: clamp(56px, 5.6vw, 80px);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-panel-ours .wm-number {
+  color: var(--wm-water-strong);
+}
+
+.wm-number-note {
+  margin: 12px 0 0;
+  font-size: 16px;
+  opacity: 0.6;
+}
+
+.wm-points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 20px;
+}
+
+.wm-points li {
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.wm-points li:first-child {
+  border-top: 1px solid #e5e5e5;
+}
+
+@media (max-width: 900px) {
+  .wm-compare {
+    grid-template-columns: 1fr;
+  }
 }

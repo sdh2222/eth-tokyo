@@ -143,4 +143,25 @@ export const LANDING = {
   open: "Open the app",
   headline: "Making Treasury Asset Disposal Inefficiency Solved",
   via: "via 1inch Aqua & ENSv2",
+  compare: {
+    label: "Today, and with watermark",
+    title: "Why do treasuries DUMP everything at once? Why not DCA? TWAP?",
+    axis: "time",
+    today: {
+      label: "Today",
+      number: "−2.00%",
+      note: "Worst case per ETH sold, at a 2% slippage budget",
+      points: [
+        "A multisig signature for every slice",
+        "A new price to find for every slice",
+        "So it all goes at once, to an AMM or a solver",
+      ],
+    },
+    ours: {
+      label: "With watermark",
+      number: "+0.03%",
+      note: "Per ETH sold, 3 bp over the mark (example)",
+      points: ["One signature ships the desk", "Your spread prices every fill", "DCA and TWAP, without the signatures"],
+    },
+  },
 } as const;
