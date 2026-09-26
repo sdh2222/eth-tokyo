@@ -69,6 +69,87 @@ function ComparePanel({ side, kind }: { side: "today" | "ours"; kind: "dump" | "
   );
 }
 
+// The price board. Widths are basis points from the mark; the numbers are an example.
+const MARK = 4000;
+const LOT = 100;
+const SPREAD_CELLS = 30;
+const usd = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const whole = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+function SpreadStrip({ sellBps, buyBps }: { sellBps: number; buyBps: number }) {
+  const cells = [];
+  for (let bp = -SPREAD_CELLS; bp <= SPREAD_CELLS; bp += 1) {
+    const x = (bp + SPREAD_CELLS) * STEP;
+    const kind = bp === 0 ? "mark" : (bp > 0 && bp <= sellBps) || (bp < 0 && -bp <= buyBps) ? "on" : "off";
+    cells.push(
+      kind === "off" ? (
+        <rect key={bp} className="wm-cell-off" x={x + 4} y={4} width={2} height={2} />
+      ) : (
+        <rect key={bp} className={kind === "mark" ? "wm-cell-mark" : "wm-cell-spread"} x={x} y={0} width={CELL} height={CELL} />
+      ),
+    );
+  }
+  return (
+    <svg className="wm-spread" viewBox={`0 0 ${(SPREAD_CELLS * 2 + 1) * STEP - 4} ${CELL}`} aria-hidden="true">
+      {cells}
+    </svg>
+  );
+}
+
+function PriceBoard() {
+  const copy = LANDING.price;
+  const [sellBps, setSellBps] = useState(3);
+  const [buyBps, setBuyBps] = useState(10);
+  const ask = (MARK * (10000 + sellBps)) / 10000;
+  const bid = (MARK * (10000 - buyBps)) / 10000;
+  const lotOurs = (LOT * MARK * sellBps) / 10000;
+  const lotToday = LOT * MARK * 0.02;
+
+  return (
+    <div className="wm-board">
+      <div className="wm-quotes">
+        <div className="wm-quote">
+          <p className="wm-panel-label">{copy.buy}</p>
+          <p className="wm-quote-price">{usd(bid)}</p>
+          <p className="wm-quote-bps">−{buyBps} bp</p>
+        </div>
+        <div className="wm-quote">
+          <p className="wm-panel-label">{copy.sell}</p>
+          <p className="wm-quote-price">{usd(ask)}</p>
+          <p className="wm-quote-bps">+{sellBps} bp</p>
+        </div>
+      </div>
+      <div className="wm-spread-wrap">
+        <SpreadStrip sellBps={sellBps} buyBps={buyBps} />
+        <p className="wm-spread-mark">{copy.mark}</p>
+      </div>
+      <div className="wm-sliders">
+        <label className="wm-slider">
+          <span>
+            {copy.buyWidth} <output>{buyBps} bp</output>
+          </span>
+          <input type="range" min={1} max={SPREAD_CELLS} value={buyBps} onChange={(e) => setBuyBps(Number(e.target.value))} />
+        </label>
+        <label className="wm-slider">
+          <span>
+            {copy.sellWidth} <output>{sellBps} bp</output>
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={SPREAD_CELLS}
+            value={sellBps}
+            onChange={(e) => setSellBps(Number(e.target.value))}
+          />
+        </label>
+      </div>
+      <p className="wm-lot">
+        {copy.lot}: <strong>+${whole(lotOurs)}</strong> {copy.lotOurs}. <span>−${whole(lotToday)}</span> {copy.lotToday}.
+      </p>
+    </div>
+  );
+}
+
 // True once the element has been a third on screen. It stays true.
 function useSeen<T extends Element>() {
   const ref = useRef<T>(null);
@@ -139,6 +220,20 @@ export function LandingPage() {
         <div className="wm-compare" ref={compareRef} data-seen={compareSeen}>
           <ComparePanel side="today" kind="dump" />
           <ComparePanel side="ours" kind="fills" />
+        </div>
+      </section>
+
+      <section className="wm-section">
+        <p className="wm-label">{LANDING.price.label}</p>
+        <h2 className="wm-h2">{LANDING.price.title}</h2>
+        <PriceBoard />
+        <div className="wm-three">
+          {LANDING.price.points.map((point) => (
+            <div key={point.title}>
+              <p className="wm-three-title">{point.title}</p>
+              <p className="wm-three-body">{point.body}</p>
+            </div>
+          ))}
         </div>
       </section>
     </div>

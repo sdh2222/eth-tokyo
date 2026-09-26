@@ -310,8 +310,136 @@ body:has(.wm-landing) {
   border-top: 1px solid #e5e5e5;
 }
 
+/* ---------- price board ---------- */
+
+.wm-board {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-top: 72px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wm-ink);
+}
+
+.wm-quotes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
+
+.wm-quote:last-child {
+  text-align: right;
+}
+
+.wm-quote-price {
+  margin: 12px 0 0;
+  font-size: clamp(56px, 7vw, 104px);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-quote-bps {
+  margin: 12px 0 0;
+  color: var(--wm-water-strong);
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-spread {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.wm-cell-spread {
+  fill: var(--wm-dot);
+}
+
+.wm-cell-mark {
+  fill: var(--wm-ink);
+}
+
+.wm-spread-mark {
+  margin: 8px 0 0;
+  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
+  font-size: 16px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.wm-sliders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
+
+.wm-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.wm-slider output {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+.wm-slider input {
+  width: 100%;
+  accent-color: var(--wm-ink);
+}
+
+.wm-lot {
+  margin: 0;
+  font-size: 20px;
+}
+
+.wm-lot strong {
+  color: var(--wm-water-strong);
+  font-weight: 500;
+}
+
+.wm-lot span {
+  font-weight: 500;
+}
+
+.wm-three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+  margin-top: 72px;
+}
+
+.wm-three > div {
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.wm-three-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.wm-three-body {
+  margin: 8px 0 0;
+  font-size: 16px;
+  opacity: 0.7;
+}
+
 @media (max-width: 900px) {
-  .wm-compare {
+  .wm-compare,
+  .wm-quotes,
+  .wm-sliders,
+  .wm-three {
     grid-template-columns: 1fr;
+  }
+
+  .wm-quote:last-child {
+    text-align: left;
   }
 }

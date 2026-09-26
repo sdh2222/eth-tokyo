@@ -164,4 +164,24 @@ export const LANDING = {
       points: ["One signature ships the desk", "Your spread prices every fill", "DCA and TWAP, without the signatures"],
     },
   },
+  price: {
+    label: "Your price, both sides",
+    title: "What if the treasury set its own price, on both sides?",
+    mark: "Mark 4,000.00 (example)",
+    sell: "Sell ETH",
+    buy: "Buy ETH",
+    sellWidth: "Sell width",
+    buyWidth: "Buy width",
+    lot: "Selling 100 ETH",
+    lotOurs: "over the mark with watermark",
+    lotToday: "allowed by a 2% slippage budget",
+    points: [
+      { title: "One width per side", body: "The DAO sets how far above the mark it sells, and how far below it buys." },
+      {
+        title: "The buy side earns",
+        body: "When a counterparty sells ETH to the desk, the DAO earns the spread it used to pay.",
+      },
+      { title: "Cheaper is enough", body: "The DAO is not a pro market maker. It only has to beat dumping into a pool." },
+    ],
+  },
 } as const;
