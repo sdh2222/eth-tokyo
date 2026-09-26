@@ -38,8 +38,12 @@ describe("counterparty tiers", () => {
 
   it("keeps the local tier unless Jev is at least 0.6 confident", () => {
     expect(chooseTier("tight", null)).toBe("tight");
-    expect(chooseTier("tight", { tier: "fence", confidence: 0.59 })).toBe("tight");
-    expect(chooseTier("tight", { tier: "fence", confidence: 0.6 })).toBe("fence");
+    expect(chooseTier("tight", { tier: "fence", confidence: 0.59 })).toBe(
+      "tight",
+    );
+    expect(chooseTier("tight", { tier: "fence", confidence: 0.6 })).toBe(
+      "fence",
+    );
   });
 
   it("refuses a tier outside the Safe widths", () => {

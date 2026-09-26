@@ -6,11 +6,11 @@ const MODEL = "jev-1.13.0";
 const questions = {
   tier: {
     type: "choice",
-    instructions: "Which spread tier fits this counterparty?",
+    instructions: "Which spread tier fits the counterparty who just filled?",
     criteria: {
-      tight: "The name is live and the requested size is 1 ETH or less.",
-      standard: "The name is live and the requested size is 10 ETH or less.",
-      fence: "The requested size is above 10 ETH, or the name is not live.",
+      tight: "The name is live and the filled size is 1 ETH or less.",
+      standard: "The name is live and the filled size is 10 ETH or less.",
+      fence: "The filled size is above 10 ETH, or the name is not live.",
     },
   },
 } as const;

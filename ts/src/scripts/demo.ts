@@ -15,35 +15,28 @@ import {
 } from "viem";
 import { sepolia } from "viem/chains";
 
-import { deskRpc, loadDeskConfig, sendFill, type FillDone } from "../bot/fill.js";
-import { planAgentWrites } from "../lib/agent.js";
+import {
+  deskRpc,
+  loadDeskConfig,
+  sendFill,
+  type FillDone,
+} from "../bot/fill.js";
 import { readBook } from "../lib/book.js";
 import {
   findLiveStrategy,
   planSetTerms,
   planShip,
   quoteFor,
-  readFills,
   type DeskCtx,
 } from "../lib/client/index.js";
-import {
-  chooseTier,
-  counterpartyState,
-  localTier,
-  poolAsk,
-  poolBid,
-  spreadFor,
-  type CounterpartyFacts,
-} from "../lib/counterparty.js";
+import { poolAsk, poolBid } from "../lib/counterparty.js";
 import { dnsEncode } from "../lib/encode.js";
-import { askJev } from "../lib/jev.js";
 import { loadEnv, repoRoot } from "./_common/env.js";
 import { executeSafeCalls, type SafeCall } from "./_common/safe-send.js";
 import { accountForLabel, keyForLabel } from "./_common/wallet.js";
 
 const ROUTER_VERSION = "1.0.2-desk.5";
-const PREVIOUS_ROUTER =
-  "0x82b5303b41E0963C10c2fdA2fe5AF3732877204C" as Address;
+const PREVIOUS_ROUTER = "0x82b5303b41E0963C10c2fdA2fe5AF3732877204C" as Address;
 const POLICY =
   "이미 장부에 있는 상대는 게시된 약정보다 좁은 폭을 받을 수 있다. 크고 처음인 거래는 매도 3 bp, 매수 10 bp에 머문다. 그 약정 밖으로는 호가하지 않는다. 오라클은 움직이지 않는다.";
 const FLOOR = 3980n * 10n ** 8n;
@@ -77,7 +70,9 @@ function scene(): Scene {
     case "second-ship":
       return name;
     default:
-      throw new Error("demo scene is setup, trade, target, stale, or second-ship");
+      throw new Error(
+        "demo scene is setup, trade, target, stale, or second-ship",
+      );
   }
 }
 
@@ -86,7 +81,7 @@ function clientFor(rpc: string) {
 }
 
 function usd(wad: bigint): string {
-  const cents = (wad < 0n ? -wad : wad) * 100n / 10n ** 18n;
+  const cents = ((wad < 0n ? -wad : wad) * 100n) / 10n ** 18n;
   const sign = wad < 0n ? "-" : "";
   return `${sign}${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
 }
@@ -191,7 +186,8 @@ async function fundMms(
       value: target - balance,
     });
     const receipt = await client.waitForTransactionReceipt({ hash });
-    if (receipt.status !== "success") throw new Error(`fund ${label} failed: ${hash}`);
+    if (receipt.status !== "success")
+      throw new Error(`fund ${label} failed: ${hash}`);
     console.log(`funded ${label} tx ${hash}`);
   }
 }
@@ -213,7 +209,8 @@ async function openOracle(
     functionName: "latestRoundData",
   });
   const current = round[1];
-  const answer = current < FLOOR || current > CEILING ? 4000n * 10n ** 8n : current;
+  const answer =
+    current < FLOOR || current > CEILING ? 4000n * 10n ** 8n : current;
   const answerHash = await wallet.writeContract({
     address: oracle,
     abi: oracleAbi,
@@ -221,8 +218,11 @@ async function openOracle(
     args: [answer],
     gas: 80_000n,
   });
-  const answerReceipt = await client.waitForTransactionReceipt({ hash: answerHash });
-  if (answerReceipt.status !== "success") throw new Error(`setAnswer failed: ${answerHash}`);
+  const answerReceipt = await client.waitForTransactionReceipt({
+    hash: answerHash,
+  });
+  if (answerReceipt.status !== "success")
+    throw new Error(`setAnswer failed: ${answerHash}`);
   const block = await client.getBlock();
   const timeHash = await wallet.writeContract({
     address: oracle,
@@ -231,16 +231,27 @@ async function openOracle(
     args: [block.timestamp],
     gas: 50_000n,
   });
-  const timeReceipt = await client.waitForTransactionReceipt({ hash: timeHash });
-  if (timeReceipt.status !== "success") throw new Error(`setUpdatedAt failed: ${timeHash}`);
-  console.log(`oracle answer ${answer} updatedAt ${block.timestamp} tx ${timeHash}`);
+  const timeReceipt = await client.waitForTransactionReceipt({
+    hash: timeHash,
+  });
+  if (timeReceipt.status !== "success")
+    throw new Error(`setUpdatedAt failed: ${timeHash}`);
+  console.log(
+    `oracle answer ${answer} updatedAt ${block.timestamp} tx ${timeHash}`,
+  );
 }
 
 async function setup(rpc: string): Promise<void> {
   const client = clientFor(rpc);
   await fundMms(rpc, client);
   let cfg = loadDeskConfig();
-  if (cfg.safe === "" || cfg.tokens.weth === "" || cfg.tokens.usdc === "" || cfg.oracle === "" || cfg.ens.resolver === "") {
+  if (
+    cfg.safe === "" ||
+    cfg.tokens.weth === "" ||
+    cfg.tokens.usdc === "" ||
+    cfg.oracle === "" ||
+    cfg.ens.resolver === ""
+  ) {
     throw new Error("config is missing an address");
   }
   const weth = cfg.tokens.weth;
@@ -297,9 +308,10 @@ async function setup(rpc: string): Promise<void> {
     console.log("terms already sell 3 buy 10 cap 50 ETH");
   }
   if (!liveNew) {
-    const previous = oldRouter.toLowerCase() === PREVIOUS_ROUTER.toLowerCase()
-      ? oldRouter
-      : PREVIOUS_ROUTER;
+    const previous =
+      oldRouter.toLowerCase() === PREVIOUS_ROUTER.toLowerCase()
+        ? oldRouter
+        : PREVIOUS_ROUTER;
     if (previous.toLowerCase() !== String(cfg.router).toLowerCase()) {
       const oldCtx: DeskCtx = {
         client,
@@ -316,11 +328,7 @@ async function setup(rpc: string): Promise<void> {
           data: encodeFunctionData({
             abi: aquaAbi,
             functionName: "dock",
-            args: [
-              previous,
-              liveOld.strategyHash,
-              [weth, usdc],
-            ],
+            args: [previous, liveOld.strategyHash, [weth, usdc]],
           }),
           value: 0n,
         });
@@ -349,68 +357,48 @@ async function setup(rpc: string): Promise<void> {
   await openOracle(rpc, client, oracle);
 }
 
-async function writeSpread(
-  rpc: string,
-  mm: "mm-a" | "mm-b",
-  side: "buy" | "sell",
-  sizeWeth: bigint,
-): Promise<void> {
-  const cfg = loadDeskConfig();
-  const client = clientFor(rpc);
-  const book = await readBook(cfg, rpc);
-  const row = book.names.find((name) => name.name.startsWith(`${mm}.`));
-  const account = accountForLabel(mm);
-  const ctx: DeskCtx = { client, cfg };
-  const fills = await readFills(ctx);
-  const priorFills = fills.filter(
-    (fill) => fill.taker.toLowerCase() === account.address.toLowerCase(),
-  ).length;
-  const facts: CounterpartyFacts = {
-    name: row?.name ?? `${mm}.${cfg.ens.suffix}`,
-    live: row?.live ?? false,
-    expirySeconds: row?.expiry ?? 0n,
-    priorFills,
-    side,
-    sizeWeth,
-    capWeth: book.terms?.cap ?? CAP,
-    wBps: book.inventory.wBps,
-    policy: book.policy,
-  };
-  const local = localTier(facts);
-  const jev = await askJev(process.env.JEV_API_KEY ?? "", counterpartyState(facts));
-  const tier = chooseTier(local, jev);
-  const terms = book.terms ?? { sellBps: 3, buyBps: 10, cap: CAP };
-  const block = await client.getBlock();
-  const spread = spreadFor(tier, terms, block.timestamp + 600n);
-  if (cfg.ens.resolver === "") throw new Error("resolver is unset");
-  const writes = planAgentWrites({
-    resolver: cfg.ens.resolver,
-    name: "dao-treasury-a.eth",
-    spread,
-    terms,
-    writtenAt: block.timestamp,
-  });
-  const agent = accountForLabel("risk-agent");
-  const wallet = createWalletClient({
-    account: agent,
-    chain: sepolia,
-    transport: http(rpc),
-  });
-  for (const write of [writes.spread, writes.stats]) {
-    const hash = await wallet.sendTransaction({
-      to: write.to,
-      data: write.data,
-      gas: 400_000n,
-    });
-    const receipt = await client.waitForTransactionReceipt({ hash });
-    if (receipt.status !== "success") throw new Error(`${write.label} failed: ${hash}`);
+async function trade(rpc: string): Promise<void> {
+  const blocked = await probe(rpc, "1");
+  if (blocked === "DeskPriceOracleStale")
+    throw new Error("oracle window is closed");
+  const first =
+    blocked === "DeskPriceTargetReached"
+      ? {
+          mm: "mm-a" as const,
+          side: "sell" as const,
+          weth: "1",
+          label: "mm-a sells 1 ETH",
+          size: 10n ** 18n,
+        }
+      : {
+          mm: "mm-a" as const,
+          side: "buy" as const,
+          weth: "1",
+          label: "mm-a buys 1 ETH",
+          size: 10n ** 18n,
+        };
+  if (blocked === "DeskPriceTargetReached") {
+    console.log("desk sell refused: DeskPriceTargetReached");
+  } else if (blocked) {
+    throw new Error(`1 ETH buy probe returned ${blocked}`);
   }
-  console.log(
-    `${mm} tier ${tier} local ${local} jev ${jev ? `${jev.tier} ${jev.confidence}` : "none"} sell ${spread.sellBps} buy ${spread.buyBps}`,
-  );
+  const opened = await sendFill({
+    rpc,
+    mm: first.mm,
+    side: first.side,
+    weth: first.weth,
+  });
+  printFill(first.label, first.side, first.size, opened);
+  const sold = await sendFill({ rpc, mm: "mm-b", side: "sell", weth: "20" });
+  printFill("mm-b sells 20 ETH", "sell", 20n * 10n ** 18n, sold);
 }
 
-function printFill(label: string, side: "buy" | "sell", size: bigint, done: FillDone): void {
+function printFill(
+  label: string,
+  side: "buy" | "sell",
+  size: bigint,
+  done: FillDone,
+): void {
   const price = (done.amountIn * 10n ** 30n) / size;
   const paid = side === "buy" ? price : (done.amountOut * 10n ** 30n) / size;
   const pool = side === "buy" ? poolAsk(done.midWad) : poolBid(done.midWad);
@@ -426,25 +414,7 @@ function printFill(label: string, side: "buy" | "sell", size: bigint, done: Fill
   }
 }
 
-async function trade(rpc: string): Promise<void> {
-  await writeSpread(rpc, "mm-a", "buy", 10n ** 18n);
-  const bought = await sendFill({ rpc, mm: "mm-a", side: "buy", weth: "1" });
-  if (bought.sellBps !== 1 || bought.buyBps !== 4) {
-    throw new Error(`mm-a filled at sell ${bought.sellBps} buy ${bought.buyBps}`);
-  }
-  printFill("mm-a buys 1 ETH", "buy", 10n ** 18n, bought);
-  await writeSpread(rpc, "mm-b", "sell", 20n * 10n ** 18n);
-  const sold = await sendFill({ rpc, mm: "mm-b", side: "sell", weth: "20" });
-  if (sold.sellBps !== 3 || sold.buyBps !== 10) {
-    throw new Error(`mm-b filled at sell ${sold.sellBps} buy ${sold.buyBps}`);
-  }
-  printFill("mm-b sells 20 ETH", "sell", 20n * 10n ** 18n, sold);
-}
-
-async function probe(
-  rpc: string,
-  weth: string,
-): Promise<string | null> {
+async function probe(rpc: string, weth: string): Promise<string | null> {
   const cfg = loadDeskConfig();
   const client = clientFor(rpc);
   const ctx: DeskCtx = { client, cfg };
@@ -495,7 +465,9 @@ async function stale(rpc: string): Promise<void> {
     if (age > 600n) {
       const code = await probe(rpc, "1");
       if (code !== "DeskPriceOracleStale") {
-        throw new Error(`expected DeskPriceOracleStale, got ${code ?? "a fill"}`);
+        throw new Error(
+          `expected DeskPriceOracleStale, got ${code ?? "a fill"}`,
+        );
       }
       console.log("oracle window closed, fill rejected");
       return;
@@ -511,7 +483,15 @@ function secondShip(rpc: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const result = spawn(
       "pnpm",
-      ["exec", "tsx", "src/scripts/ship.ts", "--rpc", rpc, "--config", "config/sepolia.json"],
+      [
+        "exec",
+        "tsx",
+        "src/scripts/ship.ts",
+        "--rpc",
+        rpc,
+        "--config",
+        "config/sepolia.json",
+      ],
       { cwd: join(repoRoot, "ts"), stdio: ["ignore", "pipe", "pipe"] },
     );
     let out = "";
@@ -535,9 +515,11 @@ function secondShip(rpc: string): Promise<void> {
 
 async function main(): Promise<void> {
   loadEnv();
-  const rpc = deskRpc(process.argv.includes("--rpc")
-    ? process.argv[process.argv.indexOf("--rpc") + 1]
-    : undefined);
+  const rpc = deskRpc(
+    process.argv.includes("--rpc")
+      ? process.argv[process.argv.indexOf("--rpc") + 1]
+      : undefined,
+  );
   const name = scene();
   switch (name) {
     case "setup":

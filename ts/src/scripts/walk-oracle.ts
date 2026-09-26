@@ -11,7 +11,6 @@ import {
   http,
   parseAbi,
   type Address,
-  type Hex,
 } from "viem";
 import { type PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";

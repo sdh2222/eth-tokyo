@@ -10,7 +10,8 @@ export function keyForLabel(label: string): Hex {
   const path = join(homedir(), ".aqua-eth-tokyo", "wallets.txt");
   const lines = readFileSync(path, "utf8").split(/\r?\n/);
   const start = lines.findIndex((line) => line.trim() === label);
-  if (start < 0) throw new Error(`${label} label is missing from the wallet file`);
+  if (start < 0)
+    throw new Error(`${label} label is missing from the wallet file`);
   const keyLine = lines
     .slice(start, start + 8)
     .find((line) => line.startsWith("Private key:"));

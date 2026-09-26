@@ -4,6 +4,7 @@ import { sepolia } from "viem/chains";
 import { formatRefusal } from "./format.js";
 import { legRule } from "./commands.js";
 import { deskRpc, loadDeskConfig, sendFill, type FillRequest } from "./fill.js";
+import { runKeeper } from "./watch.js";
 import {
   decodeDeskError,
   findLiveStrategy,
@@ -16,14 +17,15 @@ import { accountForLabel } from "../scripts/_common/wallet.js";
 function request(): FillRequest {
   const command = process.argv[2];
   if (command !== "quote" && command !== "fill") {
-    throw new Error("bot command is quote or fill");
+    throw new Error("bot command is quote, fill, or watch");
   }
   const mmFlag = process.argv.indexOf("--mm");
   const mm = mmFlag >= 0 ? process.argv[mmFlag + 1] : "";
   if (mm !== "mm-a" && mm !== "mm-b") throw new Error("--mm is mm-a or mm-b");
   const sideFlag = process.argv.indexOf("--side");
   const side = sideFlag >= 0 ? process.argv[sideFlag + 1] : "";
-  if (side !== "buy" && side !== "sell") throw new Error("--side is buy or sell");
+  if (side !== "buy" && side !== "sell")
+    throw new Error("--side is buy or sell");
   const weth = process.argv.includes("--weth")
     ? process.argv[process.argv.indexOf("--weth") + 1]
     : undefined;
@@ -44,8 +46,12 @@ async function preview(req: FillRequest): Promise<void> {
   const cfg = loadDeskConfig();
   const account = accountForLabel(req.mm);
   const named = cfg.mms.find((mm) => mm.name.startsWith(`${req.mm}.`));
-  if (!named || named.address === "") throw new Error(`${req.mm} is missing from config`);
-  const client = createPublicClient({ chain: sepolia, transport: http(req.rpc) });
+  if (!named || named.address === "")
+    throw new Error(`${req.mm} is missing from config`);
+  const client = createPublicClient({
+    chain: sepolia,
+    transport: http(req.rpc),
+  });
   const ctx: DeskCtx = { client, cfg };
   const live = await findLiveStrategy(ctx);
   if (!live) throw new Error("no live strategy");
@@ -66,6 +72,11 @@ async function preview(req: FillRequest): Promise<void> {
 async function main(): Promise<void> {
   loadEnv();
   const command = process.argv[2];
+  if (command === "watch") {
+    const rpcFlag = process.argv.indexOf("--rpc");
+    const rpc = deskRpc(rpcFlag >= 0 ? process.argv[rpcFlag + 1] : undefined);
+    await runKeeper(rpc);
+  }
   const req = request();
   if (command === "quote") {
     await preview(req);

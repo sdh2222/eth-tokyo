@@ -1,6 +1,6 @@
 import { agentSpreadFits, type AgentSpread, type AgentTerms } from "./agent.js";
 
-/** One desk.spread at a time. The tier is chosen for the counterparty about to trade. */
+/** One desk.spread at a time. The tier is chosen from the fill that just landed. */
 export type Tier = "tight" | "standard" | "fence";
 
 export type CounterpartyFacts = {
@@ -21,7 +21,9 @@ const ONE = 10n ** 18n;
 const TEN = 10n * ONE;
 
 /** Live and at most 1 ETH is tight. Live and at most 10 ETH is standard. Otherwise the posted fence. */
-export function localTier(facts: Pick<CounterpartyFacts, "live" | "sizeWeth">): Tier {
+export function localTier(
+  facts: Pick<CounterpartyFacts, "live" | "sizeWeth">,
+): Tier {
   if (!facts.live) return "fence";
   if (facts.sizeWeth <= ONE) return "tight";
   if (facts.sizeWeth <= TEN) return "standard";

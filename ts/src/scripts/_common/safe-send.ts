@@ -82,7 +82,9 @@ export async function executeSafeCalls(args: {
       safeAddress: args.safe,
     });
     const signer = privateKeyToAccount(key).address;
-    const signature = (await signerKit.signTransaction(tx)).getSignature(signer);
+    const signature = (await signerKit.signTransaction(tx)).getSignature(
+      signer,
+    );
     if (!signature) throw new Error(`no signature from ${signer}`);
     tx.addSignature(new EthSafeSignature(signer, signature.data as Hex));
   }
@@ -98,7 +100,10 @@ export async function executeSafeCalls(args: {
     safeAddress: args.safe,
   });
   const hash = (await exec.executeTransaction(tx)).hash as Hex;
-  const client = createPublicClient({ chain: sepolia, transport: http(args.rpc) });
+  const client = createPublicClient({
+    chain: sepolia,
+    transport: http(args.rpc),
+  });
   const receipt = await client.waitForTransactionReceipt({ hash });
   const outcome = parseEventLogs({
     abi: safeAbi,
@@ -109,7 +114,10 @@ export async function executeSafeCalls(args: {
       log.address.toLowerCase() === args.safe.toLowerCase() &&
       log.args.txHash === safeTxHash,
   );
-  if (receipt.status !== "success" || outcome?.eventName !== "ExecutionSuccess") {
+  if (
+    receipt.status !== "success" ||
+    outcome?.eventName !== "ExecutionSuccess"
+  ) {
     throw new Error(
       `Safe transaction ${safeTxHash} did not succeed (${outcome?.eventName ?? receipt.status}): ${hash}`,
     );

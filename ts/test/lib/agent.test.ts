@@ -116,7 +116,12 @@ describe("agent writes", () => {
       buyBps: 8,
       validUntil: 1_800_000_000n,
     });
-    const quote = quoteFromRecords(4000n * 10n ** 18n, terms, wide, 1_700_000_000n);
+    const quote = quoteFromRecords(
+      4000n * 10n ** 18n,
+      terms,
+      wide,
+      1_700_000_000n,
+    );
     expect(quote?.source).toBe("terms");
     expect(quote?.ask).toBe(4001200000000000000000n);
     expect(quote?.bid).toBe(3996000000000000000000n);

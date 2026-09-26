@@ -59,7 +59,9 @@ export function loadDeskConfig(): DeskConfig {
 
 export function deskRpc(flag?: string): string {
   const fromEnv = process.env.SEPOLIA_RPC_URL?.trim();
-  return flag ?? (fromEnv ? fromEnv : "https://ethereum-sepolia-rpc.publicnode.com");
+  return (
+    flag ?? (fromEnv ? fromEnv : "https://ethereum-sepolia-rpc.publicnode.com")
+  );
 }
 
 /** Quote, mint any shortfall of the mock token, approve the router, and send the swap. */
@@ -67,11 +69,15 @@ export async function sendFill(req: FillRequest): Promise<FillDone> {
   const cfg = loadDeskConfig();
   const account = accountForLabel(req.mm);
   const named = cfg.mms.find((mm) => mm.name.startsWith(`${req.mm}.`));
-  if (!named || named.address === "") throw new Error(`${req.mm} is missing from config`);
+  if (!named || named.address === "")
+    throw new Error(`${req.mm} is missing from config`);
   if (named.address.toLowerCase() !== account.address.toLowerCase()) {
     throw new Error(`${req.mm} wallet does not match config`);
   }
-  const client = createPublicClient({ chain: sepolia, transport: http(req.rpc) });
+  const client = createPublicClient({
+    chain: sepolia,
+    transport: http(req.rpc),
+  });
   const wallet = createWalletClient({
     account,
     chain: sepolia,
@@ -96,10 +102,19 @@ export async function sendFill(req: FillRequest): Promise<FillDone> {
     amount: leg.amount,
   });
   if (!quote.ok) {
-    throw Object.assign(new Error(quote.error.code), { code: quote.error.code });
+    throw Object.assign(new Error(quote.error.code), {
+      code: quote.error.code,
+    });
   }
   await topUp(wallet, client, tokenIn, account.address, quote.amountIn);
-  await approve(wallet, client, tokenIn, account.address, cfg.router, quote.amountIn);
+  await approve(
+    wallet,
+    client,
+    tokenIn,
+    account.address,
+    cfg.router,
+    quote.amountIn,
+  );
   const swap = buildSwapTx(
     ctx,
     live.order as Hex,
@@ -148,7 +163,13 @@ export async function sendFill(req: FillRequest): Promise<FillDone> {
 }
 
 async function topUp(
-  wallet: { sendTransaction: (tx: { to: Address; data: Hex; gas: bigint }) => Promise<Hex> },
+  wallet: {
+    sendTransaction: (tx: {
+      to: Address;
+      data: Hex;
+      gas: bigint;
+    }) => Promise<Hex>;
+  },
   client: ReturnType<typeof createPublicClient>,
   token: Address,
   owner: Address,
@@ -175,7 +196,13 @@ async function topUp(
 }
 
 async function approve(
-  wallet: { sendTransaction: (tx: { to: Address; data: Hex; gas: bigint }) => Promise<Hex> },
+  wallet: {
+    sendTransaction: (tx: {
+      to: Address;
+      data: Hex;
+      gas: bigint;
+    }) => Promise<Hex>;
+  },
   client: ReturnType<typeof createPublicClient>,
   token: Address,
   owner: Address,

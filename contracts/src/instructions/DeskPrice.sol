@@ -176,8 +176,7 @@ abstract contract DeskPrice is IDeskEvents {
     function _data(address resolver, bytes memory dnsName, string memory key) private view returns (bytes memory) {
         // PermissionedResolver.resolve returns the ABI encoding of data()'s bytes, not the raw record.
         return abi.decode(
-            IExtendedResolver(resolver).resolve(dnsName, abi.encodeCall(IDataResolver.data, (bytes32(0), key))),
-            (bytes)
+            IExtendedResolver(resolver).resolve(dnsName, abi.encodeCall(IDataResolver.data, (bytes32(0), key))), (bytes)
         );
     }
 
@@ -198,11 +197,7 @@ abstract contract DeskPrice is IDeskEvents {
     }
 
     /// @dev The oracle stays the price. Widths are the live desk spread, or the terms widths when that spread is not live.
-    function _quotes(uint256 pWad, uint16 sSell, uint16 sBuy)
-        private
-        pure
-        returns (uint256 askWad, uint256 bidWad)
-    {
+    function _quotes(uint256 pWad, uint16 sSell, uint16 sBuy) private pure returns (uint256 askWad, uint256 bidWad) {
         uint256 denom = 10_000;
         askWad = Math.mulDiv(pWad, denom + uint256(sSell), denom, Math.Rounding.Floor);
         bidWad = sBuy >= 10_000 ? 0 : Math.mulDiv(pWad, denom - uint256(sBuy), denom, Math.Rounding.Floor);

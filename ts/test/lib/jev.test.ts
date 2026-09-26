@@ -9,9 +9,9 @@ describe("jev tier parse", () => {
         answers: { tier: { choice: "tight", confidence: 0.91 } },
       }),
     ).toEqual({ tier: "tight", confidence: 0.91 });
-    expect(parseJevTier({ answers: { tier: { choice: "wide", confidence: 0.9 } } })).toBe(
-      null,
-    );
+    expect(
+      parseJevTier({ answers: { tier: { choice: "wide", confidence: 0.9 } } }),
+    ).toBe(null);
     expect(parseJevTier({ answers: { tier: { choice: "fence" } } })).toBe(null);
     expect(parseJevTier(null)).toBe(null);
   });
@@ -35,9 +35,15 @@ describe("jev tier parse", () => {
       confidence: 0.8,
     });
     expect(called).toBe("https://api.typesafe.ai/v1/systemone");
-    expect(String((await askJev("test-key", "x", async () => new Response("", { status: 401 }))))).toBe(
-      "null",
-    );
+    expect(
+      String(
+        await askJev(
+          "test-key",
+          "x",
+          async () => new Response("", { status: 401 }),
+        ),
+      ),
+    ).toBe("null");
     expect(await askJev("", "x", fetchImpl)).toBe(null);
   });
 });

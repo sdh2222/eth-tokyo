@@ -198,7 +198,9 @@ contract DeskPriceTest is Test {
         assertEq(sell, 2);
         assertEq(buy, 8);
 
-        resolver.setData(desk, "desk.spread", abi.encode(uint8(1), uint16(4), uint16(8), uint64(block.timestamp + 1000)));
+        resolver.setData(
+            desk, "desk.spread", abi.encode(uint8(1), uint16(4), uint16(8), uint64(block.timestamp + 1000))
+        );
         _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
         resolver.setData(desk, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8), uint64(block.timestamp)));
         _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);

@@ -292,10 +292,7 @@ async function resolveRecords(
     ],
   });
   const [results] = decodeAbiParameters([{ type: "bytes[]" }], raw);
-  const [addr] = decodeAbiParameters(
-    [{ type: "address" }],
-    results[0] as Hex,
-  );
+  const [addr] = decodeAbiParameters([{ type: "address" }], results[0] as Hex);
   const data = keys.data.map((_, i) => {
     const [inner] = decodeAbiParameters(
       [{ type: "bytes" }],
@@ -324,14 +321,18 @@ export async function readBook(
   if (cfg.tokens.weth === "" || cfg.tokens.usdc === "") {
     throw new Error("config is missing a token");
   }
-  if (cfg.mms.length < 2 || cfg.mms[0].address === "" || cfg.mms[1].address === "") {
+  if (
+    cfg.mms.length < 2 ||
+    cfg.mms[0].address === "" ||
+    cfg.mms[1].address === ""
+  ) {
     throw new Error("config is missing both client names");
   }
   const resolver = cfg.ens.resolver;
   const client = createPublicClient({ chain: sepolia, transport: http(rpc) });
   const deskName = "dao-treasury-a.eth";
-  const [deskRec, mmA, mmB, block, round, wethBal, usdcBal] =
-    await Promise.all([
+  const [deskRec, mmA, mmB, block, round, wethBal, usdcBal] = await Promise.all(
+    [
       resolveRecords(client, resolver, deskName, {
         data: ["desk.spread"],
         text: ["desk.policy"],
@@ -362,12 +363,12 @@ export async function readBook(
         functionName: "balanceOf",
         args: [cfg.safe],
       }),
-    ]);
+    ],
+  );
   const now = block.timestamp;
   const answer = round[1];
   const updatedAt = round[3];
-  const age =
-    updatedAt > now ? 0n : (now - updatedAt) / 12n;
+  const age = updatedAt > now ? 0n : (now - updatedAt) / 12n;
   const fresh = updatedAt <= now && now - updatedAt <= MAX_AGE;
   const pWad =
     answer > 0n ? answer * 10n ** BigInt(18 - cfg.desk.oracleDecimals) : 0n;
@@ -377,7 +378,10 @@ export async function readBook(
   const usdValue = usdcBal * quoteScale;
   const book = ethValue + usdValue;
   const wWad = book === 0n ? 0n : (ethValue * WAD) / book;
-  const terms = termsIfAgreed(decodeTerms(mmA.data[0]), decodeTerms(mmB.data[0]));
+  const terms = termsIfAgreed(
+    decodeTerms(mmA.data[0]),
+    decodeTerms(mmB.data[0]),
+  );
   const live = parseLiveSpread(deskRec.data[0], terms, now);
   const quote = quoteFromRecords(pWad, terms, deskRec.data[0], now);
   return {
@@ -408,8 +412,7 @@ export async function readBook(
         addr: rec.addr,
         expiry: 0n,
         live:
-          rec.addr.toLowerCase() === mm.address.toLowerCase() &&
-          term !== null,
+          rec.addr.toLowerCase() === mm.address.toLowerCase() && term !== null,
       };
     }),
   };

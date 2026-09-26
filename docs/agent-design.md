@@ -24,7 +24,7 @@ One agent per Safe, created when that Safe's resolver is deployed. `grantSetterR
 
 The ENS grant covers every name on that resolver, and each treasury has its own resolver. A counterparty's key signs that counterparty's fill. It does not receive the spread grant.
 
-The Safe holds the agent's key and runs the process. The key stays in `~/.aqua-eth-tokyo/wallets.txt` on this machine. It is not copied into the repo or `.env`. `pnpm -C ts demo` signs `desk.spread` with the `risk-agent` label before a fill. `planAgentWrites` still only packs the calls.
+The Safe holds the agent's key and runs the process. The key stays in `~/.aqua-eth-tokyo/wallets.txt` on this machine. It is not copied into the repo or `.env`. `pnpm -C ts keeper` stays up. It keeps a cursor in `~/.aqua-eth-tokyo/keeper.json` and scans `DeskFill` from that block. Each new fill is read, sent to Jev, and written to `desk.spread` and `desk.stats` before the cursor moves. The fill that emitted the event already used the previous record. The next fill reads the record the keeper wrote. `planAgentWrites` still only packs the calls.
 
 ## Records
 
