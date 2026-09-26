@@ -61,7 +61,7 @@ for (const mm of [mmA, mmB]) {
 }
 
 const mmC = await readClient(`mm-c.${CLIENTS_NAME}`)
-info(`${mmC.name} expires ${iso(mmC.expiries.at(-1)!.expiry)} → gate ${mmC.gateOk ? 'OPEN' : 'CLOSED (NameExpired)'} — rerun 03-clients before demo scene 3`)
+info(`${mmC.name} expires ${iso(mmC.expiries.at(-1)!.expiry)} → gate ${mmC.gateOk ? 'OPEN' : 'CLOSED (NameExpired)'} — re-arm it with a Safe transaction before demo scene 3 (the setup EOA has no roles since the handoff)`)
 
 // 3. Default record: a name with no record of its own falls back to the root record, which the router must reject
 const orphan = await readRecords(resolver, `nobody.${CLIENTS_NAME}`, now)
