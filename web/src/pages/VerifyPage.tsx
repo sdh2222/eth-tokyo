@@ -47,7 +47,7 @@ function rawEvent(fill: FillRecord): [string, string][] {
 export function VerifyPage() {
   const { tx = "" } = useParams();
   const strategy = useLiveStrategy();
-  const fills = useFills(strategy.data ?? null);
+  const fills = useFills(strategy.data ?? null, strategy.isLoading);
   const port = useDeskPort();
   const now = useClock();
   const [copied, setCopied] = useState(false);

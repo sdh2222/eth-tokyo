@@ -6,11 +6,12 @@
 
 .v-page {
   /* The watermark palette, four colours and nothing else: ENS blue #0080bc, light blue
-     #cee1e8, dark blue #011a25, white #f6f6f6. Secondary text is dark blue at 66% and 48%
+     #cce6f2 (ENS blue at 20% on white; the palette's #cee1e8 read grey), dark blue #011a25,
+     white #f6f6f6. Secondary text is dark blue at 66% and 48%
      on white; borders stay a neutral gray. States use the palette too: in force is light
      blue, a warning is a dark blue outline, a stop is dark blue filled. */
   --v-blue: #0080bc;
-  --v-light: #cee1e8;
+  --v-light: #cce6f2;
   --v-dark: #011a25;
   --v-white: #f6f6f6;
   --v-bg: #ffffff;
@@ -551,20 +552,20 @@ textarea.v-input {
   background: var(--v-text-3);
 }
 
+/* Tones stay light: in force is a light blue ground, a warning or a stop a white ground with
+   a border (dark blue for a stop). An icon, not a dot, leads the text (Note in v.tsx). */
 .v-note[data-tone="green"],
 .v-note[data-tone="blue"] { border-color: transparent; background: var(--v-light); }
-.v-note[data-tone="amber"] { border-color: var(--v-dark); background: var(--v-bg); }
-.v-note[data-tone="red"] { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
-.v-note[data-tone="green"] > span:first-child::before,
-.v-note[data-tone="blue"] > span:first-child::before { background: var(--v-blue); }
-.v-note[data-tone="amber"] > span:first-child::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--v-dark); }
-.v-note[data-tone="red"] > span:first-child::before { background: var(--v-white); }
+.v-note[data-tone="amber"] { border-color: var(--v-border-strong); background: var(--v-bg); }
+.v-note[data-tone="red"] { border-color: var(--v-dark); background: var(--v-bg); }
+.v-note[data-tone] > span:first-child::before { display: none; }
+.v-note-icon { flex: 0 0 auto; width: 16px; height: 16px; color: var(--v-dark); }
+.v-note[data-tone="green"] .v-note-icon,
+.v-note[data-tone="blue"] .v-note-icon { color: var(--v-blue); }
 
 /* Verify's verdict card: tinted green when the recompute matches, red when it does not. */
 .v-card.v-verdict-green { border-color: transparent; background: var(--v-light); }
-.v-card.v-verdict-red { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
-.v-card.v-verdict-red .v-muted { color: var(--v-light); }
-.v-card.v-verdict-red .v-status::before { background: var(--v-white); }
+.v-card.v-verdict-red { border-color: var(--v-dark); background: var(--v-bg); }
 
 /* Empty state: the dither clouds, one line, one action, centred in a card. */
 .v-empty {
@@ -656,6 +657,11 @@ textarea.v-input {
 .v-page ol.v-ol { list-style: decimal; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .v-page ul.v-ul { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 [data-active="true"] { background: var(--v-accent-bg); }
+/* An open table row (the one being edited): a quiet ground and an ENS blue edge, so the
+   row's own light blue badges still read. */
+.v-table tr[data-active="true"] { background: none; }
+.v-table tr[data-active="true"] td { background: var(--v-bg-2); }
+.v-table tr[data-active="true"] td:first-child { box-shadow: inset 2px 0 0 var(--v-blue); }
 @media (max-width: 600px) {
   .v-dl { grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); gap: 8px 16px; }
 }

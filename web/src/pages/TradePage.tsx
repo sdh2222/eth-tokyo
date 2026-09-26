@@ -13,6 +13,7 @@ import {
   TOO_MANY_DECIMALS,
   YOU_PAY,
   YOU_RECEIVE,
+  CONNECT_WALLET,
 } from "../copy/en";
 import { ERRORS } from "../copy/errors";
 import { formatEth, formatWadUsd, nameQuote, type DeskBook } from "../desk/book";
@@ -20,11 +21,13 @@ import { emptyConfig } from "../desk/fixture/state";
 import { useBook } from "../hooks/useBook";
 import { useWalletLabel } from "../hooks/useCanAct";
 import { formatCountdown, useClock } from "../hooks/useClock";
+import { useConnectWallet } from "../hooks/useConnectWallet";
 import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { DotSlider } from "../ui/slider";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
 import { Badge, Card, Dl, Empty, Header, Note, Page, Status, type Tone } from "../ui/v";
+import { PRICE_WINDOW_SECONDS } from "../desk/window";
 
 // Trade (IA: "Can I trade now, at what price, and how much?"). Vercel-style: the header says
 // who trades and whether they can, a refusal is one Note above the grid, then the Order card
@@ -36,7 +39,6 @@ type Refusal = { title: string; hint: string };
 type Action = { label: string; run: () => void };
 
 const MODE_LIVE = import.meta.env.VITE_DESK_MODE === "live";
-const WINDOW_SECONDS = 600;
 const ZERO = "0x0000000000000000000000000000000000000000";
 const SOURCE_LABEL: Record<NonNullable<DeskBook["quote"]>["source"], string> = {
   spread: "Agent spread",
@@ -87,6 +89,7 @@ function weiText(wei: bigint): string {
 
 export function TradePage() {
   const { address } = useAccount();
+  const wallet = useConnectWallet();
   const label = useWalletLabel();
   const book = useBook();
   const now = useClock();
@@ -124,9 +127,24 @@ export function TradePage() {
     );
   }
 
+  // No desk open: nothing to quote or fill against yet.
+  if (!strategy.isLoading && !strategy.data) {
+    return (
+      <Page>
+        <Header title="Trade" description="WETH / USDC" actions={<Badge>No desk</Badge>} />
+        <Card>
+          <Empty
+            title="No desk is open"
+            description="The treasury has not opened a desk yet. Prices and the Fill button appear here once it does."
+          />
+        </Card>
+      </Page>
+    );
+  }
+
   const b = book.data;
   const updatedAt = Number(b.oracle.updatedAt);
-  const windowLeft = updatedAt > now ? 0 : updatedAt + WINDOW_SECONDS - now;
+  const windowLeft = updatedAt > now ? 0 : updatedAt + PRICE_WINDOW_SECONDS - now;
   const entry = address
     ? b.names.find((name) => name.addr.toLowerCase() === address.toLowerCase() || name.name === label)
     : undefined;
@@ -214,7 +232,7 @@ export function TradePage() {
       : null;
   const fillWired = !MODE_LIVE || (swapTx !== null && swapTx.to.toLowerCase() !== ZERO);
   let blocked: string | null = null;
-  if (!address) blocked = "Connect a wallet to trade.";
+  if (!address) blocked = wallet.problem ?? "Connect a wallet to trade.";
   else if (refusal) blocked = refusal.title;
   else if (wei === null) blocked = `${ENTER_AMOUNT}.`;
   else if (!exact) blocked = "Waiting for a quote.";
@@ -269,15 +287,21 @@ export function TradePage() {
                 </span>
               ) : null}
               {blocked === null || blockedInNote ? <span /> : null}
-              <button
-                type="button"
-                className="v-btn v-btn-lg"
-                disabled={blocked !== null}
-                aria-describedby={blocked !== null ? "trade-blocked" : undefined}
-                onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
-              >
-                {needsApproval ? APPROVE_ROUTER : FILL}
-              </button>
+              {address ? (
+                <button
+                  type="button"
+                  className="v-btn v-btn-lg"
+                  disabled={blocked !== null}
+                  aria-describedby={blocked !== null ? "trade-blocked" : undefined}
+                  onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
+                >
+                  {needsApproval ? APPROVE_ROUTER : FILL}
+                </button>
+              ) : (
+                <button type="button" className="v-btn v-btn-lg" onClick={wallet.connectWallet}>
+                  {CONNECT_WALLET}
+                </button>
+              )}
             </>
           }
         >

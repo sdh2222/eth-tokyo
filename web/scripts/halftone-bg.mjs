@@ -6,7 +6,7 @@
 //   node web/scripts/halftone-bg.mjs --out=web/public/app/halftone.svg
 //
 // Options: --width=1600 --height=720 (CSS px) --grid=8 (px between dot centres)
-//          --color=#cee1e8 --max=0.36 (largest radius as a share of the grid)
+//          --color=#cce6f2 --max=0.36 (largest radius as a share of the grid)
 
 import { writeFileSync } from "node:fs";
 
@@ -20,7 +20,7 @@ const args = Object.fromEntries(
 const W = Number(args.width ?? 1600);
 const H = Number(args.height ?? 720);
 const G = Number(args.grid ?? 8);
-const COLOR = args.color ?? "#cee1e8";
+const COLOR = args.color ?? "#cce6f2";
 const RMAX = G * Number(args.max ?? 0.36);
 const OUT = args.out ?? "halftone.svg";
 

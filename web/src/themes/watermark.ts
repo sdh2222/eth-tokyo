@@ -19,7 +19,7 @@ export const watermarkTheme = defineTheme({
     body: { family: "Die Grotesk C", fallbacks: "system-ui, sans-serif" },
   },
   tokens: {
-    "--color-accent": "#CEE1E8",
+    "--color-accent": "#CCE6F2",
     "--color-on-accent": "#011A25",
     // Links and accent text stay ink: sky text on white or paper is unreadable (1.4:1).
     "--color-text-accent": "#111111",
