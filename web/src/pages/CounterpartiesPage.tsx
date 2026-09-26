@@ -7,6 +7,7 @@ import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr, formatWeth } from "../lib/format";
 import { Badge, Card, Empty, Header, Page, type Tone } from "../ui/v";
+import { DotSlider } from "../ui/slider";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Counterparties (IA: "Who can trade with my desk, and on what terms?"). Main's flow (PR #34):
@@ -119,43 +120,40 @@ function TermsEditor({
       </p>
 
       <form className="v-stack" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
-        <div className="v-row">
-          <label className="v-field">
-            <span>Sell width (bp)</span>
-            <input
-              className="v-input"
-              type="number"
-              inputMode="numeric"
-              min={0}
+        <div className="v-grid">
+          <div className="v-col-4">
+            <DotSlider
+              label="Bid width"
+              value={Number(draft.buy) || 0}
+              min={1}
+              max={25}
               step={1}
-              value={draft.sell}
-              onChange={(event) => onDraft({ ...draft, sell: event.target.value })}
+              display={`−${Number(draft.buy) || 0} bp`}
+              onChange={(next) => onDraft({ ...draft, buy: String(next) })}
             />
-          </label>
-          <label className="v-field">
-            <span>Buy width (bp)</span>
-            <input
-              className="v-input"
-              type="number"
-              inputMode="numeric"
-              min={0}
+          </div>
+          <div className="v-col-4">
+            <DotSlider
+              label="Ask width"
+              value={Number(draft.sell) || 0}
+              min={1}
+              max={25}
               step={1}
-              value={draft.buy}
-              onChange={(event) => onDraft({ ...draft, buy: event.target.value })}
+              display={`+${Number(draft.sell) || 0} bp`}
+              onChange={(next) => onDraft({ ...draft, sell: String(next) })}
             />
-          </label>
-          <label className="v-field">
-            <span>Cap per fill (WETH)</span>
-            <input
-              className="v-input"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
-              value={draft.cap}
-              onChange={(event) => onDraft({ ...draft, cap: event.target.value })}
+          </div>
+          <div className="v-col-4">
+            <DotSlider
+              label="Cap per fill"
+              value={Number(draft.cap) || 0}
+              min={1}
+              max={100}
+              step={1}
+              display={`${Number(draft.cap) || 0} WETH`}
+              onChange={(next) => onDraft({ ...draft, cap: String(next) })}
             />
-          </label>
+          </div>
         </div>
         <div className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</div>
         <div className="v-row v-between">

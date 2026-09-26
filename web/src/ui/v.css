@@ -664,6 +664,8 @@ textarea.v-input {
   white-space: normal;
   padding-top: 12px;
   padding-bottom: 12px;
+}
+
 /* Dotted slider (web/src/ui/slider.tsx): a rounded gray track of dots that darken up to a
    white handle; a transparent native range input on top does the work. */
 .v-slider {
