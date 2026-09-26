@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Stepper } from "../components/Stepper";
@@ -69,27 +70,27 @@ export function OpenPage() {
           onJump={(id) => setWizard({ ...wizard, step: Number(id) as WizardState["step"] })}
         />
       </div>
-      <div className="flex flex-col gap-5 rounded-card border border-border bg-surface p-5 lg:col-span-9">
+      <div className="open-panel flex flex-col gap-5 rounded-card bg-surface p-5 lg:col-span-9">
+        <h2 className="text-h3">{`${wizard.step}. ${OPEN_STEPS[wizard.step - 1]}`}</h2>
         {wizard.step === 1 ? (
-          <section className="flex flex-col gap-3">
-            {liveMode ? (
-              <p className="num text-body">—</p>
-            ) : (
-              <>
-                <p className="num text-body">{FIXTURE_OWNERS[0]}</p>
+          <section className="flex flex-col gap-4">
+            <Field label="Owners">
+              {liveMode ? (
+                "—"
+              ) : (
                 <ul>
                   {FIXTURE_OWNERS.map((owner, index) => (
-                    <li key={owner} className="text-body">
+                    <li key={owner} className="num">
                       {owner}
-                      {address && owner.toLowerCase() === address.toLowerCase() ? " you" : ""} {index + 1} of 3
+                      {address && owner.toLowerCase() === address.toLowerCase() ? " you" : ""} · {index + 1} of 3
                     </li>
                   ))}
                 </ul>
-              </>
-            )}
-            <p className="text-body">2 of 3</p>
-            <p className="num text-body">{desk ? formatWeth(desk.safeWallet.weth) : "—"}</p>
-            <p className="num text-body">{desk ? formatUsdc(desk.safeWallet.usdc) : "—"}</p>
+              )}
+            </Field>
+            <Field label="Signatures required">2 of 3</Field>
+            <Field label="ETH in the Safe">{desk ? formatWeth(desk.safeWallet.weth) : "—"}</Field>
+            <Field label="USDC in the Safe">{desk ? formatUsdc(desk.safeWallet.usdc) : "—"}</Field>
             {isOwner ? null : <p className="text-body">{BANNER_OWNER}</p>}
           </section>
         ) : null}
@@ -98,13 +99,19 @@ export function OpenPage() {
           <InventoryStep wizard={wizard} onChange={setWizard} safeWeth={safeWeth} safeUsdc={safeUsdc} />
         ) : null}
         {wizard.step === 5 ? (
-          <div className="flex flex-col gap-3">
-            {(desk?.mms ?? []).map((mm) => (
-              <p key={mm.address} className="text-body">
-                {mm.name}
-              </p>
-            ))}
-            <p className="text-body">{ENS_LIST}</p>
+          <div className="flex flex-col gap-4">
+            <Field label="Named market makers">
+              {(desk?.mms ?? []).length === 0 ? (
+                "—"
+              ) : (
+                <ul>
+                  {desk?.mms.map((mm) => (
+                    <li key={mm.address}>{mm.name}</li>
+                  ))}
+                </ul>
+              )}
+            </Field>
+            <p className="text-body text-muted">{ENS_LIST}</p>
           </div>
         ) : null}
         {wizard.step === 6 ? (
@@ -119,15 +126,16 @@ export function OpenPage() {
           />
         ) : null}
         {wizard.step === 2 ? (
-          <section className="flex flex-col gap-3">
-            <p className="text-body">{PAIR}</p>
-            <p className="num text-body">—</p>
-            <p className="num text-h3">{oracle.data ? formatUsd(oracle.data.midWad) : desk ? formatUsd(desk.pWad) : "—"}</p>
-            <p className="text-body">
+          <section className="flex flex-col gap-4">
+            <Field label="Pair">{PAIR}</Field>
+            <Field label="Oracle mid">
+              {oracle.data ? formatUsd(oracle.data.midWad) : desk ? formatUsd(desk.pWad) : "—"}
+            </Field>
+            <Field label="Updated">
               {oracle.data ? formatWhen(oracle.data.updatedAt, now) : desk ? formatWhen(desk.oracleUpdatedAt, now) : "—"}
               {oracle.data?.stale ? " · stale" : ""}
-            </p>
-            <p className="text-body">{FEED_NOTE}</p>
+            </Field>
+            <p className="text-body text-muted">{FEED_NOTE}</p>
           </section>
         ) : null}
         <div className="flex gap-4">
@@ -149,6 +157,15 @@ export function OpenPage() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-small text-muted">{label}</p>
+      <div className="num text-body">{children}</div>
     </div>
   );
 }
