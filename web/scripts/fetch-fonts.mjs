@@ -3,7 +3,7 @@
 // by git) before dev and build.
 //
 //   FONTS_TOKEN  a GitHub token with read access to that repo (Vercel env, or your shell)
-//   FONTS_REPO   owner/name of that repo (default sdh2222/watermark-fonts)
+//   FONTS_REPO   owner/name of that repo (default sdh2222/fonts)
 //
 // With the files already in place it does nothing. Without a token it warns and the page
 // falls back to system-ui, so forks and CI still build. With a token, a failed download fails
@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
 const FILES = ["die-grotesk-c-regular.woff2", "die-grotesk-c-medium.woff2"];
 const DIR = new URL("../public/fonts/die-grotesk/", import.meta.url);
-const REPO = process.env.FONTS_REPO || "sdh2222/watermark-fonts";
+const REPO = process.env.FONTS_REPO || "sdh2222/fonts";
 const TOKEN = process.env.FONTS_TOKEN;
 
 const missing = FILES.filter((file) => !existsSync(new URL(file, DIR)));
