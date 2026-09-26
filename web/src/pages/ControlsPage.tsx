@@ -1,126 +1,187 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { ShowRaw } from "../components/ShowRaw";
-import { CHANGE_NOTE, CLOSE_EXCEPT, SEED_TWO, STOP, STOP_COPY } from "../copy/en";
-import { dockDesk, seedTwoDesks } from "../desk/fixture";
-import { emptyConfig, NOW } from "../desk/fixture/state";
-import { useDeskPort, useDeskState, useLiveStrategy } from "../hooks/useDesk";
-import { formatHash } from "../lib/format";
-import { formatWhen } from "../lib/time";
+import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { HStack, VStack } from "@astryxdesign/core/Layout";
+import { Link } from "@astryxdesign/core/Link";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
+import { StatusDot } from "@astryxdesign/core/StatusDot";
+import { Table, proportional } from "@astryxdesign/core/Table";
+import type { TableColumn } from "@astryxdesign/core/Table";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Timestamp } from "@astryxdesign/core/Timestamp";
+import { useBook } from "../hooks/useBook";
+import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { formatHash, formatWeth } from "../lib/format";
+import { SafeDialog } from "./open/SafeDialog";
+
+// Controls (IA: "What does it take to change or stop the desk?").
+// Same frame as DeskPage (the Astryx `dashboard` template): Heading 1 + secondary Text, then
+// Cards with Heading 4 titles. Table from `TableRichCellTable`, checks from `ListItemWithMetadata`,
+// the stop confirmation from `AlertDialogDeleteConfirmation`.
+
+// The oracle owner, from docs/agent-design.md ("Live chain"). The agent must not be it.
+const ORACLE_OWNER = "0x1AC95a5e4CD739D01130f705f93D3bE070407c2b";
+
+type ChangeRow = { id: string; how: string; what: string; linkLabel: string; href: string };
+
+const changeColumns: TableColumn<ChangeRow>[] = [
+  { key: "how", header: "How", width: proportional(2) },
+  { key: "what", header: "What it changes", width: proportional(4) },
+  {
+    key: "href",
+    header: "Where",
+    width: proportional(2),
+    renderCell: (row) => <Link href={row.href}>{row.linkLabel}</Link>,
+  },
+];
 
 export function ControlsPage() {
   const live = useLiveStrategy();
-  const state = useDeskState(live.data ?? null);
-  const port = useDeskPort();
-  const queryClient = useQueryClient();
-  const [askStop, setAskStop] = useState(false);
-  const [stopped, setStopped] = useState(false);
-  const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const lines = port.describeProgram({ deadline: 0n, salt: 0n, unknown: [] }, emptyConfig());
-  const strategy = live.data;
+  const strategy = live.data ?? null;
+  const desk = useDeskState(strategy);
+  const book = useBook();
+  const [isStopAsked, setIsStopAsked] = useState(false);
+  const [isSafeOpen, setIsSafeOpen] = useState(false);
 
-  function refresh() {
-    void queryClient.invalidateQueries({ queryKey: ["live"] });
+  if (live.isLoading) return <Text type="body">Reading the desk…</Text>;
+  if (!strategy) {
+    return (
+      <EmptyState
+        title="No desk is open"
+        description="No program is shipped to Aqua. Open a desk from the Safe to start quoting."
+        actions={<Link href="/open">Open a desk</Link>}
+      />
+    );
   }
 
-  if (stopped || !strategy) {
-    return <p className="text-body">Not open</p>;
-  }
+  const deadline = desk.data?.deadline ?? Number(strategy.decoded.deadline);
+  const terms = book.data?.terms ?? null;
+  const agentAddr = book.data?.agent.addr;
+  const oracleOk = agentAddr !== undefined && agentAddr.toLowerCase() !== ORACLE_OWNER.toLowerCase();
+  const oneLive = strategy.warning !== "MULTIPLE_LIVE";
+
+  const rows: ChangeRow[] = [
+    {
+      id: "agent",
+      how: "Agent moves it",
+      what: "The spread: the sell and buy widths, inside the terms.",
+      linkLabel: "Agent",
+      href: "/agent",
+    },
+    {
+      id: "signature",
+      how: "One Safe signature",
+      what: terms
+        ? `Terms (sell ${terms.sellBps} bp, buy ${terms.buyBps} bp), cap (${formatWeth(terms.cap)}), names, policy, agent. The desk stays open.`
+        : "Terms, cap, names, policy, agent. The desk stays open.",
+      linkLabel: "Counterparties",
+      href: "/counterparties",
+    },
+    {
+      id: "reopen",
+      how: "Reopen the desk",
+      what: "Pair, oracle, 70% ETH target, 10-minute window, inventory, deadline.",
+      linkLabel: "Change",
+      href: "/open?step=2",
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-h1">Controls</h1>
-        <p className="text-body text-muted">
-          {state.data ? formatWhen(state.data.deadline, now) : "—"} · {formatHash(strategy.strategyHash)}
-        </p>
-      </header>
-      <ol className="grid gap-3">
-        {lines.map((line, index) => (
-          <li key={line} className="flex gap-4 rounded-card border border-border bg-surface p-5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-surface text-small text-text">
-              {index + 1}
-            </span>
-            <p className="text-body">{line}</p>
-          </li>
-        ))}
-      </ol>
-      <ShowRaw summary={lines.join(" ")}>
-        <pre className="num">{strategy.program}</pre>
-      </ShowRaw>
-      <div className="flex flex-wrap items-center gap-4 rounded-card border border-border bg-surface p-5">
-      <Link className="text-body" to="/open?step=3">
-        Change
-      </Link>
-      <p className="text-body text-muted">{CHANGE_NOTE}</p>
-      </div>
-      <button type="button" className="text-body" onClick={() => setAskStop(true)}>
-        {STOP}
-      </button>
-      {askStop ? (
-        <div className="rounded-card bg-surface p-5">
-          <p className="text-body">{STOP_COPY}</p>
-          <button
-            type="button"
-            className="text-body"
-            onClick={() => {
-              port.planDock({ client: null, cfg: emptyConfig() }, strategy.strategyHash);
-              dockDesk();
-              setStopped(true);
-              refresh();
-            }}
-          >
-            Confirm
-          </button>
-        </div>
-      ) : null}
-      {strategy.warning === "MULTIPLE_LIVE" ? (
-        <div className="rounded-card bg-danger p-5 text-onfocus">
-          <p className="text-body">{strategy.strategyHash}</p>
-          <button
-            type="button"
-            className="text-body"
-            onClick={() => {
-              port.planMultiSend([port.planDock({ client: null, cfg: emptyConfig() }, strategy.strategyHash)]);
-              dockDesk();
-              refresh();
-            }}
-          >
-            {CLOSE_EXCEPT}
-          </button>
-        </div>
-      ) : null}
-      {import.meta.env.DEV ? (
-        <button
-          type="button"
-          className="text-body"
-          onClick={() => {
-            seedTwoDesks();
-            refresh();
-          }}
-        >
-          {SEED_TWO}
-        </button>
-      ) : null}
-      <div className="overflow-x-auto rounded-card border border-border px-5">
-      <table>
-        <tbody>
-          <tr>
-            <td>Oracle price</td>
-            <td>Deployer</td>
-          </tr>
-          <tr>
-            <td>Agent spread</td>
-            <td>Risk agent</td>
-          </tr>
-          <tr>
-            <td>Terms and names</td>
-            <td>Treasury, on ENS</td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-    </div>
+    <VStack gap={6}>
+      <VStack gap={2}>
+        <Heading level={1}>Controls</Heading>
+        <Text type="body" color="secondary">
+          What it takes to change or stop the desk.
+        </Text>
+      </VStack>
+
+      <Card>
+        <VStack gap={4}>
+          <HStack hAlign="between" vAlign="center">
+            <Heading level={4}>Live program</Heading>
+            <Link href="/program">See the program</Link>
+          </HStack>
+          <MetadataList>
+            <MetadataListItem label="Shipped">{`Block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</MetadataListItem>
+            <MetadataListItem label="Closes">
+              <Timestamp value={deadline} format="date_time" type="body" color="primary" />
+            </MetadataListItem>
+            <MetadataListItem label="Strategy hash">{formatHash(strategy.strategyHash)}</MetadataListItem>
+          </MetadataList>
+        </VStack>
+      </Card>
+
+      <Card>
+        <VStack gap={4}>
+          <Heading level={4}>What changes how</Heading>
+          <Table<ChangeRow>
+            data={rows}
+            columns={changeColumns}
+            idKey="id"
+            density="compact"
+            dividers="rows"
+            emptyState={
+              <EmptyState isCompact title="No controls to show" description="The desk program could not be read." />
+            }
+          />
+          <Text type="supporting" color="secondary">
+            Change docks this program and ships a new one in one Safe transaction. Stop docks it.
+          </Text>
+          <HStack gap={2} wrap="wrap">
+            <Button label="Change" variant="primary" href="/open?step=2" />
+            <Button label="Stop the desk" variant="destructive" onClick={() => setIsStopAsked(true)} />
+          </HStack>
+        </VStack>
+      </Card>
+
+      <Card>
+        <VStack gap={4}>
+          <Heading level={4}>Checks</Heading>
+          <List hasDividers>
+            <ListItem
+              label="Oracle owner is not the agent"
+              description={
+                oracleOk
+                  ? "The agent can move the spread, not the price."
+                  : "Check the oracle owner before the next fill."
+              }
+              startContent={
+                <StatusDot variant={oracleOk ? "success" : "error"} label={oracleOk ? "Passes" : "Fails"} />
+              }
+            />
+            <ListItem
+              label="One program live"
+              description={
+                oneLive
+                  ? "Aqua holds one live program for this Safe."
+                  : "More than one program is live. Stop the extra one."
+              }
+              startContent={<StatusDot variant={oneLive ? "success" : "error"} label={oneLive ? "Passes" : "Fails"} />}
+            />
+          </List>
+        </VStack>
+      </Card>
+
+      <AlertDialog
+        isOpen={isStopAsked}
+        onOpenChange={setIsStopAsked}
+        title="Stop the desk?"
+        description="Counterparties can't trade until a new desk opens. Tokens stay in the Safe."
+        actionLabel="Stop the desk"
+        onAction={() => {
+          setIsStopAsked(false);
+          setIsSafeOpen(true);
+        }}
+      />
+      <SafeDialog
+        isOpen={isSafeOpen}
+        onOpenChange={setIsSafeOpen}
+        title="Stop the desk"
+        description="This proposal docks the live program on Aqua. Counterparties can't trade until a new desk opens. Tokens stay in the Safe."
+      />
+    </VStack>
   );
 }
