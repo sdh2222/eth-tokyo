@@ -47,25 +47,70 @@ function Timeline({ kind }: { kind: "dump" | "fills" }) {
   );
 }
 
-function ComparePanel({ side, kind }: { side: "today" | "ours"; kind: "dump" | "fills" }) {
-  const copy = LANDING.compare[side];
+// One comparison, row by row: how it sells, signatures, who prices it, and the result.
+function CompareTable() {
+  const copy = LANDING.compare;
+  const { when, signatures, price, mark } = copy.rows;
   return (
-    <article className={`wm-panel wm-panel-${side}`}>
-      <p className="wm-panel-label">{copy.label}</p>
-      <figure className="wm-figure">
-        <Timeline kind={kind} />
-        <figcaption>{LANDING.compare.axis} →</figcaption>
-      </figure>
-      <div>
-        <p className="wm-number">{copy.number}</p>
-        <p className="wm-number-note">{copy.note}</p>
+    <div className="wm-table" role="table" aria-label={copy.label}>
+      <div className="wm-row wm-row-head" role="row">
+        <span role="columnheader" />
+        <p className="wm-panel-label" role="columnheader">
+          {copy.today}
+        </p>
+        <p className="wm-panel-label" role="columnheader">
+          {copy.ours}
+        </p>
       </div>
-      <ul className="wm-points">
-        {copy.points.map((point) => (
-          <li key={point}>{point}</li>
-        ))}
-      </ul>
-    </article>
+      <div className="wm-row" role="row">
+        <p className="wm-row-label" role="rowheader">
+          {when.label}
+        </p>
+        <figure className="wm-figure" role="cell">
+          <Timeline kind="dump" />
+          <figcaption>{when.today}</figcaption>
+        </figure>
+        <figure className="wm-figure" role="cell">
+          <Timeline kind="fills" />
+          <figcaption>{when.ours}</figcaption>
+        </figure>
+      </div>
+      <div className="wm-row" role="row">
+        <p className="wm-row-label" role="rowheader">
+          {signatures.label}
+        </p>
+        <p className="wm-value" role="cell">
+          {signatures.today}
+        </p>
+        <p className="wm-value" role="cell">
+          {signatures.ours}
+        </p>
+      </div>
+      <div className="wm-row" role="row">
+        <p className="wm-row-label" role="rowheader">
+          {price.label}
+        </p>
+        <p className="wm-value" role="cell">
+          {price.today}
+        </p>
+        <p className="wm-value wm-value-ours" role="cell">
+          {price.ours}
+        </p>
+      </div>
+      <div className="wm-row" role="row">
+        <p className="wm-row-label" role="rowheader">
+          {mark.label}
+        </p>
+        <div role="cell">
+          <p className="wm-number">{mark.today}</p>
+          <p className="wm-number-note">{mark.todayNote}</p>
+        </div>
+        <div role="cell">
+          <p className="wm-number wm-value-ours">{mark.ours}</p>
+          <p className="wm-number-note">{mark.oursNote}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -109,17 +154,6 @@ function SpreadStrip() {
     <svg className="wm-spread" viewBox={`0 0 ${(SPREAD_CELLS * 2 + 1) * STEP - 4} ${CELL}`} aria-hidden="true">
       {cells}
     </svg>
-  );
-}
-
-function WhoPanel({ side }: { side: "today" | "ours" }) {
-  const copy = LANDING.price[side];
-  return (
-    <article className={`wm-panel wm-panel-${side}`}>
-      <p className="wm-panel-label">{copy.label}</p>
-      <p className="wm-number">{copy.who}</p>
-      <p className="wm-who-body">{copy.body}</p>
-    </article>
   );
 }
 
@@ -233,8 +267,7 @@ export function LandingPage() {
         <p className="wm-label">{LANDING.compare.label}</p>
         <h2 className="wm-h2">{LANDING.compare.title}</h2>
         <div className="wm-compare" ref={compareRef} data-seen={compareSeen}>
-          <ComparePanel side="today" kind="dump" />
-          <ComparePanel side="ours" kind="fills" />
+          <CompareTable />
         </div>
       </section>
 
@@ -242,10 +275,6 @@ export function LandingPage() {
         <p className="wm-label">{LANDING.price.label}</p>
         <h2 className="wm-h2">{LANDING.price.title}</h2>
         <div className="wm-seen" ref={priceRef} data-seen={priceSeen}>
-          <div className="wm-compare">
-            <WhoPanel side="today" />
-            <WhoPanel side="ours" />
-          </div>
           <QuoteStrip />
         </div>
       </section>

@@ -179,7 +179,7 @@ body:has(.wm-landing) {
 .wm-section {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 160px 32px 128px;
+  padding: 120px 32px 96px;
   scroll-margin-top: 0;
 }
 
@@ -203,18 +203,28 @@ body:has(.wm-landing) {
 /* ---------- today and with watermark ---------- */
 
 .wm-compare {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
   margin-top: 72px;
 }
 
-.wm-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding-top: 16px;
+.wm-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 1fr;
+  gap: 48px;
+  align-items: start;
+  padding: 24px 0;
+  border-top: 1px solid #e5e5e5;
+}
+
+.wm-row-head {
+  padding: 16px 0;
   border-top: 1px solid var(--wm-ink);
+}
+
+.wm-row-label {
+  margin: 0;
+  padding-top: 6px;
+  font-size: 16px;
+  opacity: 0.6;
 }
 
 .wm-panel-label {
@@ -223,15 +233,28 @@ body:has(.wm-landing) {
   font-size: 16px;
 }
 
+.wm-value {
+  margin: 0;
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.wm-value-ours {
+  color: var(--wm-water-strong);
+}
+
 .wm-figure {
   margin: 0;
 }
 
 .wm-figure figcaption {
-  margin-top: 8px;
-  font-family: "LisaTerminal Paper", "Courier New", monospace;
-  font-size: 16px;
-  opacity: 0.5;
+  margin-top: 12px;
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
 }
 
 .wm-timeline {
@@ -285,44 +308,13 @@ body:has(.wm-landing) {
   font-variant-numeric: tabular-nums;
 }
 
-.wm-panel-ours .wm-number {
-  color: var(--wm-water-strong);
-}
-
 .wm-number-note {
   margin: 12px 0 0;
   font-size: 16px;
   opacity: 0.6;
 }
 
-.wm-points {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 20px;
-}
-
-.wm-points li {
-  padding: 12px 0;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.wm-points li:first-child {
-  border-top: 1px solid #e5e5e5;
-}
-
 /* ---------- who sets the price ---------- */
-
-.wm-who-body {
-  max-width: 28em;
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.4;
-}
-
-.wm-panel-ours .wm-number {
-  color: var(--wm-water-strong);
-}
 
 .wm-board {
   display: flex;
@@ -401,7 +393,16 @@ body:has(.wm-landing) {
 }
 
 @media (max-width: 900px) {
-  .wm-compare,
+  .wm-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+  }
+
+  .wm-row-label,
+  .wm-row-head > :first-child {
+    grid-column: 1 / -1;
+  }
+
   .wm-quote-row {
     grid-template-columns: 1fr;
   }
