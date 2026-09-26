@@ -6,7 +6,7 @@ import { profileAbi, registryAbi, resolverAbi } from '../src/abis.js'
 import { ADDR, CLIENTS_NAME, DESK_LABEL, DESK_NAME, publicClient } from '../src/config.js'
 import { loadDeployment, requireField } from '../src/deployments.js'
 import { dnsEncode, encodeTakerName, KEY_SPREAD, KEY_TERMS, keyResource, labelId } from '../src/encode.js'
-import { readHandoffState, roleName, rootTargets } from '../src/handoff.js'
+import { describeValues, deskSubnames, readHandoffState, roleName, rootTargets, sameValues } from '../src/handoff.js'
 import { readClient, readRecords } from '../src/read.js'
 import { RESOLVER } from '../src/roles.js'
 import { DEFAULT_TERMS } from '../src/setup.js'
@@ -92,16 +92,27 @@ try {
 info(`dnsName for ${mmA.name} (takerData = uint8 len ‖ dnsName): ${encodeTakerName(mmA.name)}`)
 info(`treasury resolver ${resolver} | clients registry ${d.registries?.clients} | ETHRegistry ${ADDR.ethRegistry}`)
 
-// 7. Handoff to the treasury Safe (requirement 014, desk-system §6.3). The Safe's ownership of the name is check 1.
+// 7. Handoff to the treasury Safe (requirements 014 and 016, desk-system §6.1, §6.3). Check 1 covers <desk>.eth.
 if (safe) {
-  const s = await readHandoffState(rootTargets(d), treasury, safe)
+  const targets = rootTargets(d)
+  const s = await readHandoffState(targets, deskSubnames(d, targets), treasury, safe)
   for (const r of s.roots) {
     check(r.safe === r.target.all, `${r.target.name}: Safe holds ${r.target.allName} at root`, roleName(r.safe, r.target))
     check(r.eoa === 0n, `${r.target.name}: setup EOA holds no root role`, roleName(r.eoa, r.target))
   }
   check(s.desk.eoaRoles === 0n, `setup EOA holds no role on the ${DESK_NAME} token`, roleName(s.desk.eoaRoles))
   info(`${DESK_NAME} token roles now with the Safe: ${roleName(s.desk.safeRoles)}`)
-  info('subname tokens (clients, agents, mm-*, risk) stay with the setup EOA, which holds no role on them; the Safe controls them through its root roles')
+  // Every live desk subname, against what deployments/ records for it.
+  for (const n of s.subnames) {
+    if (n.status === 'expired') {
+      info(`${n.sub.name} expired ${iso(n.expiry)}: not checked, the Safe registers it itself when it re-arms it`)
+      continue
+    }
+    check(n.status === 'live', `${n.sub.name} registered`, n.status === 'live' ? '' : `UNREGISTERED, recorded live until ${iso(n.sub.recorded.expiry)}`)
+    if (n.status !== 'live') continue
+    check(same(n.owner, safe), `${n.sub.name} owned by the treasury Safe`, n.owner)
+    check(sameValues(n, n.sub.recorded), `${n.sub.name} keeps its recorded expiry, subregistry and resolver`, describeValues(n, targets))
+  }
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nall required checks passed')
