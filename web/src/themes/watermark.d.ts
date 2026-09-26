@@ -6,6 +6,5 @@
  * Core: @astryxdesign/core@0.6.3
  */
 
-/// <reference path="./watermark.variants.d.ts" />
 import type { DefinedTheme } from '@astryxdesign/core/theme';
 export declare const watermarkTheme: DefinedTheme;
