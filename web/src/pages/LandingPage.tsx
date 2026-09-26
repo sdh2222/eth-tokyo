@@ -18,12 +18,14 @@ import {
 } from "../copy/en";
 import { NOW } from "../desk/fixture/state";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
+import { useOracleRound } from "../hooks/useOracle";
 import { formatShare, formatUsd } from "../lib/format";
 
 const STEP_COLOR = ["bg-treasury", "bg-mm", "bg-aqua"] as const;
 
 export function LandingPage() {
   const live = useLiveStrategy();
+  const oracle = useOracleRound();
   const strategy = live.data ?? null;
   const state = useDeskState(strategy);
   const fills = useFills(strategy);
@@ -39,13 +41,13 @@ export function LandingPage() {
   if (!loading && !failed && strategy && desk) {
     status = strategy.live ? "Live" : "Stopped";
     share = formatShare(desk.wWad);
-    mid = formatUsd(desk.pWad);
+    mid = formatUsd(oracle.data?.midWad ?? desk.pWad);
     const day = jstDay(now);
     fillsToday = String((fills.data ?? []).filter((fill) => jstDay(fill.blockTime) === day).length);
-  } else if (!loading && failed) {
-    status = "—";
+  } else if (!loading) {
+    status = failed ? "—" : NOT_OPEN;
     share = "—";
-    mid = "—";
+    mid = oracle.data ? formatUsd(oracle.data.midWad) : "—";
     fillsToday = "—";
   }
 

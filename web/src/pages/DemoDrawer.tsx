@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { DEPLOYER_NOTE, STALE_NOTE } from "../copy/en";
+import { DEPLOYER_NOTE, ORACLE_MOVE_NOTE, STALE_NOTE } from "../copy/en";
 import { setOracle } from "../desk/fixture";
 import { NOW } from "../desk/fixture/state";
 import { useCanAct } from "../hooks/useCanAct";
@@ -26,7 +26,7 @@ export function DemoDrawer() {
       <p className="text-body">Demo</p>
       {live ? (
         <>
-          <p className="text-body">pnpm bot oracle</p>
+          <p className="text-body">{ORACLE_MOVE_NOTE}</p>
           <p className="text-body">{STALE_NOTE}</p>
         </>
       ) : (

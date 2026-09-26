@@ -14,10 +14,13 @@ export function PolicyStep({ wizard, onChange }: { wizard: WizardState; onChange
   const port = useDeskPort();
   const points = port.previewCurve(wizard.kappa);
   const share = 90;
-  const nearest = points.reduce((best, point) =>
-    Math.abs(point.sharePct - share) < Math.abs(best.sharePct - share) ? point : best,
-  );
-  const under = nearest ? -formatVsMidBps(nearest.askWad, MID) : 0n;
+  const nearest =
+    points.length === 0
+      ? null
+      : points.reduce((best, point) =>
+          Math.abs(point.sharePct - share) < Math.abs(best.sharePct - share) ? point : best,
+        );
+  const under = nearest ? -formatVsMidBps(nearest.askWad, MID) : null;
   const bad = policyInvalid(wizard);
   const chart = points.map((point) => ({
     share: point.sharePct,
@@ -108,7 +111,9 @@ export function PolicyStep({ wizard, onChange }: { wizard: WizardState; onChange
           </LineChart>
         </ResponsiveContainer>
         <p className="text-body">
-          Right now mm-a would buy 1 ETH at {formatPrice(nearest.askWad)} USDC ({under.toString()} bps under mid).
+          {nearest && under !== null
+            ? `Right now mm-a would buy 1 ETH at ${formatPrice(nearest.askWad)} USDC (${under.toString()} bps under mid).`
+            : "—"}
         </p>
       </div>
     </div>

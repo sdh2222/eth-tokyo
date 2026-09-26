@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       "@config": fileURLToPath(new URL("../config/sepolia.json", import.meta.url)),
+      "@desk/browser": fileURLToPath(new URL("../ts/src/lib/client/browser.ts", import.meta.url)),
     },
   },
 });

@@ -9,6 +9,7 @@ import { emptyConfig, NOW } from "../desk/fixture/state";
 import { useRole } from "../app/role";
 import { useCanAct } from "../hooks/useCanAct";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
+import { useOracleRound } from "../hooks/useOracle";
 import { ERRORS } from "../copy/errors";
 import { useNavigate } from "react-router-dom";
 import { formatHash, formatShare, formatSkewBps, formatUsd, formatUsdc, formatWeth } from "../lib/format";
@@ -18,6 +19,7 @@ const WAD = 10n ** 18n;
 
 export function DeskPage() {
   const live = useLiveStrategy();
+  const oracle = useOracleRound();
   const strategy = live.data ?? null;
   const state = useDeskState(strategy);
   const fills = useFills(strategy);
@@ -59,8 +61,57 @@ export function DeskPage() {
   }
 
   const desk = state.data;
+  const liveMode = import.meta.env.VITE_DESK_MODE === "live";
 
   if (!strategy || !desk) {
+    if (liveMode) {
+      return (
+        <div className="flex flex-col gap-8">
+          <header className="flex flex-col gap-2">
+            <h1 className="text-h1">Desk</h1>
+            <p className="max-w-3xl text-body text-muted">
+              The treasury is selling from this vault. Each named market maker gets a different price. Tokens stay in the Safe until a fill.
+            </p>
+          </header>
+          <StatusBadge kind="NotOpen" />
+          <section className="flex flex-col gap-3">
+            <h2 className="text-h3">In the vault</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <article className="rounded-card border border-border bg-surface p-5">
+                <p className="text-small text-muted">Oracle mid</p>
+                <p className="num text-h3">{oracle.data ? formatUsd(oracle.data.midWad) : "—"}</p>
+                {oracle.data ? (
+                  <p className={`text-small ${oracle.data.stale ? "text-danger" : "text-muted"}`}>
+                    {UPDATED} {formatWhen(oracle.data.updatedAt, Math.floor(Date.now() / 1000))}
+                    {oracle.data.stale ? " · stale" : ""}
+                  </p>
+                ) : null}
+              </article>
+              <article className="rounded-card border border-border bg-surface p-5">
+                <p className="text-small text-muted">ETH</p>
+                <p className="num text-h3">—</p>
+              </article>
+              <article className="rounded-card border border-border bg-surface p-5">
+                <p className="text-small text-muted">USDC</p>
+                <p className="num text-h3">—</p>
+              </article>
+              <article className="rounded-card border border-border bg-surface p-5 sm:col-span-2 lg:col-span-2">
+                <p className="text-small text-muted">ETH share</p>
+                <p className="num text-h3">—</p>
+              </article>
+            </div>
+          </section>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-h3">Price for each market maker</h2>
+            <p className="num text-body">—</p>
+          </section>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-h3">Recent fills</h2>
+            <p className="text-body">—</p>
+          </section>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col gap-5">
         <StatusBadge kind="NotOpen" />
@@ -75,16 +126,19 @@ export function DeskPage() {
   }
 
   const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const kind: StatusKind = desk?.oracleStale
+  const midWad = oracle.data?.midWad ?? desk?.pWad;
+  const updatedAt = oracle.data?.updatedAt ?? desk?.oracleUpdatedAt;
+  const oracleStale = oracle.data?.stale ?? desk?.oracleStale ?? false;
+  const kind: StatusKind = oracleStale
     ? "Stale"
     : strategy?.live
       ? "Live"
       : strategy
         ? "Stopped"
         : "NotOpen";
-  const age = desk ? now - desk.oracleUpdatedAt : 0;
+  const age = updatedAt !== undefined ? now - updatedAt : 0;
   const aged = desk ? age > desk.maxStaleness / 2 : false;
-  const updatedClass = desk?.oracleStale ? "text-danger" : aged ? "text-warning" : "text-muted";
+  const updatedClass = oracleStale ? "text-danger" : aged ? "text-warning" : "text-muted";
 
   const targetPct = desk ? (desk.targetWad * 100n) / WAD : 0n;
   const shareCaption = desk
@@ -102,15 +156,15 @@ export function DeskPage() {
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-wrap items-center gap-4">
         <StatusBadge kind={kind} />
-        {desk ? (
+        {midWad !== undefined ? (
           <p>
             <span className="block text-small text-muted">Oracle mid</span>
-            <span className="num text-h2">{formatUsd(desk.pWad)}</span>
+            <span className="num text-h2">{formatUsd(midWad)}</span>
           </p>
         ) : null}
-        {desk ? (
+        {updatedAt !== undefined ? (
           <span className={`text-small ${updatedClass}`}>
-            {UPDATED} {formatWhen(desk.oracleUpdatedAt, now)}
+            {UPDATED} {formatWhen(updatedAt, now)}
           </span>
         ) : null}
       </div>

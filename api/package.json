@@ -5,6 +5,10 @@
   "scripts": {
     "start": "node src/server.js",
     "ingest": "node src/ingest.js",
+    "watch": "node src/watch.js",
     "test": "node --test"
+  },
+  "dependencies": {
+    "viem": "2.56.8"
   }
 }

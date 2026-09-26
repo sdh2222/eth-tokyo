@@ -8,6 +8,7 @@ import { NOW } from "../desk/fixture/state";
 import { FIXTURE_OWNERS } from "../desk/fixture/state";
 import { useCanAct } from "../hooks/useCanAct";
 import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { useOracleRound } from "../hooks/useOracle";
 import { formatUsd, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
 import { useAccount } from "wagmi";
@@ -28,11 +29,13 @@ export function OpenPage() {
   const { isOwner } = useCanAct();
   const { address } = useAccount();
   const live = useLiveStrategy();
+  const oracle = useOracleRound();
   const state = useDeskState(live.data ?? null);
   const desk = state.data;
   const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const safeWeth = desk?.safeWallet.weth ?? 900000000000000000000n;
-  const safeUsdc = desk?.safeWallet.usdc ?? 400000000000n;
+  const liveMode = import.meta.env.VITE_DESK_MODE === "live";
+  const safeWeth = desk?.safeWallet.weth ?? (liveMode ? 0n : 900000000000000000000n);
+  const safeUsdc = desk?.safeWallet.usdc ?? (liveMode ? 0n : 400000000000n);
   const over = inventoryOver(wizard, safeWeth, safeUsdc);
   const stepOk =
     wizard.step === 1 ? isOwner : wizard.step === 3 ? !policyInvalid(wizard) : wizard.step === 4 ? over === null : true;
@@ -69,15 +72,21 @@ export function OpenPage() {
       <div className="flex flex-col gap-5 rounded-card border border-border bg-surface p-5 lg:col-span-9">
         {wizard.step === 1 ? (
           <section className="flex flex-col gap-3">
-            <p className="num text-body">{FIXTURE_OWNERS[0]}</p>
-            <ul>
-              {FIXTURE_OWNERS.map((owner, index) => (
-                <li key={owner} className="text-body">
-                  {owner}
-                  {address && owner.toLowerCase() === address.toLowerCase() ? " you" : ""} {index + 1} of 3
-                </li>
-              ))}
-            </ul>
+            {liveMode ? (
+              <p className="num text-body">—</p>
+            ) : (
+              <>
+                <p className="num text-body">{FIXTURE_OWNERS[0]}</p>
+                <ul>
+                  {FIXTURE_OWNERS.map((owner, index) => (
+                    <li key={owner} className="text-body">
+                      {owner}
+                      {address && owner.toLowerCase() === address.toLowerCase() ? " you" : ""} {index + 1} of 3
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <p className="text-body">2 of 3</p>
             <p className="num text-body">{desk ? formatWeth(desk.safeWallet.weth) : "—"}</p>
             <p className="num text-body">{desk ? formatUsdc(desk.safeWallet.usdc) : "—"}</p>
@@ -102,6 +111,7 @@ export function OpenPage() {
           <ReviewStep
             wizard={wizard}
             onPropose={() => {
+              if (liveMode) return;
               applyShip();
               void queryClient.invalidateQueries({ queryKey: ["live"] });
               setDone(true);
@@ -112,8 +122,11 @@ export function OpenPage() {
           <section className="flex flex-col gap-3">
             <p className="text-body">{PAIR}</p>
             <p className="num text-body">—</p>
-            <p className="num text-h3">{desk ? formatUsd(desk.pWad) : "—"}</p>
-            <p className="text-body">{desk ? formatWhen(desk.oracleUpdatedAt, now) : "—"}</p>
+            <p className="num text-h3">{oracle.data ? formatUsd(oracle.data.midWad) : desk ? formatUsd(desk.pWad) : "—"}</p>
+            <p className="text-body">
+              {oracle.data ? formatWhen(oracle.data.updatedAt, now) : desk ? formatWhen(desk.oracleUpdatedAt, now) : "—"}
+              {oracle.data?.stale ? " · stale" : ""}
+            </p>
             <p className="text-body">{FEED_NOTE}</p>
           </section>
         ) : null}

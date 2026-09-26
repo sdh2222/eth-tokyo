@@ -41,8 +41,12 @@ CREATE TABLE IF NOT EXISTS vault_snapshots (
   block_number TEXT PRIMARY KEY,
   weth TEXT NOT NULL,
   usdc TEXT NOT NULL,
-  w_wad TEXT NOT NULL,
-  target_wad TEXT NOT NULL
+  w_wad TEXT,
+  target_wad TEXT
+);
+CREATE TABLE IF NOT EXISTS chain_cursor (
+  stream TEXT PRIMARY KEY,
+  block TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS terms (
   name TEXT PRIMARY KEY,

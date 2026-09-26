@@ -4,9 +4,10 @@ import { useDeskPort } from "../hooks/useDesk";
 
 export function ProgramPage() {
   const port = useDeskPort();
-  const lines = port.describeProgram({ deadline: 0n, salt: 0n, unknown: [] }, emptyConfig());
-  const decoded = port.decodeProgram(PROGRAM_HEX);
-  const bytes = (PROGRAM_HEX.length - 2) / 2;
+  const liveMode = import.meta.env.VITE_DESK_MODE === "live";
+  const lines = liveMode ? [] : port.describeProgram({ deadline: 0n, salt: 0n, unknown: [] }, emptyConfig());
+  const decoded = liveMode ? [] : port.decodeProgram(PROGRAM_HEX).unknown;
+  const bytes = liveMode ? null : (PROGRAM_HEX.length - 2) / 2;
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
@@ -14,6 +15,7 @@ export function ProgramPage() {
         <p className="text-body text-muted">What this desk will and will not do.</p>
       </header>
       <ol className="grid gap-3">
+        {lines.length === 0 ? <li className="text-body">—</li> : null}
         {lines.map((line, index) => (
           <li key={line} className="flex gap-4 rounded-card border border-border bg-surface p-5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-program text-small text-onfocus">
@@ -25,9 +27,9 @@ export function ProgramPage() {
       </ol>
       <section className="rounded-card border border-border bg-text p-5 text-onfocus">
         <p className="text-small text-onfocus/80">Bytecode</p>
-        <p className="num mt-2 break-all text-body">{PROGRAM_HEX}</p>
+        <p className="num mt-2 break-all text-body">{liveMode ? "—" : PROGRAM_HEX}</p>
         <p className="mt-3 text-small text-onfocus/80">
-          {PROGRAM_LENGTH_NOTE} ({bytes} bytes)
+          {liveMode ? "—" : `${PROGRAM_LENGTH_NOTE} (${bytes} bytes)`}
         </p>
       </section>
       <section className="overflow-x-auto rounded-card border border-border">
@@ -39,7 +41,7 @@ export function ProgramPage() {
             </tr>
           </thead>
           <tbody>
-            {decoded.unknown.map((step, index) => (
+            {decoded.map((step, index) => (
               <tr key={index}>
                 <td className="num border-t border-border px-5">{step.opcode.toString(16)}</td>
                 <td className="num border-t border-border px-5">{step.args}</td>

@@ -31,7 +31,9 @@ export function InventoryStep({
       <AmountInput value={wizard.usdc} onChange={(usdc) => onChange({ ...wizard, usdc })} unit="USDC" max={formatUsdc(safeUsdc)} />
       {over === "weth" ? <p className="text-body">{SAFE_HOLDS} {formatWeth(safeWeth)}.</p> : null}
       {over === "usdc" ? <p className="text-body">{SAFE_HOLDS} {formatUsdc(safeUsdc)}.</p> : null}
-      <p className="text-body">{known ? "90.0% · above target" : "— · check the preview"}</p>
+      <p className="text-body">
+        {import.meta.env.VITE_DESK_MODE === "live" || !known ? "— · check the preview" : "90.0% · above target"}
+      </p>
     </div>
   );
 }
