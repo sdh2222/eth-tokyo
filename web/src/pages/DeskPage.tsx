@@ -1,25 +1,29 @@
 import { Link } from "react-router-dom";
-import { formatBpsShare, formatWadUsd, type DeskBook } from "../desk/book";
+import { formatBpsShare, formatWadUsd, nameQuote, shortName, type DeskBook } from "../desk/book";
 import { buysEth, fillEth, fillPrice } from "../desk/fills";
 import type { FillRecord } from "../desk/types";
+import { useAgentWrites, writeFor } from "../hooks/useAgentWrites";
 import { useBook } from "../hooks/useBook";
 import { formatCountdown, useClock } from "../hooks/useClock";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
 import { InventoryCells, SpreadStrip, WindowCells } from "../ui/cells";
-import { Badge, Card, Dl, Empty, Header, Metric, Metrics, Note, Page } from "../ui/v";
+import { Badge, Card, Dl, Empty, Header, Metric, Metrics, Note, Page, Status } from "../ui/v";
 
-// Dashboard: the state of the desk at a glance (TWA §5.1). Vercel-style: one metrics card
-// (the quote first), then Spread and Inventory cards, then recent fills. Read-only.
+// Dashboard: the state of the desk at a glance. Main's flow (PR #34): each counterparty is
+// priced from its own agent spread, which the risk agent rewrites after each of its fills.
+// Vercel-style: metrics, then quotes by counterparty, inventory, and recent fills. Read-only.
 
 const WINDOW_SECONDS = 600;
 
 type Need = { label: string; href: string; action: string };
 
 function firstNeed(book: DeskBook, now: number): Need | null {
-  if (book.spread === null || !book.spread.live) {
-    return { label: "No live agent spread. The desk is quoting on the terms widths.", href: "/agent", action: "Risk agent" };
+  for (const name of book.names) {
+    if (name.live && !name.spread?.live) {
+      return { label: `${shortName(name.name)} has no live agent spread and is quoted on its terms.`, href: "/agent", action: "Risk agent" };
+    }
   }
   for (const name of book.names) {
     if (!name.live) return { label: `${name.name} can't trade right now.`, href: "/counterparties", action: "Counterparties" };
@@ -41,6 +45,7 @@ function FillRow({ fill, now }: { fill: FillRecord; now: number }) {
       </td>
       <td className="v-right">{formatWeth(fillEth(fill))}</td>
       <td className="v-right">{`$${formatWadUsd(fillPrice(fill))}`}</td>
+      <td className="v-right v-muted">{`${fill.spreadBps} bp`}</td>
       <td className="v-right">
         <Link className="v-mono" to={`/fills/${fill.tx}`}>
           {formatHash(fill.tx)}
@@ -56,6 +61,7 @@ export function DeskPage() {
   const strategy = useLiveStrategy();
   const desk = useDeskState(strategy.data ?? null);
   const fills = useFills(strategy.data ?? null);
+  const writes = useAgentWrites();
   const b = book.data;
   const live = Boolean(strategy.data);
 
@@ -95,9 +101,7 @@ export function DeskPage() {
   const usdc = desk.data?.safeWallet.usdc;
   const rows = (fills.data ?? []).slice(0, 10);
   const deadline = desk.data?.deadline;
-  const onSpread = b.quote?.source === "spread" && b.spread !== null;
-  const sell = onSpread && b.spread ? b.spread.sellBps : (b.terms?.sellBps ?? 0);
-  const buy = onSpread && b.spread ? b.spread.buyBps : (b.terms?.buyBps ?? 0);
+  const fence = b.terms;
 
   return (
     <Page>
@@ -122,54 +126,106 @@ export function DeskPage() {
 
       <Card flush>
         <Metrics>
-          <Metric label="Bid · a counterparty sells ETH" value={b.quote ? `$${formatWadUsd(b.quote.bid)}` : "—"} hint={`−${buy} bp from the mid`} large />
-          <Metric label="Ask · a counterparty buys ETH" value={b.quote ? `$${formatWadUsd(b.quote.ask)}` : "—"} hint={`+${sell} bp from the mid`} large />
-          <Metric label="Oracle mid" value={`$${formatWadUsd(midWad)}`} hint={b.oracle.fresh ? "Fresh" : "Older than the price window"} />
+          <Metric label="Oracle mid" value={`$${formatWadUsd(midWad)}`} hint={b.oracle.fresh ? "Fresh" : "Older than the price window"} large />
           <Metric
             label="Price window"
             value={windowLeft > 0 ? formatCountdown(windowLeft) : "Closed"}
             hint={<WindowCells secondsLeft={windowLeft} windowSeconds={WINDOW_SECONDS} />}
           />
+          <Metric label="ETH share" value={formatBpsShare(b.inventory.wBps)} hint={`Stops selling ETH at ${formatBpsShare(b.inventory.wStarBps)}`} />
+          <Metric
+            label="Terms fence"
+            value={fence ? `+${fence.sellBps} / −${fence.buyBps} bp` : "—"}
+            hint={fence ? `Cap ${formatWeth(fence.cap)} per fill` : "No terms"}
+          />
         </Metrics>
       </Card>
 
-      <div className="v-grid">
-        <Card
-          className="v-col-7"
-          title="Spread"
-          actions={
-            <Link className="v-btn v-btn-secondary" to="/agent">
-              Risk agent
-            </Link>
-          }
-        >
-          <div className="v-stack v-stack-24">
-            <SpreadStrip sellBps={sell} buyBps={buy} fenceSellBps={b.terms?.sellBps} fenceBuyBps={b.terms?.buyBps} />
-            <Dl
-              items={[
-                ["Source", onSpread ? "Risk agent spread" : "Terms widths"],
-                ["Widths now", `bid −${buy} bp · ask +${sell} bp`],
-                ["Terms", b.terms ? `bid −${b.terms.buyBps} bp · ask +${b.terms.sellBps} bp · cap ${formatWeth(b.terms.cap)}` : "—"],
-                ...(b.spread ? ([["Valid until", formatWhen(Number(b.spread.validUntil), now)]] as const) : []),
-              ]}
-            />
-          </div>
-        </Card>
+      <Card
+        title="Quotes by counterparty"
+        flush
+        actions={
+          <Link className="v-btn v-btn-secondary" to="/agent">
+            Risk agent
+          </Link>
+        }
+        footer="The router prices each fill from that counterparty's own spread, inside its terms. The risk agent rewrites it after each of its fills."
+      >
+        <div className="v-table-wrap">
+          <table className="v-table">
+            <thead>
+              <tr>
+                <th>Counterparty</th>
+                <th>Source</th>
+                <th className="v-right">Bid</th>
+                <th className="v-right">Ask</th>
+                <th>Widths around the mid</th>
+                <th>Agent's last write</th>
+              </tr>
+            </thead>
+            <tbody>
+              {b.names.map((name) => {
+                const q = nameQuote(b, name);
+                const write = writeFor(writes.data, name.name);
+                return (
+                  <tr key={name.name}>
+                    <td>{shortName(name.name)}</td>
+                    <td>
+                      {!name.live ? (
+                        <Badge tone="red">Can't trade</Badge>
+                      ) : q?.source === "agent" ? (
+                        <Badge tone="blue">Agent spread</Badge>
+                      ) : (
+                        <Badge>Terms</Badge>
+                      )}
+                    </td>
+                    <td className="v-right">{q ? `$${formatWadUsd(q.bid)}` : "—"}</td>
+                    <td className="v-right">{q ? `$${formatWadUsd(q.ask)}` : "—"}</td>
+                    <td>
+                      {q ? (
+                        <SpreadStrip
+                          sellBps={q.sellBps}
+                          buyBps={q.buyBps}
+                          fenceSellBps={name.terms?.sellBps}
+                          fenceBuyBps={name.terms?.buyBps}
+                        />
+                      ) : null}
+                    </td>
+                    <td className="v-muted">
+                      {write ? `${formatWhen(write.writtenAt, now)}${write.note ? ` · ${write.note}` : ""}` : "No write yet"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-        <Card className="v-col-5" title="Inventory">
-          <div className="v-stack v-stack-24">
+      <Card title="Inventory">
+        <div className="v-grid">
+          <div className="v-col-6">
             <InventoryCells shareBps={b.inventory.wBps} stopBps={b.inventory.wStarBps} />
+          </div>
+          <div className="v-col-6">
             <Dl
               items={[
-                ["ETH share", formatBpsShare(b.inventory.wBps)],
-                ["Stops selling ETH at", formatBpsShare(b.inventory.wStarBps)],
                 ["WETH in the Safe", weth !== undefined ? formatWeth(weth) : "—"],
                 ["USDC in the Safe", usdc !== undefined ? formatUsdc(usdc) : "—"],
+                ["ETH share", formatBpsShare(b.inventory.wBps)],
+                [
+                  "Policy step now",
+                  b.inventory.wBps > b.inventory.wStarBps ? (
+                    <Status tone="blue">Above 70%: the agent sells 1 bp tighter and buys 1 bp wider</Status>
+                  ) : (
+                    <Status tone="amber">At or below 70%: the desk does not sell ETH</Status>
+                  ),
+                ],
               ]}
             />
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       <Card
         title="Recent fills"
@@ -192,6 +248,7 @@ export function DeskPage() {
                   <th>Side</th>
                   <th className="v-right">Size</th>
                   <th className="v-right">Price</th>
+                  <th className="v-right">Width paid</th>
                   <th className="v-right">Transaction</th>
                 </tr>
               </thead>
