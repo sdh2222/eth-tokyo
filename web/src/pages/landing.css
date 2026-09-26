@@ -276,8 +276,7 @@ body:has(.wm-landing) {
     transform 180ms ease-out;
 }
 
-.wm-compare[data-seen="true"] .wm-cell-on,
-.wm-seen[data-seen="true"] .wm-cell-on {
+.wm-compare[data-seen="true"] .wm-cell-on {
   opacity: 1;
   transform: none;
 }
@@ -306,7 +305,7 @@ body:has(.wm-landing) {
   opacity: 0.6;
 }
 
-/* ---------- the spread leaks, then flips ---------- */
+/* ---------- the spread leaks ---------- */
 
 .wm-leak {
   max-width: 20em;
@@ -319,108 +318,6 @@ body:has(.wm-landing) {
   letter-spacing: -0.03em;
 }
 
-.wm-flip {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  gap: 48px;
-  margin-top: 72px;
-  padding-top: 16px;
-  border-top: 1px solid var(--wm-ink);
-}
-
-.wm-flip-number {
-  margin: 16px 0 0;
-  font-size: clamp(72px, 9vw, 136px);
-  font-weight: 500;
-  line-height: 0.85;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-}
-
-.wm-flip-arrow {
-  margin: 40px 0 0;
-  font-size: clamp(48px, 5vw, 80px);
-  font-weight: 400;
-  line-height: 1;
-}
-
-.wm-board {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  margin-top: 96px;
-  padding-top: 16px;
-  border-top: 1px solid var(--wm-ink);
-}
-
-.wm-quote-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: end;
-  gap: 48px;
-}
-
-.wm-quote:last-child {
-  text-align: right;
-}
-
-.wm-quote-side {
-  margin: 0;
-  font-size: 16px;
-}
-
-.wm-quote-price {
-  margin: 12px 0 0;
-  font-size: clamp(48px, 5.6vw, 88px);
-  font-weight: 500;
-  line-height: 0.9;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-.wm-quote-bps {
-  margin: 12px 0 0;
-  color: var(--wm-water-strong);
-  font-size: 20px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
-.wm-quote-mid {
-  padding-bottom: 36px;
-}
-
-.wm-spread {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.wm-cell-spread {
-  fill: var(--wm-dot);
-}
-
-.wm-cell-mark {
-  fill: var(--wm-ink);
-}
-
-.wm-spread-mark {
-  margin: 8px 0 0;
-  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
-  font-size: 16px;
-  text-align: center;
-  opacity: 0.6;
-}
-
-.wm-close {
-  max-width: 36em;
-  margin: 24px 0 0;
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 1.3;
-}
-
 @media (max-width: 900px) {
   .wm-row {
     grid-template-columns: 1fr 1fr;
@@ -430,20 +327,5 @@ body:has(.wm-landing) {
   .wm-row-label,
   .wm-row-head > :first-child {
     grid-column: 1 / -1;
-  }
-
-  .wm-quote-row,
-  .wm-flip {
-    grid-template-columns: 1fr;
-  }
-
-  .wm-flip-arrow {
-    margin: 0;
-    transform: rotate(90deg);
-    justify-self: start;
-  }
-
-  .wm-quote:last-child {
-    text-align: left;
   }
 }

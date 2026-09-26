@@ -155,23 +155,4 @@ export const LANDING = {
     },
     leak: "And whoever takes that dump, a solver or a pool, eats the DAO's spread.",
   },
-  flip: {
-    label: "The flip",
-    title: "watermark flips it. Now the DAO EARNS from SELLING.",
-    before: {
-      label: "Today",
-      number: "−2.00%",
-      note: "Per ETH sold, lost to the solver. Worst case at a 2% slippage budget.",
-    },
-    after: {
-      label: "With watermark",
-      number: "+0.03%",
-      note: "Per ETH sold, earned by the DAO. 3 bp over the mark (example).",
-    },
-    quote: "How: the DAO's own price, both sides (example)",
-    buy: "Buy ETH",
-    sell: "Sell ETH",
-    mark: "Mark 4,000.00",
-    close: "It sells above the mark and buys below it. The spread that went to the solver now goes to the treasury.",
-  },
 } as const;

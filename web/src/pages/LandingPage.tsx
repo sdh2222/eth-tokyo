@@ -108,89 +108,6 @@ const SKY_WIDTHS = [
   [1600, "(max-width: 1600px)"],
 ] as const;
 
-// The DAO's quote around an example mark. Each square is one basis point.
-const SPREAD_CELLS = 16;
-const QUOTE = { buy: "3,996.00", buyBps: 10, sell: "4,001.20", sellBps: 3 };
-
-function SpreadStrip() {
-  const cells = [];
-  for (let bp = -SPREAD_CELLS; bp <= SPREAD_CELLS; bp += 1) {
-    const x = (bp + SPREAD_CELLS) * STEP;
-    const on = (bp > 0 && bp <= QUOTE.sellBps) || (bp < 0 && -bp <= QUOTE.buyBps);
-    // The squares open outward from the mark, one basis point at a time.
-    const delay = Math.abs(bp) * 60;
-    cells.push(
-      bp === 0 ? (
-        <rect key={bp} className="wm-cell-mark" x={x} y={0} width={CELL} height={CELL} />
-      ) : on ? (
-        <rect
-          key={bp}
-          className="wm-cell-on wm-cell-spread"
-          x={x}
-          y={0}
-          width={CELL}
-          height={CELL}
-          style={{ transitionDelay: `${delay}ms` }}
-        />
-      ) : (
-        <rect key={bp} className="wm-cell-off" x={x + 4} y={4} width={2} height={2} />
-      ),
-    );
-  }
-  return (
-    <svg className="wm-spread" viewBox={`0 0 ${(SPREAD_CELLS * 2 + 1) * STEP - 4} ${CELL}`} aria-hidden="true">
-      {cells}
-    </svg>
-  );
-}
-
-function Flip() {
-  const { before, after } = LANDING.flip;
-  return (
-    <div className="wm-flip">
-      <div>
-        <p className="wm-panel-label">{before.label}</p>
-        <p className="wm-flip-number">{before.number}</p>
-        <p className="wm-number-note">{before.note}</p>
-      </div>
-      <p className="wm-flip-arrow" aria-hidden="true">
-        →
-      </p>
-      <div>
-        <p className="wm-panel-label">{after.label}</p>
-        <p className="wm-flip-number wm-value-ours">{after.number}</p>
-        <p className="wm-number-note">{after.note}</p>
-      </div>
-    </div>
-  );
-}
-
-function QuoteStrip() {
-  const copy = LANDING.flip;
-  return (
-    <div className="wm-board">
-      <p className="wm-panel-label">{copy.quote}</p>
-      <div className="wm-quote-row">
-        <div className="wm-quote">
-          <p className="wm-quote-side">{copy.buy}</p>
-          <p className="wm-quote-price">{QUOTE.buy}</p>
-          <p className="wm-quote-bps">−{QUOTE.buyBps} bp</p>
-        </div>
-        <div className="wm-quote-mid">
-          <SpreadStrip />
-          <p className="wm-spread-mark">{copy.mark}</p>
-        </div>
-        <div className="wm-quote">
-          <p className="wm-quote-side">{copy.sell}</p>
-          <p className="wm-quote-price">{QUOTE.sell}</p>
-          <p className="wm-quote-bps">+{QUOTE.sellBps} bp</p>
-        </div>
-      </div>
-      <p className="wm-close">{copy.close}</p>
-    </div>
-  );
-}
-
 // True once the element has been a third on screen. It stays true.
 function useSeen<T extends Element>() {
   const ref = useRef<T>(null);
@@ -213,7 +130,6 @@ function useSeen<T extends Element>() {
 export function LandingPage() {
   const [skyLoaded, setSkyLoaded] = useState(false);
   const [compareRef, compareSeen] = useSeen<HTMLDivElement>();
-  const [priceRef, priceSeen] = useSeen<HTMLDivElement>();
 
   return (
     <div className="wm-landing">
@@ -278,15 +194,6 @@ export function LandingPage() {
           <CompareTable />
         </div>
         <p className="wm-leak">{LANDING.compare.leak}</p>
-      </section>
-
-      <section className="wm-section">
-        <p className="wm-label">{LANDING.flip.label}</p>
-        <h2 className="wm-h2">{LANDING.flip.title}</h2>
-        <div className="wm-seen" ref={priceRef} data-seen={priceSeen}>
-          <Flip />
-          <QuoteStrip />
-        </div>
       </section>
     </div>
   );
