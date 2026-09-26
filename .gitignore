@@ -11,6 +11,8 @@ ts/dist/
 *.pem
 *.key
 credentials.json
-# Klim test fonts. Local mockup only. Do not commit or distribute.
+# Klim fonts. Licensed for the site only: never commit or distribute them. The build fetches the
+# retail files into web/public/fonts/die-grotesk/ (web/scripts/fetch-fonts.mjs).
+web/public/fonts/die-grotesk/
 web/public/fonts/compare/die-grotesk-*.woff2
 web/public/fonts/compare/klim/
