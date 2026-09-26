@@ -1,36 +1,20 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import sepoliaConfig from "@config";
-import { Banner } from "@astryxdesign/core/Banner";
-import { CodeBlock } from "@astryxdesign/core/CodeBlock";
-import { useClipboard } from "@astryxdesign/core/hooks";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
-import { HStack, StackItem, VStack } from "@astryxdesign/core/Layout";
-import { Link } from "@astryxdesign/core/Link";
-import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
-import { Section } from "@astryxdesign/core/Section";
-import { Heading, Text } from "@astryxdesign/core/Text";
-import { Timestamp } from "@astryxdesign/core/Timestamp";
 import { formatWadUsd } from "../desk/book";
 import { emptyConfig } from "../desk/fixture/state";
 import type { DeskConfig, FillRecord } from "../desk/types";
+import { useClock } from "../hooks/useClock";
 import { useDeskPort, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr, formatHash, formatShare, formatUsdc, formatWeth } from "../lib/format";
+import { formatWhen } from "../lib/time";
+import { Callout, Facts, Page, PageHead, Section, Window, type Tone } from "../ui/plain";
 
-// Verify a fill (IA: "Was this fill priced by the rule?"). Built from the Astryx `detail-page`
-// template: the PageHeader (Heading level 1 + a bulleted metadata row + an end action), then
-// Sections with a Heading level 2 and a MetadataList. The shell renders the breadcrumb.
+// Verify a fill (IA: "Was this fill priced by the rule?"). Plain page kit.
+// Screens SC-22: the verdict is 12 columns, and the formula terminal is 12 columns under it.
 
 const cfg = sepoliaConfig as DeskConfig;
 const WETH = cfg.tokens.weth.toLowerCase();
-
-function Bullet() {
-  return (
-    <Text type="supporting" color="secondary">
-      {"・"}
-    </Text>
-  );
-}
 
 function buysEth(fill: FillRecord): boolean {
   return fill.tokenOut.toLowerCase() === WETH;
@@ -42,130 +26,144 @@ function amountText(fill: FillRecord, leg: "in" | "out"): string {
   return token.toLowerCase() === WETH ? formatWeth(amount) : formatUsdc(amount);
 }
 
+// The event exactly as the fill emitted it, one field per line.
+function rawEvent(fill: FillRecord): [string, string][] {
+  return [
+    ["tx", fill.tx],
+    ["blockNumber", fill.blockNumber.toString()],
+    ["blockTime", String(fill.blockTime)],
+    ["orderHash", fill.orderHash],
+    ["nameHash", fill.nameHash],
+    ["taker", fill.taker],
+    ["dnsName", fill.dnsName],
+    ["tokenIn", fill.tokenIn],
+    ["tokenOut", fill.tokenOut],
+    ["amountIn", fill.amountIn.toString()],
+    ["amountOut", fill.amountOut.toString()],
+    ["midWad", fill.midWad.toString()],
+    ["spreadBps", String(fill.spreadBps)],
+    ["spreadSource", String(fill.spreadSource)],
+    ["wBeforeWad", fill.wBeforeWad.toString()],
+  ];
+}
+
 export function VerifyPage() {
   const { tx = "" } = useParams();
   const strategy = useLiveStrategy();
   const fills = useFills(strategy.data ?? null);
   const port = useDeskPort();
-  const { copy, isCopied } = useClipboard({ announce: "Link copied" });
+  const now = useClock();
+  const [copied, setCopied] = useState(false);
   const fill = (fills.data ?? []).find((row) => row.tx.toLowerCase() === tx.toLowerCase());
   const check = fill ? port.verifyFill(fill, emptyConfig()) : null;
-  const recompute = (check?.steps ?? [])
-    .map((step, index) => `${index + 1}. ${step.label}\n   ${step.formula} = ${step.value}`)
-    .join("\n\n");
+  const steps = check?.steps ?? [];
 
-  let verdict = (
-    <Banner
-      status="info"
-      title="Fill not found"
-      description="No fill with this hash on the desk yet. Check the hash, or come back after the next block."
-    />
-  );
+  let verdict: { tone: Tone; title: string; hint: string } = {
+    tone: "neutral",
+    title: "Fill not found",
+    hint: "No fill with this hash on the desk yet. Check the hash, or come back after the next block.",
+  };
   if (fills.isLoading) {
-    verdict = <Banner status="info" title="Reading the fills" description="Looking up this fill on the desk." />;
+    verdict = { tone: "neutral", title: "Reading the fills", hint: "Looking up this fill on the desk." };
   } else if (check && check.steps.length === 0) {
-    verdict = (
-      <Banner
-        status="info"
-        title="Recompute is not available for this fill"
-        description="The desk did not return the recompute steps, so this page can't compare them."
-      />
-    );
+    verdict = {
+      tone: "neutral",
+      title: "Recompute is not available for this fill",
+      hint: "The desk did not return the recompute steps, so this page can't compare them.",
+    };
   } else if (check?.matches) {
-    verdict = (
-      <Banner
-        status="success"
-        title="Matches on-chain"
-        description="Recomputed from the inputs the fill emitted: oracle mid, spread and ETH share."
-      />
-    );
+    verdict = {
+      tone: "success",
+      title: "Matches on-chain",
+      hint: "Recomputed from the inputs the fill emitted: oracle mid, spread and ETH share.",
+    };
   } else if (check) {
-    verdict = (
-      <Banner
-        status="error"
-        title="Does not match"
-        description="The recomputed amounts differ from what the fill emitted."
-      />
-    );
+    verdict = { tone: "danger", title: "Does not match", hint: "The recomputed amounts differ from what the fill emitted." };
+  }
+
+  function copyLink() {
+    void navigator.clipboard.writeText(window.location.href).then(() => setCopied(true));
   }
 
   return (
-    <VStack gap={6}>
-      <HStack gap={4} vAlign="start">
-        <StackItem size="fill">
-          <VStack gap={2}>
-            <Heading level={1} maxLines={1}>
-              {`Fill ${formatHash(tx)}`}
-            </Heading>
-            {fill ? (
-              <HStack gap={1} vAlign="center" wrap="wrap">
-                <Text type="body" maxLines={1}>
-                  {fill.name}
-                </Text>
-                <HStack gap={1} vAlign="center">
-                  <Bullet />
-                  <Text type="body" maxLines={1}>
-                    {buysEth(fill) ? "Buy ETH" : "Sell ETH"}
-                  </Text>
-                </HStack>
-                <HStack gap={1} vAlign="center">
-                  <Bullet />
-                  <Timestamp value={fill.blockTime} format="date_time" type="body" />
-                </HStack>
-              </HStack>
-            ) : (
-              <Text type="body" color="secondary">
-                Was this fill priced by the rule?
-              </Text>
-            )}
-          </VStack>
-        </StackItem>
-        <IconButton
-          label="Copy link to this fill"
-          icon={<Icon icon={isCopied ? "check" : "copy"} color="inherit" />}
-          variant="ghost"
-          tooltip="Copy link"
-          onClick={() => void copy(window.location.href)}
-        />
-      </HStack>
+    <Page>
+      <PageHead
+        kicker="Verify"
+        title={`Fill ${formatHash(tx)}`}
+        lede={
+          fill
+            ? `${fill.name} · ${buysEth(fill) ? "Bought ETH" : "Sold ETH"} · ${formatWhen(fill.blockTime, now)}`
+            : "Was this fill priced by the rule?"
+        }
+        actions={
+          <button type="button" className="wm-link" onClick={copyLink} aria-live="polite">
+            {copied ? "Link copied" : "Copy link"}
+          </button>
+        }
+      />
 
-      {verdict}
-
-      {fill ? (
-        <Section>
-          <VStack gap={4}>
-            <Heading level={2}>The trade</Heading>
-            <MetadataList>
-              <MetadataListItem label="Counterparty">{fill.name}</MetadataListItem>
-              <MetadataListItem label="Wallet">
-                <Link href={`${cfg.explorer}/address/${fill.taker}`}>{formatAddr(fill.taker)}</Link>
-              </MetadataListItem>
-              <MetadataListItem label="Side">{buysEth(fill) ? "Buy ETH" : "Sell ETH"}</MetadataListItem>
-              <MetadataListItem label="Paid">{amountText(fill, "in")}</MetadataListItem>
-              <MetadataListItem label="Received">{amountText(fill, "out")}</MetadataListItem>
-              <MetadataListItem label="Oracle mid">{`$${formatWadUsd(fill.midWad)}`}</MetadataListItem>
-              <MetadataListItem label="Spread">{`${fill.spreadBps} bp`}</MetadataListItem>
-              <MetadataListItem label="ETH share before">{formatShare(fill.wBeforeWad)}</MetadataListItem>
-              <MetadataListItem label="Block">{fill.blockNumber.toString()}</MetadataListItem>
-              <MetadataListItem label="Transaction">
-                <Link href={`${cfg.explorer}/tx/${fill.tx}`}>{formatHash(fill.tx)}</Link>
-              </MetadataListItem>
-            </MetadataList>
-          </VStack>
+      <div className="wm-grid">
+        <Section title="Verdict" className="wm-span-12">
+          <Callout tone={verdict.tone}>
+            <strong>{verdict.title}</strong>
+            <span className="wm-muted">{verdict.hint}</span>
+          </Callout>
         </Section>
-      ) : null}
 
-      {fill && recompute !== "" ? (
-        <Section>
-          <VStack gap={4}>
-            <Heading level={2}>Recompute</Heading>
-            <Text type="body" color="secondary">
-              Every fill emits its inputs, so anyone can recompute the price and amounts.
-            </Text>
-            <CodeBlock code={recompute} language="plaintext" width="100%" isWrapped />
-          </VStack>
-        </Section>
-      ) : null}
-    </VStack>
+        {fill && steps.length > 0 ? (
+          <Section title="Recompute" className="wm-span-12">
+            <p className="wm-muted">Every fill emits its inputs, so anyone can recompute the price and amounts.</p>
+            <Window title="Recompute" meta={`${steps.length} steps`}>
+              {steps.map((step, index) => (
+                <div key={`${index}:${step.label}`} className="wm-window-line">
+                  <span>{`${index + 1}. ${step.label}`}</span>
+                  <span>{`${step.formula} = ${step.value}`}</span>
+                </div>
+              ))}
+            </Window>
+          </Section>
+        ) : null}
+
+        {fill ? (
+          <Section title="The trade" className="wm-span-12">
+            <Facts
+              items={[
+                ["Counterparty", fill.name],
+                [
+                  "Wallet",
+                  <a key="wallet" href={`${cfg.explorer}/address/${fill.taker}`} target="_blank" rel="noreferrer">
+                    {formatAddr(fill.taker)}
+                  </a>,
+                ],
+                ["Side", buysEth(fill) ? "Bought ETH" : "Sold ETH"],
+                ["Paid", amountText(fill, "in")],
+                ["Received", amountText(fill, "out")],
+                ["Oracle mid", `$${formatWadUsd(fill.midWad)}`],
+                ["Spread", `${fill.spreadBps} bp`],
+                ["ETH share before", formatShare(fill.wBeforeWad)],
+                ["Block", fill.blockNumber.toString()],
+                [
+                  "Transaction",
+                  <a key="tx" href={`${cfg.explorer}/tx/${fill.tx}`} target="_blank" rel="noreferrer">
+                    {formatHash(fill.tx)}
+                  </a>,
+                ],
+              ]}
+            />
+            <details className="wm-raw">
+              <summary>Raw event</summary>
+              <Window title="Fill event">
+                {rawEvent(fill).map(([key, value]) => (
+                  <div key={key} className="wm-window-line">
+                    <span>{key}</span>
+                    <span>{value}</span>
+                  </div>
+                ))}
+              </Window>
+            </details>
+          </Section>
+        ) : null}
+      </div>
+    </Page>
   );
 }

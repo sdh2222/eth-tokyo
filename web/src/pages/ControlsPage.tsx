@@ -1,42 +1,27 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { HStack, VStack } from "@astryxdesign/core/Layout";
-import { Link } from "@astryxdesign/core/Link";
-import { List, ListItem } from "@astryxdesign/core/List";
-import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
-import { StatusDot } from "@astryxdesign/core/StatusDot";
-import { Table, proportional } from "@astryxdesign/core/Table";
-import type { TableColumn } from "@astryxdesign/core/Table";
-import { Heading, Text } from "@astryxdesign/core/Text";
-import { Timestamp } from "@astryxdesign/core/Timestamp";
 import { useBook } from "../hooks/useBook";
 import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatWeth } from "../lib/format";
+import { Empty, Facts, Page, PageHead, Pill, Section } from "../ui/plain";
 import { SafeDialog } from "./open/SafeDialog";
 
-// Controls (IA: "What does it take to change or stop the desk?").
-// Same frame as DeskPage (the Astryx `dashboard` template): Heading 1 + secondary Text, then
-// Cards with Heading 4 titles. Table from `TableRichCellTable`, checks from `ListItemWithMetadata`,
-// the stop confirmation from `AlertDialogDeleteConfirmation`.
+// Controls (IA: "What does it take to change or stop the desk?"). Plain page kit.
+// Screens SC-21: the live program 12 columns, then Change (the one primary) and the Stop
+// outline, then the "what changes how" table 12. Stop asks one sentence (AlertDialog), then
+// the Safe dialog (SC-05).
 
 // The oracle owner, from docs/agent-design.md ("Live chain"). The agent must not be it.
 const ORACLE_OWNER = "0x1AC95a5e4CD739D01130f705f93D3bE070407c2b";
+const CHANGE_HREF = "/open?step=2";
 
 type ChangeRow = { id: string; how: string; what: string; linkLabel: string; href: string };
+type Check = { id: string; label: string; ok: boolean; pass: string; fail: string };
 
-const changeColumns: TableColumn<ChangeRow>[] = [
-  { key: "how", header: "How", width: proportional(2) },
-  { key: "what", header: "What it changes", width: proportional(4) },
-  {
-    key: "href",
-    header: "Where",
-    width: proportional(2),
-    renderCell: (row) => <Link href={row.href}>{row.linkLabel}</Link>,
-  },
-];
+function formatWhen(seconds: number): string {
+  return new Date(seconds * 1000).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+}
 
 export function ControlsPage() {
   const live = useLiveStrategy();
@@ -46,14 +31,26 @@ export function ControlsPage() {
   const [isStopAsked, setIsStopAsked] = useState(false);
   const [isSafeOpen, setIsSafeOpen] = useState(false);
 
-  if (live.isLoading) return <Text type="body">Reading the desk…</Text>;
+  if (live.isLoading) {
+    return (
+      <Page>
+        <PageHead title="Controls" lede="Reading the desk…" />
+      </Page>
+    );
+  }
   if (!strategy) {
     return (
-      <EmptyState
-        title="No desk is open"
-        description="No program is shipped to Aqua. Open a desk from the Safe to start quoting."
-        actions={<Link href="/open">Open a desk</Link>}
-      />
+      <Page>
+        <PageHead title="Controls" lede="What it takes to change or stop the desk." />
+        <Empty
+          title="No desk is open. No program is shipped to Aqua; open a desk from the Safe to start quoting."
+          action={
+            <Link className="wm-link" to="/open">
+              Open a desk
+            </Link>
+          }
+        />
+      </Page>
     );
   }
 
@@ -85,85 +82,106 @@ export function ControlsPage() {
       how: "Reopen the desk",
       what: "Pair, oracle, 70% ETH target, 10-minute window, inventory, deadline.",
       linkLabel: "Change",
-      href: "/open?step=2",
+      href: CHANGE_HREF,
+    },
+  ];
+
+  const checks: Check[] = [
+    {
+      id: "oracle",
+      label: "Oracle owner is not the agent",
+      ok: oracleOk,
+      pass: "The agent can move the spread, not the price.",
+      fail: "Check the oracle owner before the next fill.",
+    },
+    {
+      id: "one-live",
+      label: "One program live",
+      ok: oneLive,
+      pass: "Aqua holds one live program for this Safe.",
+      fail: "More than one program is live. Stop the extra one.",
     },
   ];
 
   return (
-    <VStack gap={6}>
-      <VStack gap={2}>
-        <Heading level={1}>Controls</Heading>
-        <Text type="body" color="secondary">
-          What it takes to change or stop the desk.
-        </Text>
-      </VStack>
+    <Page>
+      <PageHead title="Controls" lede="What it takes to change or stop the desk." />
 
-      <Card>
-        <VStack gap={4}>
-          <HStack hAlign="between" vAlign="center">
-            <Heading level={4}>Live program</Heading>
-            <Link href="/program">See the program</Link>
-          </HStack>
-          <MetadataList>
-            <MetadataListItem label="Shipped">{`Block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</MetadataListItem>
-            <MetadataListItem label="Closes">
-              <Timestamp value={deadline} format="date_time" type="body" color="primary" />
-            </MetadataListItem>
-            <MetadataListItem label="Strategy hash">{formatHash(strategy.strategyHash)}</MetadataListItem>
-          </MetadataList>
-        </VStack>
-      </Card>
-
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>What changes how</Heading>
-          <Table<ChangeRow>
-            data={rows}
-            columns={changeColumns}
-            idKey="id"
-            density="compact"
-            dividers="rows"
-            emptyState={
-              <EmptyState isCompact title="No controls to show" description="The desk program could not be read." />
-            }
+      <div className="wm-grid">
+        <Section
+          title="Live program"
+          className="wm-span-12"
+          aside={
+            <Link className="wm-link" to="/program">
+              See the program
+            </Link>
+          }
+        >
+          <Facts
+            items={[
+              ["Status", <Pill tone="success">Live</Pill>],
+              ["Shipped", `Block ${strategy.shippedAt.block.toLocaleString("en-US")}`],
+              ["Closes", formatWhen(deadline)],
+              ["Strategy hash", formatHash(strategy.strategyHash)],
+            ]}
           />
-          <Text type="supporting" color="secondary">
-            Change docks this program and ships a new one in one Safe transaction. Stop docks it.
-          </Text>
-          <HStack gap={2} wrap="wrap">
-            <Button label="Change" variant="primary" href="/open?step=2" />
-            <Button label="Stop the desk" variant="destructive" onClick={() => setIsStopAsked(true)} />
-          </HStack>
-        </VStack>
-      </Card>
+        </Section>
 
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>Checks</Heading>
-          <List hasDividers>
-            <ListItem
-              label="Oracle owner is not the agent"
-              description={
-                oracleOk
-                  ? "The agent can move the spread, not the price."
-                  : "Check the oracle owner before the next fill."
-              }
-              startContent={
-                <StatusDot variant={oracleOk ? "success" : "error"} label={oracleOk ? "Passes" : "Fails"} />
-              }
-            />
-            <ListItem
-              label="One program live"
-              description={
-                oneLive
-                  ? "Aqua holds one live program for this Safe."
-                  : "More than one program is live. Stop the extra one."
-              }
-              startContent={<StatusDot variant={oneLive ? "success" : "error"} label={oneLive ? "Passes" : "Fails"} />}
-            />
-          </List>
-        </VStack>
-      </Card>
+        <div className="wm-span-12 wm-stack">
+          <div className="wm-row wm-row-24">
+            <Link className="wm-btn" to={CHANGE_HREF}>
+              Change
+            </Link>
+            <button type="button" className="wm-btn wm-btn-danger" onClick={() => setIsStopAsked(true)}>
+              Stop the desk
+            </button>
+          </div>
+          <p className="wm-note">
+            Change docks this program and ships a new one in one Safe transaction. Stop docks it.
+          </p>
+        </div>
+
+        <Section title="What changes how" className="wm-span-12">
+          <div className="wm-table-wrap">
+            <table className="wm-table">
+              <thead>
+                <tr>
+                  <th>How</th>
+                  <th>What it changes</th>
+                  <th>Where</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.how}</td>
+                    <td>{row.what}</td>
+                    <td>
+                      <Link className="wm-link" to={row.href}>
+                        {row.linkLabel}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        <Section title="Checks" className="wm-span-12">
+          <ul className="wm-list">
+            {checks.map((check) => (
+              <li key={check.id}>
+                <span className="wm-stack wm-stack-4">
+                  <span>{check.label}</span>
+                  <span className="wm-muted">{check.ok ? check.pass : check.fail}</span>
+                </span>
+                <Pill tone={check.ok ? "success" : "danger"}>{check.ok ? "Passes" : "Fails"}</Pill>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      </div>
 
       <AlertDialog
         isOpen={isStopAsked}
@@ -182,6 +200,6 @@ export function ControlsPage() {
         title="Stop the desk"
         description="This proposal docks the live program on Aqua. Counterparties can't trade until a new desk opens. Tokens stay in the Safe."
       />
-    </VStack>
+    </Page>
   );
 }

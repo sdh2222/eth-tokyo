@@ -1,21 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
-import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { FormLayout } from "@astryxdesign/core/FormLayout";
-import { Grid } from "@astryxdesign/core/Grid";
-import { HStack, VStack } from "@astryxdesign/core/Layout";
-import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
-import { NumberInput } from "@astryxdesign/core/NumberInput";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { StatusDot } from "@astryxdesign/core/StatusDot";
-import { Heading, Text } from "@astryxdesign/core/Text";
-import { Timestamp } from "@astryxdesign/core/Timestamp";
-import { Token } from "@astryxdesign/core/Token";
 import { WalletTxOverlay } from "../overlays/WalletTxOverlay";
 import {
   APPROVE_ROUTER,
@@ -39,16 +24,17 @@ import { formatCountdown, useClock } from "../hooks/useClock";
 import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
+import { formatWhen } from "../lib/time";
+import { Callout, Empty, Facts, Page, PageHead, Pill, Section, Stat, Window, type Tone } from "../ui/plain";
 
-// Trade (IA: "Can I trade now, at what price, and how much?").
-// L1 follows DeskPage (the Astryx `dashboard` template): a Grid of Cards with Heading level 4
-// titles. L2 is the order form: FormLayout + SegmentedControl (SegmentedControlFillLayout),
-// NumberInput with units (NumberInputWithUnits), MetadataList (MetadataListBasicMetadata),
-// Collapsible (CollapsibleWithoutCard) and one primary Button.
+// Trade (IA: "Can I trade now, at what price, and how much?"). Plain page kit.
+// Screens SC-19: identity 12 columns, order form 5 and the quote 7, Fill under the quote.
+// SC-06: slippage is a disclosure inside the order form.
 
 type Side = "buy" | "sell";
 type Unit = "ETH" | "USDC";
 type Refusal = { title: string; hint: string };
+type Action = { label: string; run: () => void };
 
 const MODE_LIVE = import.meta.env.VITE_DESK_MODE === "live";
 const WINDOW_SECONDS = 600;
@@ -87,6 +73,19 @@ function usdcFor(wei: bigint, priceWad: bigint): bigint {
   return (wei * priceWad) / 10n ** 30n;
 }
 
+// "1." and ".5" are half-typed numbers, not a decimals error.
+function normalizeAmount(text: string): string {
+  const lead = text.startsWith(".") ? `0${text}` : text;
+  return lead.endsWith(".") ? lead.slice(0, -1) : lead;
+}
+
+// Wei as an input string, e.g. 50000000000000000000n -> "50".
+function weiText(wei: bigint): string {
+  const whole = wei / 10n ** 18n;
+  const frac = (wei % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
+  return frac === "" ? whole.toString() : `${whole}.${frac}`;
+}
+
 export function TradePage() {
   const { address } = useAccount();
   const label = useWalletLabel();
@@ -96,10 +95,10 @@ export function TradePage() {
   const port = useDeskPort();
   const client = usePublicClient();
   const [side, setSide] = useState<Side>("buy");
-  const [amount, setAmount] = useState<number | null>(null);
+  const [amount, setAmount] = useState("");
   const [slippage, setSlippage] = useState<number | null>(10);
   const [overlay, setOverlay] = useState<"approve" | "fill" | null>(null);
-  const parsed = amount === null ? parseAmount("", 18) : parseAmount(String(amount), 18);
+  const parsed = parseAmount(normalizeAmount(amount), 18);
   const wei = parsed.ok && parsed.value > 0n ? parsed.value : null;
   const route = legFor(side, "ETH");
   const approvals = useQuery({
@@ -115,9 +114,20 @@ export function TradePage() {
     amount: wei,
   });
 
-  if (book.isLoading) return <Text type="body">Reading the desk…</Text>;
+  if (book.isLoading) {
+    return (
+      <Page>
+        <PageHead title="Trade" lede="Reading the desk…" />
+      </Page>
+    );
+  }
   if (!book.data) {
-    return <EmptyState title="The desk could not be read" description="Check the Sepolia RPC in web/.env and reload." />;
+    return (
+      <Page>
+        <PageHead title="Trade" />
+        <Empty title="The desk could not be read. Check the Sepolia RPC in web/.env and reload." />
+      </Page>
+    );
   }
 
   const b = book.data;
@@ -150,19 +160,28 @@ export function TradePage() {
         });
 
   // This order: the desk-side guards on side and size, then the quote's own refusal.
+  // Each refusal carries at most one action.
   let refusal: Refusal | null = nameRefusal ?? windowRefusal;
+  let refusalTone: Tone = "danger";
+  let refusalAction: Action | null = null;
   if (!refusal && side === "buy" && b.inventory.wBps <= b.inventory.wStarBps) {
     refusal = errorCopy("DeskPriceTargetReached", {
       title: "The desk has reached its ETH target",
       hint: "A sale of ETH stops at the target share. A purchase of ETH still fills.",
     });
+    refusalTone = "warning";
+    refusalAction = { label: SELL_ETH, run: () => setSide("sell") };
   }
   if (!refusal && b.terms && wei !== null && wei > b.terms.cap) {
+    const cap = b.terms.cap;
     const copy = errorCopy("DeskPriceCapExceeded", { title: "Over your cap per fill", hint: "" });
-    refusal = { title: copy.title, hint: `One fill is capped at ${formatEth(b.terms.cap)}. Split the trade.` };
+    refusal = { title: copy.title, hint: `One fill is capped at ${formatEth(cap)}. Split the trade.` };
+    refusalTone = "warning";
+    refusalAction = { label: "Use the cap", run: () => setAmount(weiText(cap)) };
   }
   if (!refusal && quote.data && !quote.data.ok) {
     refusal = { title: quote.data.error.title, hint: quote.data.error.hint };
+    refusalAction = { label: REFRESH_QUOTE, run: () => void quote.refetch() };
   }
 
   const canTrade = address !== undefined && nameRefusal === null && windowRefusal === null;
@@ -175,14 +194,13 @@ export function TradePage() {
   const bookPrice = b.quote ? (side === "buy" ? b.quote.ask : b.quote.bid) : null;
   let pay = "—";
   let receive = "—";
-  let price = bookPrice === null ? "—" : `$${formatWadUsd(bookPrice)} · indicative`;
+  let price = bookPrice === null ? "—" : `$${formatWadUsd(bookPrice)}`;
+  let priceNote = "Indicative";
   if (exact) {
     pay = side === "buy" ? formatUsdc(exact.amountIn) : formatWeth(exact.amountIn);
     receive = side === "buy" ? formatWeth(exact.amountOut) : formatUsdc(exact.amountOut);
-    price =
-      quote.secondsLeft > 0
-        ? `$${formatPrice(exact.priceWad)} · quote valid ${formatCountdown(quote.secondsLeft)}`
-        : `$${formatPrice(exact.priceWad)} · quote expired`;
+    price = `$${formatPrice(exact.priceWad)}`;
+    priceNote = quote.secondsLeft > 0 ? `Valid ${formatCountdown(quote.secondsLeft)}` : "Expired";
   } else if (wei !== null && bookPrice !== null) {
     pay = side === "buy" ? `≈ ${formatUsdc(usdcFor(wei, bookPrice))}` : formatWeth(wei);
     receive = side === "buy" ? formatWeth(wei) : `≈ ${formatUsdc(usdcFor(wei, bookPrice))}`;
@@ -202,138 +220,162 @@ export function TradePage() {
   else if (!exact) blocked = "Waiting for a quote.";
   else if (quote.secondsLeft <= 0) blocked = "The quote expired. Refresh it.";
   else if (!needsApproval && !fillWired) blocked = "Filling from this page is not wired to Sepolia yet.";
+  const expiredQuote = exact !== null && quote.secondsLeft <= 0;
 
   return (
-    <VStack gap={6}>
-      <VStack gap={2}>
-        <Heading level={1}>Trade</Heading>
-        <Text type="body" color="secondary">
-          {`WETH/USDC against ${b.name}, priced at the oracle mid plus the desk's widths.`}
-        </Text>
-      </VStack>
+    <Page>
+      <PageHead
+        kicker={b.name}
+        title="Trade"
+        lede="WETH/USDC against this desk, priced at the oracle mid plus the desk's widths."
+      />
 
-      <Grid columns={{ minWidth: 320, repeat: "fit" }} gap={4}>
-        <Card>
-          <VStack gap={4}>
-            <Heading level={4}>{TRADING_AS}</Heading>
-            <Text type="large" maxLines={1}>
-              {entry?.name ?? (label || "No wallet connected")}
-            </Text>
-            <HStack gap={2} vAlign="center">
-              <StatusDot variant={canTrade ? "success" : "error"} label={canTrade ? "Can trade" : "Can't trade"} />
-              <Text type="body">{canTrade ? "Can trade" : "Can't trade"}</Text>
-            </HStack>
-            <Text type="supporting" color="secondary">
-              {tradeReason}
-            </Text>
+      <div className="wm-grid">
+        <Section title={TRADING_AS} className="wm-span-12">
+          <div className="wm-stats">
+            <Stat label="Name" value={entry?.name ?? (label || "No wallet connected")} />
+            <Stat
+              label="Status"
+              value={canTrade ? <Pill tone="success">Can trade</Pill> : <Pill tone="danger">Can't trade</Pill>}
+              note={tradeReason}
+            />
+            <Stat
+              label="Price window"
+              value={windowLeft > 0 ? formatCountdown(windowLeft) : "Closed"}
+              note={windowLeft > 0 ? "Open for 10 minutes after each oracle update." : "Closed until the next oracle update."}
+            />
             {entry && entry.expiry > 0n ? (
-              <HStack gap={1} vAlign="center">
-                <Text type="supporting" color="secondary">
-                  Name valid until
-                </Text>
-                <Timestamp value={Number(entry.expiry)} format="date" />
-              </HStack>
+              <Stat label="Name valid until" value={formatWhen(Number(entry.expiry), now)} />
             ) : null}
-          </VStack>
-        </Card>
+          </div>
+        </Section>
 
-        <Card>
-          <VStack gap={4}>
-            <HStack hAlign="between" vAlign="center">
-              <Heading level={4}>Quote</Heading>
-              {b.quote ? <Token label={SOURCE_LABEL[b.quote.source]} /> : null}
-            </HStack>
-            {b.quote ? (
-              <HStack gap={8}>
-                <VStack gap={1}>
-                  <Text type="supporting" color="secondary">
-                    Ask · you buy ETH
-                  </Text>
-                  <Heading level={2}>{`$${formatWadUsd(b.quote.ask)}`}</Heading>
-                </VStack>
-                <VStack gap={1}>
-                  <Text type="supporting" color="secondary">
-                    Bid · you sell ETH
-                  </Text>
-                  <Heading level={2}>{`$${formatWadUsd(b.quote.bid)}`}</Heading>
-                </VStack>
-              </HStack>
-            ) : (
-              <Text type="body">No quote: the terms on the client names disagree or are missing.</Text>
-            )}
-            <HStack gap={2} vAlign="center">
-              <StatusDot
-                variant={windowLeft > 0 ? "success" : "warning"}
-                label={windowLeft > 0 ? "Price window open" : "Price window closed"}
+        <Section title="Order" className="wm-span-5">
+          <div className="wm-stack wm-stack-24">
+            <div className="wm-field">
+              <span id="trade-side">Side</span>
+              <div className="wm-chips" role="radiogroup" aria-labelledby="trade-side">
+                <button type="button" className="wm-chip" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
+                  {BUY_ETH}
+                </button>
+                <button type="button" className="wm-chip" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
+                  {SELL_ETH}
+                </button>
+              </div>
+            </div>
+            <label className="wm-field">
+              <span>Amount · ETH</span>
+              <input
+                className="wm-input"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder={ENTER_AMOUNT}
+                value={amount}
+                aria-invalid={!parsed.ok && parsed.reason === "decimals"}
+                onChange={(event) => {
+                  if (/^\d*\.?\d*$/.test(event.target.value)) setAmount(event.target.value);
+                }}
               />
-              <Text type="body">
-                {windowLeft > 0
-                  ? `Price window closes in ${formatCountdown(windowLeft)}`
-                  : "Price window closed until the next oracle update"}
-              </Text>
-            </HStack>
-          </VStack>
-        </Card>
-      </Grid>
+              {!parsed.ok && parsed.reason === "decimals" ? (
+                <span className="wm-note" role="alert">
+                  {TOO_MANY_DECIMALS}
+                </span>
+              ) : null}
+            </label>
+            <Facts
+              items={[
+                [YOU_PAY, pay],
+                [YOU_RECEIVE, receive],
+                ["Your limits", b.terms ? `Up to ${formatEth(b.terms.cap)} per fill` : "No terms on the client names"],
+              ]}
+            />
+            <details className="wm-raw">
+              <summary>{SLIPPAGE}</summary>
+              <label className="wm-field">
+                <span>Slippage · bps</span>
+                <input
+                  className="wm-input"
+                  type="number"
+                  min={0}
+                  max={500}
+                  step={1}
+                  value={slippage ?? ""}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setSlippage(next === "" ? null : Math.min(500, Math.max(0, Math.round(Number(next)))));
+                  }}
+                />
+                <span className="wm-muted">The fill reverts if the price moves more than this.</span>
+              </label>
+            </details>
+          </div>
+        </Section>
 
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>Order</Heading>
-          <FormLayout>
-            <SegmentedControl value={side} onChange={(value) => setSide(value === "sell" ? "sell" : "buy")} label="Side" layout="fill">
-              <SegmentedControlItem value="buy" label={BUY_ETH} />
-              <SegmentedControlItem value="sell" label={SELL_ETH} />
-            </SegmentedControl>
-            <NumberInput
-              label="Amount"
-              placeholder={ENTER_AMOUNT}
-              min={0}
-              units="ETH"
-              value={amount}
-              onChange={setAmount}
-              {...(!parsed.ok && parsed.reason === "decimals" ? { status: { type: "error" as const, message: TOO_MANY_DECIMALS } } : {})}
-            />
-          </FormLayout>
-          <MetadataList>
-            <MetadataListItem label={YOU_PAY}>{pay}</MetadataListItem>
-            <MetadataListItem label={YOU_RECEIVE}>{receive}</MetadataListItem>
-            <MetadataListItem label="Price">{price}</MetadataListItem>
-            <MetadataListItem label="Your limits">
-              {b.terms ? `Up to ${formatEth(b.terms.cap)} per fill` : "No terms on the client names"}
-            </MetadataListItem>
-          </MetadataList>
-          <Collapsible
-            trigger={
-              <Text type="body" weight="semibold">
-                {SLIPPAGE}
-              </Text>
-            }
-            defaultIsOpen={false}
-          >
-            <NumberInput
-              label="Slippage"
-              isLabelHidden
-              description="The fill reverts if the price moves more than this."
-              min={0}
-              max={500}
-              units="bps"
-              value={slippage}
-              onChange={setSlippage}
-            />
-          </Collapsible>
-          {refusal ? <Banner status="error" container="card" title={refusal.title} description={refusal.hint} /> : null}
-          <HStack gap={2} vAlign="center">
-            <Button
-              variant="primary"
-              label={needsApproval ? APPROVE_ROUTER : FILL}
-              isDisabled={blocked !== null}
-              {...(blocked !== null ? { tooltip: blocked } : {})}
+        <Section
+          title="Live quote"
+          className="wm-span-7"
+          aside={b.quote ? <Pill tone="accent">{SOURCE_LABEL[b.quote.source]}</Pill> : null}
+        >
+          {b.quote ? (
+            <Window title="Quote" meta={windowLeft > 0 ? `window ${formatCountdown(windowLeft)}` : "window closed"}>
+              <div className="wm-window-line">
+                <span>ASK · you buy ETH</span>
+                <span>{`$${formatWadUsd(b.quote.ask)}`}</span>
+              </div>
+              <div className="wm-window-line">
+                <span>BID · you sell ETH</span>
+                <span>{`$${formatWadUsd(b.quote.bid)}`}</span>
+              </div>
+              <div className="wm-window-line">
+                <span>{`PRICE · ${side === "buy" ? BUY_ETH : SELL_ETH}`}</span>
+                <span className="wm-mark">{price}</span>
+              </div>
+              <div className="wm-window-line">
+                <span>QUOTE</span>
+                <span>{priceNote}</span>
+              </div>
+            </Window>
+          ) : (
+            <Empty title="No quote: the terms on the client names disagree or are missing." />
+          )}
+          {refusal ? (
+            <Callout
+              tone={refusalTone}
+              action={
+                refusalAction ? (
+                  <button type="button" className="wm-link" onClick={refusalAction.run}>
+                    {refusalAction.label}
+                  </button>
+                ) : null
+              }
+            >
+              <strong>{refusal.title}</strong>
+              {refusal.hint ? <span className="wm-muted">{refusal.hint}</span> : null}
+            </Callout>
+          ) : null}
+          <div className="wm-row wm-row-24">
+            <button
+              type="button"
+              className="wm-btn"
+              disabled={blocked !== null}
+              aria-describedby={blocked !== null ? "trade-blocked" : undefined}
               onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
-            />
-            {exact && quote.secondsLeft <= 0 ? <Button label={REFRESH_QUOTE} onClick={() => void quote.refetch()} /> : null}
-          </HStack>
-        </VStack>
-      </Card>
+            >
+              {needsApproval ? APPROVE_ROUTER : FILL}
+            </button>
+            {expiredQuote && refusalAction?.label !== REFRESH_QUOTE ? (
+              <button type="button" className="wm-link" onClick={() => void quote.refetch()}>
+                {REFRESH_QUOTE}
+              </button>
+            ) : null}
+            {blocked !== null ? (
+              <span id="trade-blocked" className="wm-muted">
+                {blocked}
+              </span>
+            ) : null}
+          </div>
+        </Section>
+      </div>
 
       {overlay && strategy.data && exact && swapTx ? (
         <WalletTxOverlay
@@ -342,6 +384,6 @@ export function TradePage() {
           onClose={() => setOverlay(null)}
         />
       ) : null}
-    </VStack>
+    </Page>
   );
 }

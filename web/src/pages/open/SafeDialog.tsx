@@ -1,13 +1,10 @@
-import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
-import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from "@astryxdesign/core/Layout";
-import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
 import sepoliaConfig from "@config";
+import { Page, Window } from "../../ui/plain";
 
-// The Safe proposal dialog, from the Astryx `DialogWithSubtitle` example: DialogHeader with a
-// subtitle, a Text body, and the actions in a LayoutFooter. No transaction is sent from this
-// app in this pass: the dialog explains the proposal and links to the Safe in Safe{Wallet}.
+// The Safe proposal dialog (O1, SC-03): an Astryx Dialog shell, 640 px wide, with a plain body.
+// No transaction is sent from this app in this pass: the dialog explains the proposal, shows the
+// Safe in a terminal window (SC-14) and links to the Safe in Safe{Wallet}.
 
 const SAFE_WALLET = "Safe{Wallet}";
 export const SAFE_URL = `https://app.safe.global/home?safe=sep:${sepoliaConfig.safe}`;
@@ -24,36 +21,34 @@ export function SafeDialog({
   description: string;
 }) {
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange}>
-      <Layout
-        header={
-          <DialogHeader
-            title={title}
-            subtitle={`2 of 3 Safe owners sign in ${SAFE_WALLET}`}
-            onOpenChange={onOpenChange}
-          />
-        }
-        content={
-          <LayoutContent>
-            <VStack gap={4}>
-              <Text type="body">{description}</Text>
-              <Text type="body" color="secondary">
-                {`Nothing is sent from this page. An owner proposes the transaction in ${SAFE_WALLET}, and it lands once two of the three owners have signed.`}
-              </Text>
-              <Link href={SAFE_URL} isExternalLink isStandalone>
-                {`Open the Safe in ${SAFE_WALLET}`}
-              </Link>
-            </VStack>
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter>
-            <HStack gap={2} hAlign="end">
-              <Button label="Close" variant="secondary" onClick={() => onOpenChange(false)} />
-            </HStack>
-          </LayoutFooter>
-        }
-      />
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} width={640}>
+      <Page>
+        <DialogHeader title={title} subtitle={`2 of 3 Safe owners sign in ${SAFE_WALLET}`} onOpenChange={onOpenChange} />
+        <div className="wm-stack">
+          <p>{description}</p>
+          <p className="wm-muted">
+            {`Nothing is sent from this page. An owner proposes the transaction in ${SAFE_WALLET}, and it lands once two of the three owners have signed.`}
+          </p>
+          <Window title="Safe" meta="Sepolia">
+            <div className="wm-window-line">
+              <span>SAFE</span>
+              <span>{sepoliaConfig.safe}</span>
+            </div>
+            <div className="wm-window-line">
+              <span>SIGNERS</span>
+              <span>2 of 3 owners</span>
+            </div>
+          </Window>
+        </div>
+        <div className="wm-row wm-between">
+          <button type="button" className="wm-link" onClick={() => onOpenChange(false)}>
+            Close
+          </button>
+          <a className="wm-btn" href={SAFE_URL} target="_blank" rel="noreferrer">
+            {`Open the Safe in ${SAFE_WALLET}`}
+          </a>
+        </div>
+      </Page>
     </Dialog>
   );
 }

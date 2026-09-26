@@ -1,23 +1,15 @@
-import { Card } from "@astryxdesign/core/Card";
-import { CodeBlock } from "@astryxdesign/core/CodeBlock";
-import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { VStack } from "@astryxdesign/core/Layout";
-import { Link } from "@astryxdesign/core/Link";
-import { List, ListItem } from "@astryxdesign/core/List";
-import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
-import { Table, proportional } from "@astryxdesign/core/Table";
-import type { TableColumn } from "@astryxdesign/core/Table";
-import { Heading, Text } from "@astryxdesign/core/Text";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import sepoliaConfig from "@config";
 import { PROGRAM_HEX } from "../desk/fixture/program";
 import type { DeskConfig, Hex } from "../desk/types";
 import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash } from "../lib/format";
+import { Empty, Page, PageHead, Section, Window } from "../ui/plain";
 
-// Program (IA: "What exactly did the Safe sign?").
-// Same frame as DeskPage (the Astryx `dashboard` template): Heading 1 + secondary Text, then
-// Cards with Heading 4 titles. Instructions Table from `TableRichCellTable`, raw bytes from
-// `CodeBlockJSONConfig`, the signature from `MetadataListItemShowcase`.
+// Program (IA: "What exactly did the Safe sign?"). Plain page kit.
+// Screens SC-23: plain English 12 columns, the argument table 7 and the raw terminal 5.
+// Hover on a byte segment highlights its row, and hover on a row highlights its segment.
 
 const liveMode = import.meta.env.VITE_DESK_MODE === "live";
 
@@ -38,13 +30,10 @@ const OPCODE_NAMES: Record<number, string> = {
   35: "Price",
 };
 
-type InstructionRow = { id: string; opcode: string; does: string; args: string };
+// Long args are shortened in the table; the raw terminal beside it has every byte.
+const ARGS_SHOWN = 34;
 
-const instructionColumns: TableColumn<InstructionRow>[] = [
-  { key: "opcode", header: "Opcode", width: proportional(1) },
-  { key: "does", header: "Sets", width: proportional(2) },
-  { key: "args", header: "Args", width: proportional(5) },
-];
+type InstructionRow = { id: string; opcode: string; does: string; args: string; bytes: string };
 
 // Every instruction in order: one opcode byte, one length byte, then the args.
 function instructions(program: Hex): InstructionRow[] {
@@ -54,30 +43,49 @@ function instructions(program: Hex): InstructionRow[] {
   while (i + 4 <= body.length) {
     const opcode = Number.parseInt(body.slice(i, i + 2), 16);
     const len = Number.parseInt(body.slice(i + 2, i + 4), 16);
+    const end = i + 4 + len * 2;
     rows.push({
       id: String(rows.length),
       opcode: `0x${body.slice(i, i + 2)}`,
       does: OPCODE_NAMES[opcode] ?? "—",
-      args: `0x${body.slice(i + 4, i + 4 + len * 2)}`,
+      args: `0x${body.slice(i + 4, end)}`,
+      bytes: body.slice(i, end),
     });
-    i += 4 + len * 2;
+    i = end;
   }
   return rows;
+}
+
+function shortArgs(args: string): string {
+  return args.length > ARGS_SHOWN ? `${args.slice(0, 18)}…${args.slice(-12)}` : args;
 }
 
 export function ProgramPage() {
   const port = useDeskPort();
   const live = useLiveStrategy();
   const strategy = live.data ?? null;
+  const [hovered, setHovered] = useState<string | null>(null);
 
-  if (live.isLoading) return <Text type="body">Reading the program…</Text>;
+  if (live.isLoading) {
+    return (
+      <Page>
+        <PageHead title="Program" lede="Reading the program…" />
+      </Page>
+    );
+  }
   if (!strategy) {
     return (
-      <EmptyState
-        title="No program is live"
-        description="The Safe has not shipped a desk program to Aqua."
-        actions={<Link href="/open">Open a desk</Link>}
-      />
+      <Page>
+        <PageHead title="Program" lede="What the Safe signed and shipped to Aqua." />
+        <Empty
+          title="No program is live. The Safe has not shipped a desk program to Aqua."
+          action={
+            <Link className="wm-link" to="/open">
+              Open a desk
+            </Link>
+          }
+        />
+      </Page>
     );
   }
 
@@ -87,70 +95,89 @@ export function ProgramPage() {
   const lines = described.length > 0 ? described : PROGRAM_FACTS;
   const rows = instructions(program);
   const explorer = sepoliaConfig.explorer;
+  const byteCount = (program.length - 2) / 2;
+  const hover = (id: string) => ({
+    onMouseEnter: () => setHovered(id),
+    onMouseLeave: () => setHovered(null),
+  });
 
   return (
-    <VStack gap={6}>
-      <VStack gap={2}>
-        <Heading level={1}>Program</Heading>
-        <Text type="body" color="secondary">
-          What the Safe signed and shipped to Aqua.
-        </Text>
-      </VStack>
+    <Page>
+      <PageHead title="Program" lede="What the Safe signed and shipped to Aqua." />
 
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>In plain English</Heading>
-          <List listStyle="decimal" hasDividers>
-            {lines.map((line) => (
-              <ListItem key={line} label={line} />
+      <div className="wm-grid">
+        <Section title="In plain English" className="wm-span-12">
+          <ol className="wm-list">
+            {lines.map((line, index) => (
+              <li key={line}>
+                <span className="wm-row wm-row-8">
+                  <span className="wm-muted wm-num">{index + 1}</span>
+                  <span>{line}</span>
+                </span>
+              </li>
             ))}
-          </List>
-        </VStack>
-      </Card>
+          </ol>
+        </Section>
 
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>Instructions</Heading>
-          <Table<InstructionRow>
-            data={rows}
-            columns={instructionColumns}
-            idKey="id"
-            density="compact"
-            dividers="rows"
-            textOverflow="truncate"
-            emptyState={
-              <EmptyState
-                isCompact
-                title="No instructions in this program"
-                description="The program bytes are empty."
-              />
-            }
-          />
-          <CodeBlock
-            code={program}
-            language="plaintext"
-            title={`Program bytes (${(program.length - 2) / 2} bytes)`}
-            isWrapped
-            width="100%"
-            maxHeight={240}
-          />
-        </VStack>
-      </Card>
+        <Section title="Instructions" className="wm-span-7">
+          {rows.length === 0 ? (
+            <Empty title="No instructions in this program. The program bytes are empty." />
+          ) : (
+            <div className="wm-table-wrap">
+              <table className="wm-table">
+                <thead>
+                  <tr>
+                    <th>Opcode</th>
+                    <th>Sets</th>
+                    <th>Args</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id} data-selected={hovered === row.id} {...hover(row.id)}>
+                      <td className="wm-num">{row.opcode}</td>
+                      <td>{row.does}</td>
+                      <td className="wm-num" title={row.args}>
+                        {shortArgs(row.args)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
 
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>Signature</Heading>
-          <MetadataList>
-            <MetadataListItem label="Strategy hash">{formatHash(strategy.strategyHash)}</MetadataListItem>
-            <MetadataListItem label="Shipped in">{`Block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</MetadataListItem>
-            <MetadataListItem label="Ship transaction">
-              <Link href={`${explorer}/tx/${strategy.shippedAt.tx}`} isExternalLink>
+        <Section title="Raw bytes" className="wm-span-5">
+          <Window title="Program bytes" meta={`${byteCount} bytes`}>
+            <span>0x</span>
+            {rows.map((row) => (
+              <span key={row.id} className={hovered === row.id ? "wm-mark" : undefined} {...hover(row.id)}>
+                {row.bytes}
+              </span>
+            ))}
+          </Window>
+        </Section>
+
+        <Section title="Signature" className="wm-span-12">
+          <Window title="Signed by the Safe" meta="Sepolia">
+            <div className="wm-window-line">
+              <span>STRATEGY HASH</span>
+              <span>{strategy.strategyHash}</span>
+            </div>
+            <div className="wm-window-line">
+              <span>SHIPPED IN</span>
+              <span>{`block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</span>
+            </div>
+            <div className="wm-window-line">
+              <span>SHIP TX</span>
+              <a href={`${explorer}/tx/${strategy.shippedAt.tx}`} target="_blank" rel="noreferrer">
                 {formatHash(strategy.shippedAt.tx)}
-              </Link>
-            </MetadataListItem>
-          </MetadataList>
-        </VStack>
-      </Card>
-    </VStack>
+              </a>
+            </div>
+          </Window>
+        </Section>
+      </div>
+    </Page>
   );
 }
