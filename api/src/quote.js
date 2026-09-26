@@ -61,7 +61,8 @@ async function liveQuote(cfg, input) {
     chain: sepolia,
     transport: http(process.env.DESK_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com"),
   });
-  const { findLiveStrategy, quoteFor } = await import("../../ts/dist/lib/client/index.js");
+  const { findLiveStrategy } = await import("../../ts/src/lib/client/strategies.ts");
+  const { quoteFor } = await import("../../ts/src/lib/client/quote.ts");
   const strategy = await findLiveStrategy({ client, cfg });
   if (!strategy) {
     return {
@@ -91,8 +92,8 @@ function publicQuote(result) {
     amountIn: result.amountIn.toString(),
     amountOut: result.amountOut.toString(),
     priceWad: result.priceWad.toString(),
-    spreadBps: result.spreadBps,
-    spreadSource: result.spreadSource,
+    spreadBps: result.sSellBps ?? result.spreadBps ?? 0,
+    spreadSource: result.spreadSource ?? 0,
   };
 }
 

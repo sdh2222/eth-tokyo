@@ -14,13 +14,13 @@
     "usdc": "0xf9c632dc8A3de673B95FF8F0645024C541D54d42"
   },
   "oracle": "0xbD625C653F6f703a4040d892882d3Ed254947404",
-  "router": "0x5Ce9Ab38F1bC579B6738b3492467A9a339933Ae3",
+  "router": "0xea3a77DC779d30574541d683bAE3dbbdA894a408",
   "safe": "0x213C5832c77F8e27b544881325f9E68C0434027a",
   "desk": {
     "oracleDecimals": 8,
     "baseDecimals": 18,
     "quoteDecimals": 6,
-    "maxBlocks": 3,
+    "maxBlocks": 50,
     "wStarBps": 7000,
     "sSellBps": 3,
     "sBuyBps": 10,
@@ -31,11 +31,11 @@
   "mms": [
     {
       "name": "mm-a.clients.dao-treasury-a.eth",
-      "address": "0x186AF6aF170cb8805c021EFa176c060214F6aD5d"
+      "address": "0x36e2658f69b83f97C4c965Cc8B6eE7486bdF9630"
     },
     {
       "name": "mm-b.clients.dao-treasury-a.eth",
-      "address": "0x5d5A4c611955334d6B5a0F46e1d2AebF2d2B0bF1"
+      "address": "0x32737088c3116eF4A4f030991f26E9f958D80D71"
     }
   ],
   "deployBlock": 11784705,

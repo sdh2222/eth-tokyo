@@ -6,7 +6,12 @@ import {
   ProgramBuilder,
   type SwapVmProgram,
 } from "@1inch/swap-vm-sdk";
-import { keccak256, type Address as ViemAddress, type Hex } from "viem";
+import {
+  keccak256,
+  decodeAbiParameters,
+  type Address as ViemAddress,
+  type Hex,
+} from "viem";
 
 import type { DeskConfig } from "./config.js";
 import { gateIx, priceIx, deskInstructions } from "./opcodes.js";
@@ -80,4 +85,20 @@ export function strategyBytes(order: Order): Hex {
 
 export function strategyHash(order: Order): Hex {
   return keccak256(strategyBytes(order));
+}
+
+const orderStruct = [
+  {
+    type: "tuple",
+    components: [
+      { name: "maker", type: "address" },
+      { name: "traits", type: "uint256" },
+      { name: "data", type: "bytes" },
+    ],
+  },
+] as const;
+
+/** The router takes the Order struct. Aqua stores that struct already ABI-encoded. */
+export function decodeOrder(strategy: Hex) {
+  return decodeAbiParameters(orderStruct, strategy)[0];
 }

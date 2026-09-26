@@ -25,7 +25,7 @@ An OTC desk in the treasury wallet. Aqua settles. SwapVM prices. ENSv2 is the cl
 - `tx.origin` is forbidden in `src/` and `contracts/`.
 - An agent may later write a spread. The inventory-deviation formula is not the rule. The agent cannot change address, cap, expiry, or the oracle.
 - Tokens stay in the multisig until the fill. Aqua holds none of them.
-- Price is the oracle answer. Ask is that mid times `(1 + s_sell)`. Bid is that mid times `(1 - s_buy)`, and the sell width is tighter than the buy width. Inventory does not move the mid. A sell reverts when the ETH share of the book is at or below the target. A fill is allowed only for a few blocks after the oracle `updatedAt`. The formula is on-chain.
+- Price is the oracle answer. Ask is that mid times `(1 + s_sell)`. Bid is that mid times `(1 - s_buy)`, and the sell width is tighter than the buy width. Inventory does not move the mid. A sell reverts when the ETH share of the book is at or below the target. A fill is allowed for 10 minutes after the oracle `updatedAt` (`maxBlocks` 50). The formula is on-chain.
 
 ## Out of the product
 

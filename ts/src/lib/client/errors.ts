@@ -70,7 +70,7 @@ const rows: Record<string, Omit<DeskError, "code" | "args">> = {
   },
   DeskPriceOracleStale: {
     title: "The price feed is too old",
-    hint: "Trading is open only for a few blocks after an oracle update.",
+    hint: "Trading is open for 10 minutes after an oracle update.",
     severity: "user",
   },
   DeskPriceInvalidRecords: {
@@ -206,6 +206,14 @@ const rows: Record<string, Omit<DeskError, "code" | "args">> = {
 };
 
 const abi = [
+  {
+    type: "error",
+    name: "DeskPriceOracleStale",
+    inputs: [
+      { name: "updatedAt", type: "uint256" },
+      { name: "maxAge", type: "uint256" },
+    ],
+  },
   {
     type: "error",
     name: "EnsGateTakerMismatch",

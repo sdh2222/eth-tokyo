@@ -44,6 +44,12 @@ CREATE TABLE IF NOT EXISTS vault_snapshots (
   w_wad TEXT,
   target_wad TEXT
 );
+CREATE TABLE IF NOT EXISTS desk_view (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  strategy_json TEXT,
+  state_json TEXT,
+  written_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS chain_cursor (
   stream TEXT PRIMARY KEY,
   block TEXT NOT NULL

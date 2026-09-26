@@ -1,5 +1,6 @@
 import type { Address } from "viem";
 
+import { decodeOrder } from "../program.js";
 import { priceMirror } from "../price.js";
 import { buildTakerData } from "../taker.js";
 import type { DeskCtx, DeskError, StrategyInfo } from "./ctx.js";
@@ -12,7 +13,15 @@ const quoteAbi = [
     name: "quote",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "order", type: "bytes" },
+      {
+        name: "order",
+        type: "tuple",
+        components: [
+          { name: "maker", type: "address" },
+          { name: "traits", type: "uint256" },
+          { name: "data", type: "bytes" },
+        ],
+      },
       { name: "tokenIn", type: "address" },
       { name: "tokenOut", type: "address" },
       { name: "amount", type: "uint256" },
@@ -66,7 +75,7 @@ export async function quoteFor(
       functionName: "quote",
       account: q.mm.address,
       args: [
-        s.order as `0x${string}`,
+        decodeOrder(s.order as `0x${string}`),
         tokenIn as Address,
         tokenOut as Address,
         q.amount,

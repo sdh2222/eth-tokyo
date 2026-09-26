@@ -121,8 +121,12 @@ abstract contract DeskPrice is IDeskEvents {
         view
         returns (uint256 cap, uint16 sSell, uint16 sBuy)
     {
-        bytes memory terms = IExtendedResolver(resolver)
-            .resolve(dnsName, abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms")));
+        // PermissionedResolver.resolve returns the ABI encoding of data()'s bytes, not the raw record.
+        bytes memory terms = abi.decode(
+            IExtendedResolver(resolver)
+                .resolve(dnsName, abi.encodeCall(IDataResolver.data, (bytes32(0), "desk.terms"))),
+            (bytes)
+        );
         if (terms.length != 128) revert DeskPriceNoTerms();
         uint256 version = _word(terms, 0);
         uint256 sell = _word(terms, 1);

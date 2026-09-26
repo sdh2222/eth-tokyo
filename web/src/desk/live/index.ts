@@ -192,7 +192,17 @@ export function createLivePort(): DeskPort {
           spreadSource?: 0 | 1 | 2;
         };
         if (!response.ok || !body.ok || body.amountIn === undefined || body.amountOut === undefined || body.priceWad === undefined) {
-          return { ok: false as const, error: tradeNotOpen() };
+          const err = (body as { error?: { title?: string; hint?: string; code?: string } }).error;
+          return {
+            ok: false as const,
+            error: {
+              code: err?.code ?? "QUOTE_FAILED",
+              args: {},
+              title: err?.title ?? "Quote is read from the contract",
+              hint: err?.hint ?? "The router did not return a price.",
+              severity: "user",
+            },
+          };
         }
         const amountIn = BigInt(body.amountIn);
         const amountOut = BigInt(body.amountOut);

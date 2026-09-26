@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "DESK_WATCH=1 node --import ../ts/node_modules/tsx/dist/esm/index.mjs src/server.js",
     "ingest": "node src/ingest.js",
-    "watch": "node src/watch.js",
+    "watch": "node --import ../ts/node_modules/tsx/dist/esm/index.mjs src/watch.js",
     "test": "node --test"
   },
   "dependencies": {

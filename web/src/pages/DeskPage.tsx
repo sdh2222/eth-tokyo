@@ -126,9 +126,9 @@ export function DeskPage() {
   }
 
   const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const midWad = oracle.data?.midWad ?? desk?.pWad;
-  const updatedAt = oracle.data?.updatedAt ?? desk?.oracleUpdatedAt;
-  const oracleStale = oracle.data?.stale ?? desk?.oracleStale ?? false;
+  const midWad = liveMode ? desk?.pWad : (oracle.data?.midWad ?? desk?.pWad);
+  const updatedAt = liveMode ? desk?.oracleUpdatedAt : (oracle.data?.updatedAt ?? desk?.oracleUpdatedAt);
+  const oracleStale = liveMode ? (desk?.oracleStale ?? false) : (oracle.data?.stale ?? desk?.oracleStale ?? false);
   const kind: StatusKind = oracleStale
     ? "Stale"
     : strategy?.live

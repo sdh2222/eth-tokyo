@@ -174,9 +174,22 @@ describe("T-TS-9 quote", () => {
         { status: "success", result: [1n, 4000n * 10n ** 8n, 0n, 10n, 1n] },
       ],
     };
+    const order = encodeAbiParameters(
+      [
+        {
+          type: "tuple",
+          components: [
+            { name: "maker", type: "address" },
+            { name: "traits", type: "uint256" },
+            { name: "data", type: "bytes" },
+          ],
+        },
+      ],
+      [{ maker: cfg.safe, traits: 0n, data: "0x" }],
+    );
     const quote = await quoteFor(
       { client, cfg } as unknown as DeskCtx,
-      { order: "0x", strategyHash: "0x" + "11".repeat(32) } as Parameters<
+      { order, strategyHash: "0x" + "11".repeat(32) } as Parameters<
         typeof quoteFor
       >[1],
       {
@@ -244,7 +257,25 @@ describe("T-TS-11 errors", () => {
     expect(decodeDeskError({ data: "0xdeadbeef" }).code).toBe("UNKNOWN");
     const swap = buildSwapTx(
       { client: {}, cfg } as unknown as DeskCtx,
-      "0x",
+      encodeAbiParameters(
+        [
+          {
+            type: "tuple",
+            components: [
+              { name: "maker", type: "address" },
+              { name: "traits", type: "uint256" },
+              { name: "data", type: "bytes" },
+            ],
+          },
+        ],
+        [
+          {
+            maker: "0x00000000000000000000000000000000000000bb",
+            traits: 0n,
+            data: "0x",
+          },
+        ],
+      ),
       {
         ok: true,
         amountIn: 10n,

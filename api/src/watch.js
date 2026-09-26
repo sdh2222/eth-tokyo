@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
-import { readFills, readOracle, readVault } from "./chain.js";
+import { filled, readFills, readOracle, readVault } from "./chain.js";
 import { openDb } from "./db.js";
 import { readTerms } from "./ens.js";
 import { applyEvents } from "./indexer.js";
@@ -32,11 +32,15 @@ export async function pollOnce(db, client, config) {
   const chunk = BigInt(config.logChunk || 50000);
   const events = [];
 
-  for (let start = fromBlock; start <= head.number; start += chunk) {
-    const end = start + chunk - 1n < head.number ? start + chunk - 1n : head.number;
-    events.push(...(await readFills(client, config, start, end)));
+  try {
+    for (let start = fromBlock; start <= head.number; start += chunk) {
+      const end = start + chunk - 1n < head.number ? start + chunk - 1n : head.number;
+      events.push(...(await readFills(client, config, start, end)));
+    }
+    saveCursor(db, head.number);
+  } catch (error) {
+    console.error(`fills ${error.shortMessage ?? error.message}`);
   }
-  saveCursor(db, head.number);
 
   events.push(...(await readTerms(client, config)));
   const oracle = await readOracle(client, config.oracle);
@@ -45,6 +49,15 @@ export async function pollOnce(db, client, config) {
   if (vault) events.push(vault);
 
   applyEvents(db, events);
+  if (filled(config.router) && filled(config.oracle) && filled(config.safe) && filled(config.tokens?.weth) && filled(config.tokens?.usdc)) {
+    try {
+      const { liveSnapshot } = await import("./live-desk.js");
+      const { saveView } = await import("./view.js");
+      saveView(db, await liveSnapshot());
+    } catch (error) {
+      console.error(`desk ${error.shortMessage ?? error.message}`);
+    }
+  }
   return { head: head.number.toString(), wrote: events.length };
 }
 
@@ -56,7 +69,7 @@ export function makeClient(rpcUrl = process.env.DESK_RPC_URL || DEFAULT_RPC) {
   return createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
 }
 
-async function main() {
+export async function main() {
   const db = openDb(process.env.DESK_DB ?? "data/desk.sqlite");
   const config = loadConfig(configPath());
   const client = makeClient();

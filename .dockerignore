@@ -1,0 +1,8 @@
+**/node_modules
+web
+contracts
+docs
+.git
+api/data
+**/.env
+**/.env.local

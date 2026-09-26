@@ -4,6 +4,7 @@ import { encodeTerms, dnsEncode } from "../encode.js";
 import {
   buildOrder,
   buildProgram,
+  decodeOrder,
   strategyBytes,
   strategyHash,
 } from "../program.js";
@@ -80,7 +81,15 @@ const routerAbi = [
     name: "swap",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "order", type: "bytes" },
+      {
+        name: "order",
+        type: "tuple",
+        components: [
+          { name: "maker", type: "address" },
+          { name: "traits", type: "uint256" },
+          { name: "data", type: "bytes" },
+        ],
+      },
       { name: "tokenIn", type: "address" },
       { name: "tokenOut", type: "address" },
       { name: "amount", type: "uint256" },
@@ -183,7 +192,7 @@ export function buildSwapTx(
       abi: routerAbi,
       functionName: "swap",
       args: [
-        orderBytes,
+        decodeOrder(orderBytes),
         q.exactIn
           ? need(ctx.cfg.tokens.usdc, "usdc")
           : need(ctx.cfg.tokens.weth, "weth"),

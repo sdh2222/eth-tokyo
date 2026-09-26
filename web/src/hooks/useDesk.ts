@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useBlockNumber, usePublicClient } from "wagmi";
 import sepoliaConfig from "@config";
+import { fetchApiDesk, fetchApiFills } from "../desk/api";
 import { createPort } from "../desk/createPort";
 import { fixtureBlock } from "../desk/fixture";
 import { emptyConfig, FIXTURE_MMS, FIXTURE_OWNERS } from "../desk/fixture/state";
@@ -52,8 +53,13 @@ export function useLiveStrategy() {
   const client = usePublicClient();
   const { block } = useBlock();
   const cfg = deskConfig();
-
-  return useQuery({
+  const api = useQuery({
+    queryKey: ["v1", "desk"],
+    queryFn: fetchApiDesk,
+    enabled: mode === "live",
+    refetchInterval: 15_000,
+  });
+  const chain = useQuery({
     queryKey: ["live", block?.toString()],
     queryFn: () => {
       if (mode === "live" && cfg.safe === "") {
@@ -69,9 +75,12 @@ export function useLiveStrategy() {
       }
       return desk.findLiveStrategy({ client, cfg });
     },
-    enabled: block !== undefined,
-    refetchInterval: mode === "live" ? 60_000 : false,
+    enabled: mode !== "live" && block !== undefined,
   });
+  if (mode === "live") {
+    return { ...api, data: api.data?.strategy ?? null };
+  }
+  return chain;
 }
 
 export function useDeskState(strategy: StrategyInfo | null) {
@@ -79,15 +88,22 @@ export function useDeskState(strategy: StrategyInfo | null) {
   const client = usePublicClient();
   const { block } = useBlock();
   const cfg = deskConfig();
-
-  return useQuery({
+  const api = useQuery({
+    queryKey: ["v1", "desk"],
+    queryFn: fetchApiDesk,
+    enabled: mode === "live",
+    refetchInterval: 15_000,
+  });
+  const chain = useQuery({
     queryKey: ["state", strategy?.strategyHash, block?.toString()],
     queryFn: () => {
       if (!strategy) throw new Error("strategy missing");
       return desk.readDeskState({ client, cfg }, strategy);
     },
-    enabled: strategy !== null && block !== undefined,
+    enabled: mode !== "live" && strategy !== null && block !== undefined,
   });
+  if (mode === "live") return { ...api, data: api.data?.state ?? undefined };
+  return chain;
 }
 
 export function useFills(strategy: StrategyInfo | null) {
@@ -95,10 +111,17 @@ export function useFills(strategy: StrategyInfo | null) {
   const client = usePublicClient();
   const { block } = useBlock();
   const cfg = deskConfig();
-
-  return useQuery({
+  const api = useQuery({
+    queryKey: ["v1", "fills"],
+    queryFn: fetchApiFills,
+    enabled: mode === "live",
+    refetchInterval: 15_000,
+  });
+  const chain = useQuery({
     queryKey: ["fills", strategy?.strategyHash, block?.toString()],
     queryFn: () => desk.readFills({ client, cfg }, strategy ?? undefined),
-    enabled: strategy !== null && block !== undefined,
+    enabled: mode !== "live" && strategy !== null && block !== undefined,
   });
+  if (mode === "live") return api;
+  return chain;
 }
