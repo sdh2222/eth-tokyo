@@ -1,5 +1,6 @@
 // Fixture quotes for the two live client names (mm-a, mm-b).
 import type { Address, QuoteOk } from "../types";
+import { fixtureAgentWrite } from "./agent";
 
 const WETH = 1000000000000000000n;
 const MM_A = "0x0000000000000000000000000000000000000005";
@@ -26,12 +27,14 @@ function row(
 
 // Main's rule (PR #34), the same one fixtureBook shows: each name is priced from its own
 // agent spread, ask = mid * (10000 + sell) / 10000 and bid = mid * (10000 - buy) / 10000, with
-// mid 4000; mm-a has 1 / 9 bp and mm-b 2 / 8 bp. Any amount quotes; the 50 WETH cap is
-// checked in state.ts.
+// mid 4000; each name's widths are the agent write derived in agent.ts. Any amount quotes;
+// the 50 WETH cap is checked in state.ts.
 const MID_WAD = 4000n * WETH;
+const WRITE_A = fixtureAgentWrite("mm-a");
+const WRITE_B = fixtureAgentWrite("mm-b");
 const WIDTHS: Record<string, { sell: number; buy: number }> = {
-  [MM_A]: { sell: 1, buy: 9 },
-  [MM_B]: { sell: 2, buy: 8 },
+  [MM_A]: { sell: WRITE_A.sellBps, buy: WRITE_A.buyBps },
+  [MM_B]: { sell: WRITE_B.sellBps, buy: WRITE_B.buyBps },
 };
 const USDC_TO_WAD = 1000000000000n;
 export const FILL_CAP_WETH = 50n * WETH;

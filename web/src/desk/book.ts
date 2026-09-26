@@ -1,4 +1,5 @@
 import type { Address } from "./types";
+import { fixtureAgentWrite } from "./fixture/agent";
 import { POLICY_TEMPLATE } from "./policy";
 
 // The desk book from docs/agent-design.md ("Book"), as ts/src/lib/agent.ts types it.
@@ -63,9 +64,11 @@ const WAD = 10n ** 18n;
 
 // The fixture book on main's model (PR #34): mid 4,000; terms sell 3 bp, buy 10 bp, cap
 // 50 ETH on both names; the desk quote is the terms quote (4,001.2 / 3,996.0); each name has
-// its own agent spread: mm-a 1 / 9 bp, mm-b 2 / 8 bp.
+// its own agent spread, derived from its last fill with the keeper's rules (fixture/agent.ts).
 export function fixtureBook(now: number): DeskBook {
   const mid = 4000n * WAD;
+  const a = fixtureAgentWrite("mm-a");
+  const b = fixtureAgentWrite("mm-b");
   return {
     name: "dao-treasury-a.eth",
     oracle: { answer: 4000n * 10n ** 8n, updatedAt: BigInt(now - 12), ageBlocks: 1, fresh: true },
@@ -82,7 +85,7 @@ export function fixtureBook(now: number): DeskBook {
         expiry: 1792936164n,
         live: true,
         terms: { sellBps: 3, buyBps: 10, cap: 50n * WAD },
-        spread: { sellBps: 1, buyBps: 9, validUntil: BigInt(now + 540), live: true },
+        spread: { sellBps: a.sellBps, buyBps: a.buyBps, validUntil: BigInt(now + 540), live: true },
       },
       {
         name: "mm-b.clients.dao-treasury-a.eth",
@@ -90,7 +93,7 @@ export function fixtureBook(now: number): DeskBook {
         expiry: 1792936164n,
         live: true,
         terms: { sellBps: 3, buyBps: 10, cap: 50n * WAD },
-        spread: { sellBps: 2, buyBps: 8, validUntil: BigInt(now + 420), live: true },
+        spread: { sellBps: b.sellBps, buyBps: b.buyBps, validUntil: BigInt(now + 420), live: true },
       },
     ],
   };
@@ -116,23 +119,7 @@ export function formatEth(wei: bigint): string {
 // The agent's last writes in the fixture, one per name, as the keeper records them.
 export function fixtureWrites(now: number): AgentWrite[] {
   return [
-    {
-      name: "mm-a.clients.dao-treasury-a.eth",
-      sellBps: 1,
-      buyBps: 9,
-      validUntil: now + 540,
-      writtenAt: now - 60,
-      tier: "standard",
-      note: "markout 0bp repeat none sizeUp false cut 0",
-    },
-    {
-      name: "mm-b.clients.dao-treasury-a.eth",
-      sellBps: 2,
-      buyBps: 8,
-      validUntil: now + 420,
-      writtenAt: now - 180,
-      tier: "tight",
-      note: "markout 2bp repeat 12 sizeUp true cut 1",
-    },
+    { name: "mm-a.clients.dao-treasury-a.eth", ...fixtureAgentWrite("mm-a"), validUntil: now + 540, writtenAt: now - 60 },
+    { name: "mm-b.clients.dao-treasury-a.eth", ...fixtureAgentWrite("mm-b"), validUntil: now + 420, writtenAt: now - 180 },
   ];
 }
