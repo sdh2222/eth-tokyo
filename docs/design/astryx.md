@@ -15,6 +15,8 @@ The library source is [facebook/astryx](https://github.com/facebook/astryx). Thi
 
 Current product behavior is the latest pull request on [sdh2222/eth-tokyo](https://github.com/sdh2222/eth-tokyo/pulls).
 
+When the site cannot be reached, [Astryx digest](astryx-digest.md) has each component's Do list, Don't list and examples from the 0.6.3 packages.
+
 ## Rules
 
 | ID | Rule | Why | Applies to | Checked by | If broken |
