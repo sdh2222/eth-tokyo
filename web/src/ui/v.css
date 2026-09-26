@@ -392,7 +392,7 @@
 .v-input:focus-visible,
 .v-seg button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(0, 119, 175, 0.5);
+  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(23, 23, 23, 0.35);
 }
 
 /* Badge: 20 px pill, 12 px 500, subtle tone background. */
@@ -724,6 +724,7 @@ textarea.v-input {
   cursor: pointer;
 }
 
-.v-slider-track:focus-within {
-  box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(0, 119, 175, 0.5);
+/* Keyboard focus rings the handle, not the track; a mouse drag shows no ring. */
+.v-slider-track:has(.v-slider-input:focus-visible) .v-slider-handle {
+  box-shadow: 0 0 0 1px var(--v-text), 0 0 0 4px rgba(23, 23, 23, 0.12);
 }
