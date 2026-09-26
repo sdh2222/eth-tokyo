@@ -64,6 +64,7 @@ export default {
     },
     fontFamily: {
       ui: "var(--font-ui)",
+      window: "var(--font-window)",
       mono: "var(--font-mono)",
     },
     fontSize: {

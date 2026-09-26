@@ -65,7 +65,8 @@
   --radius-control: 0px;
   --radius-pill: 999px;
   --shadow-overlay: 0 8px 24px rgba(16, 24, 40, 0.12);
-  --font-ui: "Pretendard Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-ui: "Die Grotesk C", system-ui, sans-serif;
+  --font-window: "LisaTerminal Paper", ui-monospace, monospace;
+  --font-mono: var(--font-window);
   --max: 1280px;
 }

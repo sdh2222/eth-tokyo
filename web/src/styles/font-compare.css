@@ -1,0 +1,109 @@
+/* Local comparison only. Die Grotesk files are Klim test fonts and stay untracked. */
+
+@font-face {
+  font-family: "Desk Compare Die Grotesk C";
+  src: url("/fonts/compare/die-grotesk-c-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Die Grotesk C";
+  src: url("/fonts/compare/die-grotesk-c-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare LisaTerminal Paper";
+  src: url("/fonts/compare/LisaTerminalPaper.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Pretendard";
+  src: url("/fonts/compare/Pretendard-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Pretendard";
+  src: url("/fonts/compare/Pretendard-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare JetBrains Mono";
+  src: url("/fonts/compare/JetBrainsMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Fragment Mono";
+  src: url("/fonts/compare/FragmentMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Pitch Sans";
+  src: url("/fonts/compare/klim/pitch-sans-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Söhne Mono";
+  src: url("/fonts/compare/klim/soehne-mono-buch.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Founders Grotesk Mono";
+  src: url("/fonts/compare/klim/founders-grotesk-mono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Geist Mono";
+  src: url("/fonts/compare/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare IBM Plex Mono";
+  src: url("/fonts/compare/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk Compare Martian Mono";
+  src: url("/fonts/compare/MartianMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-specimen {
+  font-synthesis: none;
+}

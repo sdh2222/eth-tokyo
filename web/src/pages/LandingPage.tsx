@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Skeleton } from "../components/Skeleton";
-import { StatTile } from "../components/StatTile";
 import {
   COMPARE_10,
   COMPARE_25,
@@ -20,8 +19,6 @@ import { NOW } from "../desk/fixture/state";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { useOracleRound } from "../hooks/useOracle";
 import { formatShare, formatUsd } from "../lib/format";
-
-const STEP_COLOR = ["bg-surface", "bg-surface", "bg-surface"] as const;
 
 export function LandingPage() {
   const live = useLiveStrategy();
@@ -52,64 +49,81 @@ export function LandingPage() {
   }
 
   return (
-    <div className="flex flex-col gap-7">
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        <div className="flex flex-col gap-5 lg:col-span-7">
-          <p className="text-micro text-muted">{SEPOLIA_MICRO}</p>
-          <h1 className="text-display font-semibold">{HERO_TITLE}</h1>
-          <p className="text-h3">{HERO_SUB}</p>
-          <div className="flex items-center gap-5">
-            <Link className="rounded-control bg-focus px-4 py-3 text-body font-medium text-onfocus" to="/desk">
-              {OPEN_DEMO}
-            </Link>
-            <a className="text-body" href="#how">
-              {HOW_IT_WORKS}
-            </a>
+    <div className="landing">
+      <section className="landing-hero">
+        <p className="landing-kicker">{SEPOLIA_MICRO}</p>
+        <h1 className="landing-title">{HERO_TITLE}</h1>
+        <p className="landing-sub">{HERO_SUB}</p>
+        <div className="landing-actions">
+          <Link className="landing-go" to="/desk">
+            {OPEN_DEMO}
+          </Link>
+          <a className="landing-link" href="#how">
+            {HOW_IT_WORKS}
+          </a>
+        </div>
+        <div className="term">
+          <div className="term-bar">Sepolia · Desk</div>
+          <div className="term-body">
+            {loading ? (
+              <Skeleton className="h-8 w-full" />
+            ) : (
+              <>
+                <p>
+                  <span>{STRIP.status}</span>
+                  <span className="num">{status}</span>
+                </p>
+                <p>
+                  <span>{STRIP.share}</span>
+                  <span className="num">{share}</span>
+                </p>
+                <p>
+                  <span>{STRIP.mid}</span>
+                  <span className="num">{mid}</span>
+                </p>
+                <p>
+                  <span>{STRIP.fills}</span>
+                  <span className="num">{fillsToday}</span>
+                </p>
+              </>
+            )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 lg:col-span-5">
-          {loading ? (
-            <>
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-            </>
-          ) : (
-            <>
-              <StatTile label={STRIP.status} value={status} />
-              <StatTile label={STRIP.share} value={share} />
-              <StatTile label={STRIP.mid} value={mid} />
-              <StatTile label={STRIP.fills} value={fillsToday} />
-            </>
-          )}
-        </div>
       </section>
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <StatTile label="2%" value={COMPARE_2PCT} />
-        <StatTile label="10 bps" value={COMPARE_10} />
-        <StatTile label="25 bps" value={COMPARE_25} />
-      </section>
-      <section className="rounded-card bg-surface p-5">
-        {PROBLEM.map((line, index) => (
-          <p key={line} className={index === 1 ? "text-body font-semibold" : "text-body"}>
-            {line}
+      <section className="landing-rest">
+        <div className="landing-compare">
+          <p>
+            <span>2%</span>
+            <span className="num">{COMPARE_2PCT}</span>
           </p>
-        ))}
+          <p>
+            <span>10 bps</span>
+            <span className="num">{COMPARE_10}</span>
+          </p>
+          <p>
+            <span>25 bps</span>
+            <span className="num">{COMPARE_25}</span>
+          </p>
+        </div>
+        <div className="landing-rule">
+          {PROBLEM.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+        <section id="how" className="landing-steps">
+          {STEPS.map((line, index) => (
+            <p key={line}>
+              <span className="num">{index + 1}</span>
+              {line}
+            </p>
+          ))}
+        </section>
+        <p>
+          <Link className="landing-link" to="/fills">
+            {VERIFY_LINE}
+          </Link>
+        </p>
       </section>
-      <section id="how" className="flex flex-col gap-5">
-        {STEPS.map((line, index) => (
-          <div key={line} className="flex items-start gap-4">
-            <span className={`flex h-8 w-8 items-center justify-center rounded-pill text-body text-onfocus ${STEP_COLOR[index]}`}>
-              {index + 1}
-            </span>
-            <p className="text-body">{line}</p>
-          </div>
-        ))}
-      </section>
-      <p className="text-body">
-        <Link to="/fills">{VERIFY_LINE}</Link>
-      </p>
     </div>
   );
 }
