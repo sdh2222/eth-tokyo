@@ -10,6 +10,7 @@ import { homeFor, useRole, type Role } from "./role";
 import { WalletControl } from "./WalletControl";
 import { ToastProvider } from "../components/Toast";
 import { NOW } from "../desk/fixture/state";
+import { useCanAct } from "../hooks/useCanAct";
 import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
 import { formatWhen } from "../lib/time";
 import { DemoDrawer } from "../pages/DemoDrawer";
@@ -32,6 +33,9 @@ function Shell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [role, setRole] = useRole();
+  // A visitor who is neither a Safe owner nor a named client only reads the desk.
+  const { isOwner, isMm } = useCanAct();
+  const observer = !isOwner && !isMm;
   const live = useLiveStrategy();
   // "Open a desk" joins the tabs only once the read says there is no desk, so it does not
   // flash in while the strategy is still loading.
@@ -56,6 +60,7 @@ function Shell({ children }: { children: ReactNode }) {
             <span className="watermark-heading">
               <TopNavHeading
                 className="watermark-mark"
+                headingHref="/"
                 logoLabel="watermark"
                 logo={
                   <span className="watermark-word">
@@ -69,6 +74,7 @@ function Shell({ children }: { children: ReactNode }) {
           endContent={<WalletControl />}
         />
         <div className="watermark-role-row" role="group" aria-label="Role">
+          {observer ? <span className="watermark-observer">Observer · read-only</span> : null}
           {ROLES.map((item) => (
             <Button
               key={item}
