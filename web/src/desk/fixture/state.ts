@@ -114,9 +114,9 @@ export function createFixture(which: "qa" | "demo"): {
       return [
         `Open until ${formatWhen(deadline, NOW)}`,
         `Only names under ${CLIENT_SUFFIX} may trade`,
-        "Price: oracle mid, skewed toward 70% ETH (κ 2%)",
-        "Spread between 0.05% and 2.00%, set per name",
-        "Oracle older than 60 minutes blocks trading",
+        "Price: oracle mid plus the agent's live spread, or the desk.terms widths",
+        "The desk stops selling ETH at or below a 70% ETH share; one fill is capped at 50 ETH",
+        "A fill is allowed for 10 minutes after each oracle update",
       ];
     },
     async planShip(_ctx, input) {

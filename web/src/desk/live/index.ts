@@ -1,3 +1,5 @@
+import { verifyFill as verifyDeskFill } from "@desk/verify";
+import sepoliaConfig from "@config";
 import {
   decodeDeskError,
   decodeProgram,
@@ -243,8 +245,27 @@ export function createLivePort(): DeskPort {
       );
       return rows.map((row) => toFill(row, ctx.cfg.tokens.weth, times.get(row.blockNumber) ?? 0));
     },
-    verifyFill() {
-      return { matches: false, steps: [] };
+    // The fill record carries the width it paid, so it stands for both widths here:
+    // verifyFill uses the sell width when the counterparty bought ETH, else the buy width.
+    verifyFill(fill) {
+      const cfg = sepoliaConfig as DeskConfig;
+      const check = verifyDeskFill(
+        {
+          amountIn: fill.amountIn,
+          amountOut: fill.amountOut,
+          midWad: fill.midWad,
+          sSellBps: fill.spreadBps,
+          sBuyBps: fill.spreadBps,
+          wBeforeWad: fill.wBeforeWad,
+          tokenIn: fill.tokenIn,
+          base: cfg.tokens.weth,
+        },
+        cfg,
+      );
+      return {
+        matches: check.matches,
+        steps: check.steps.map((step) => ({ label: step.label, formula: step.formula, value: step.value.toString() })),
+      };
     },
     decodeDeskError(error) {
       return decodeDeskError(error);
