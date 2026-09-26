@@ -21,6 +21,9 @@ export const watermarkTheme = defineTheme({
   tokens: {
     "--color-accent": "#B7E4F8",
     "--color-on-accent": "#111111",
+    // Links and accent text stay ink: sky text on white or paper is unreadable (1.4:1).
+    "--color-text-accent": "#111111",
+    "--color-icon-accent": "#111111",
     "--color-background-body": "#FFFFFF",
     "--color-background-surface": "#FFFFFF",
     "--color-background-card": "#F3F3F3",

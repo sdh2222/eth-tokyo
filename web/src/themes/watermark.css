@@ -155,8 +155,8 @@
     --color-text-primary: #111111;
     --color-text-secondary: light-dark(#46464F, #AAAAB5);
     --color-text-disabled: light-dark(#8F909A, #5D5E67);
-    --color-text-accent: var(--color-accent);
-    --color-icon-accent: var(--color-accent);
+    --color-text-accent: #111111;
+    --color-icon-accent: #111111;
     --color-icon-primary: #111111;
     --color-icon-secondary: light-dark(#46464F, #AAAAB5);
     --color-icon-disabled: light-dark(#8F909A, #5D5E67);
