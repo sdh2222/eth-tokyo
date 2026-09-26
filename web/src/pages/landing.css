@@ -24,10 +24,11 @@ body:has(.wm-landing) {
   background: var(--color-background-body);
 }
 
-/* The Astryx reset gives p and h1 their own face. Here they follow the page. */
+/* The Astryx reset gives p and the headings their own face. Here they follow the page. */
 .wm-landing p,
 .wm-landing h1,
-.wm-landing h2 {
+.wm-landing h2,
+.wm-landing h3 {
   font-family: inherit;
 }
 
@@ -378,6 +379,134 @@ body:has(.wm-landing) {
   background: var(--wm-water-strong);
 }
 
+/* ---------- closing: the claim and two doors, over the sea ---------- */
+
+.wm-close {
+  /* The height of the sea picture each screen loads (1920, 1600 or 1280 wide). */
+  --wm-sea: 536px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* The sea runs along the bottom, its horizon at the top of the picture, and the doors
+   stand a little way into the water. */
+.wm-sky.wm-sea {
+  top: auto;
+  height: var(--wm-sea);
+}
+
+.wm-close-inner {
+  position: relative;
+  z-index: 1;
+  padding-bottom: calc(var(--wm-sea) - 48px);
+}
+
+@media (max-width: 1600px) {
+  .wm-close {
+    --wm-sea: 446px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .wm-close {
+    --wm-sea: 358px;
+  }
+}
+
+.wm-doors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.wm-door-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+  padding: 28px 28px 32px;
+  background: var(--color-background-body);
+}
+
+.wm-door-name {
+  margin: 0 0 20px;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.wm-door-steps {
+  flex: 1;
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.wm-door-steps li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  padding: 10px 0;
+  border-top: 1px dotted rgb(17 17 17 / 0.35);
+  font-size: 17px;
+  line-height: 1.4;
+  counter-increment: step;
+}
+
+.wm-door-name-example {
+  display: block;
+  margin-top: 4px;
+  color: var(--wm-water-strong);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.wm-door-steps li::before {
+  content: counter(step, decimal-leading-zero);
+  color: var(--wm-water-strong);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+/* ---------- footer ---------- */
+
+.wm-footer {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 32px 48px;
+}
+
+.wm-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 32px;
+}
+
+.wm-footer-row .wm-top-links {
+  flex-wrap: wrap;
+}
+
+.wm-footer-note {
+  margin: 24px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.6;
+}
+
+@media (max-width: 900px) {
+  .wm-doors {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .wm-after,
   .wm-split,
@@ -391,7 +520,26 @@ body:has(.wm-landing) {
 }
 
 @media (max-width: 600px) {
+  .wm-section {
+    padding-inline: 16px;
+  }
+
+  .wm-panel-field {
+    padding: 40px 12px 12px;
+  }
+
+  .wm-door-body {
+    padding: 24px 20px 28px;
+  }
+
+  .wm-footer {
+    padding-inline: 16px;
+  }
+
   .wm-rows-labels {
+    top: 40px;
+    left: 12px;
+    height: calc(100% - 52px);
     font-size: 13px;
     line-height: 16px;
   }

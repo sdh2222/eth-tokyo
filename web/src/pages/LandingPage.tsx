@@ -1,17 +1,63 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { LANDING } from "../copy/en";
+import { FOOTER, LANDING } from "../copy/en";
 import { LandingDump } from "./LandingDump";
 import { LandingOrbit } from "./LandingOrbit";
 import { LandingSwarm } from "./LandingSwarm";
 import "./landing.css";
 
-// The hero clouds are baked at three widths (landing-dither.mjs), so the dots stay whole
-// and each screen loads the one that is at least as wide as it is. 1920 is the fallback.
-const SKY_WIDTHS = [
+// The dithered loops (the hero clouds, the closing sea) are baked at three widths by
+// landing-dither.mjs, so the dots stay whole and each screen loads the one that is at least
+// as wide as it is. 1920 is the fallback.
+const LOOP_WIDTHS = [
   [1280, "(max-width: 1280px)"],
   [1600, "(max-width: 1600px)"],
 ] as const;
+
+// The still paints first and the moving picture fades in over it once it has loaded. With
+// reduced motion only the still loads.
+function DitherLoop({ name, className }: { name: string; className?: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className={className ? `wm-sky ${className}` : "wm-sky"} aria-hidden="true">
+      <picture>
+        {LOOP_WIDTHS.map(([width, media]) => (
+          <source key={width} media={media} srcSet={`/landing/${name}-${width}-still.png`} />
+        ))}
+        <img src={`/landing/${name}-1920-still.png`} alt="" />
+      </picture>
+      <picture>
+        {LOOP_WIDTHS.map(([width, media]) => (
+          <source
+            key={`still-${width}`}
+            media={`(prefers-reduced-motion: reduce) and ${media}`}
+            srcSet={`/landing/${name}-${width}-still.png`}
+          />
+        ))}
+        <source media="(prefers-reduced-motion: reduce)" srcSet={`/landing/${name}-1920-still.png`} />
+        {LOOP_WIDTHS.map(([width, media]) => (
+          <source key={width} media={media} srcSet={`/landing/${name}-${width}.png`} />
+        ))}
+        <img
+          className="wm-sky-moving"
+          src={`/landing/${name}-1920.png`}
+          alt=""
+          data-loaded={loaded}
+          onLoad={() => setLoaded(true)}
+        />
+      </picture>
+    </div>
+  );
+}
+
+function Wordmark() {
+  return (
+    <Link className="wm-mark" to="/" aria-label="watermark">
+      <span className="wm-word-water">water</span>
+      <span className="wm-word-mark">mark</span>
+    </Link>
+  );
+}
 
 // The four layers every section keeps to: the claim, then the picture that proves it
 // (with its numbers), then one paragraph beside it.
@@ -25,15 +71,10 @@ function Claim({ title, sub }: { title: string; sub?: string }) {
 }
 
 export function LandingPage() {
-  const [skyLoaded, setSkyLoaded] = useState(false);
-
   return (
     <div className="wm-landing">
       <header className="wm-top">
-        <Link className="wm-mark" to="/" aria-label="watermark">
-          <span className="wm-word-water">water</span>
-          <span className="wm-word-mark">mark</span>
-        </Link>
+        <Wordmark />
         <nav className="wm-top-links" aria-label="Site">
           <a href="#how">{LANDING.how}</a>
           <Link to="/desk">{LANDING.open}</Link>
@@ -41,34 +82,7 @@ export function LandingPage() {
       </header>
 
       <section className="wm-hero">
-        <div className="wm-sky" aria-hidden="true">
-          <picture>
-            {SKY_WIDTHS.map(([width, media]) => (
-              <source key={width} media={media} srcSet={`/landing/clouds-${width}-still.png`} />
-            ))}
-            <img src="/landing/clouds-1920-still.png" alt="" />
-          </picture>
-          <picture>
-            {SKY_WIDTHS.map(([width, media]) => (
-              <source
-                key={`still-${width}`}
-                media={`(prefers-reduced-motion: reduce) and ${media}`}
-                srcSet={`/landing/clouds-${width}-still.png`}
-              />
-            ))}
-            <source media="(prefers-reduced-motion: reduce)" srcSet="/landing/clouds-1920-still.png" />
-            {SKY_WIDTHS.map(([width, media]) => (
-              <source key={width} media={media} srcSet={`/landing/clouds-${width}.png`} />
-            ))}
-            <img
-              className="wm-sky-moving"
-              src="/landing/clouds-1920.png"
-              alt=""
-              data-loaded={skyLoaded}
-              onLoad={() => setSkyLoaded(true)}
-            />
-          </picture>
-        </div>
+        <DitherLoop name="clouds" />
         <div className="wm-hero-text">
           <h1 className="wm-headline">{LANDING.headline}</h1>
           <p className="wm-via">{LANDING.via}</p>
@@ -115,6 +129,52 @@ export function LandingPage() {
         </div>
         <LandingOrbit />
       </section>
+
+      <section className="wm-close">
+        <DitherLoop name="sea" className="wm-sea" />
+        <div className="wm-section wm-section-center wm-close-inner">
+          <Claim title={LANDING.close.title} sub={LANDING.close.sub} />
+          <div className="wm-doors">
+            {LANDING.close.doors.map((door) => (
+              <div key={door.tag} className="wm-panel-field wm-door">
+                <span className="wm-tag">{door.tag}</span>
+                <div className="wm-door-body">
+                  <h3 className="wm-door-name">{door.name}</h3>
+                  <ol className="wm-door-steps">
+                    {door.steps.map((step, i) => (
+                      <li key={step}>
+                        <span>
+                          {step}
+                          {i === 0 && "example" in door ? <code className="wm-door-name-example">{door.example}</code> : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                  <Link className="wm-button" to={door.to}>
+                    {door.cta}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer className="wm-footer">
+        <div className="wm-footer-row">
+          <Wordmark />
+          <nav className="wm-top-links" aria-label="Footer">
+            <a href="#how">{LANDING.how}</a>
+            {LANDING.close.doors.map((door) => (
+              <Link key={door.to} to={door.to}>
+                {door.cta}
+              </Link>
+            ))}
+            <Link to="/fills">{LANDING.footer.fills}</Link>
+          </nav>
+        </div>
+        <p className="wm-footer-note">{FOOTER}</p>
+      </footer>
     </div>
   );
 }

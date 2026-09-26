@@ -173,4 +173,26 @@ export const LANDING = {
     style: { "mm-a": "trades fair", "mm-b": "trades sharp" },
     body: "The DAO writes its rules once, in plain English, and sets the widest spread any taker can ever get. After each fill an agent looks at how that taker traded: how big, how often, and whether the price jumped its way right after. It writes that taker's next spread to its ENS name, never past the limit, and without a new signature from the Safe. Takers who trade fair are pulled in toward the best price. Takers who trade sharp stay at the edge.",
   },
+  close: {
+    title: "Your Treasury, Now A Market Maker.",
+    sub: "One Safe signature opens the desk. Named takers do the rest.",
+    doors: [
+      {
+        tag: "Desk.Maker",
+        name: "For DAOs",
+        steps: ["Pick the Safe and how much of it backs the desk.", "Name your takers and write the policy.", "Sign once. The desk is live."],
+        cta: "Open a desk",
+        to: "/open",
+      },
+      {
+        tag: "Desk.Taker",
+        name: "For market makers",
+        steps: ["Get a name under the desk.", "Connect the wallet the name points to.", "Fill the quote at your own spread."],
+        example: `mm-a.${CLIENT_SUFFIX}`,
+        cta: "Take a quote",
+        to: "/trade",
+      },
+    ],
+  },
+  footer: { fills: "Verify a fill" },
 } as const;
