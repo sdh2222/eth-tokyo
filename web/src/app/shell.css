@@ -488,3 +488,17 @@
     transform: none;
   }
 }
+
+/* A visitor who is neither a Safe owner nor a named client reads the desk: a quiet marker at
+   the start of the role row. */
+.watermark-observer {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f6f6f6;
+  color: #57686f;
+  font-size: 14px;
+  line-height: 28px;
+  white-space: nowrap;
+}

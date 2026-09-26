@@ -1,0 +1,7 @@
+{
+  "framework": null,
+  "installCommand": "npm_config_production=false npx --yes pnpm@11.1.1 install --frozen-lockfile",
+  "buildCommand": "npx --yes pnpm@11.1.1 -C web build",
+  "outputDirectory": "web/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
