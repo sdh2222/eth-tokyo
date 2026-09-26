@@ -76,6 +76,14 @@ declare module "@desk/browser" {
     s?: BrowserStrategy,
     fromBlock?: bigint,
   ): Promise<BrowserFill[]>;
+  export function quoteFor(
+    ctx: { client: unknown; cfg: unknown },
+    s: BrowserStrategy,
+    q: { mm: { name: string; address: `0x${string}` }; side: "buy" | "sell"; leg: "weth" | "usdc"; amount: bigint },
+  ): Promise<
+    | { ok: true; amountIn: bigint; amountOut: bigint; priceWad: bigint; sSellBps: number; sBuyBps: number; mirrorMatches: boolean }
+    | { ok: false; error: { code: string; args: Record<string, unknown>; title: string; hint: string; severity: "user" | "config" | "system" } }
+  >;
   export function decodeDeskError(e: unknown): {
     code: string;
     args: Record<string, unknown>;

@@ -417,6 +417,12 @@ export function TradePage() {
         <WalletTxOverlay
           kind={overlay}
           tx={overlay === "approve" ? (approvals.data?.[0] ?? swapTx) : swapTx}
+          summary={[
+            [YOU_PAY, pay],
+            [YOU_RECEIVE, receive],
+            ["Price", price],
+            ["Quote valid", quote.secondsLeft > 0 ? `${quote.secondsLeft} s more` : "Expired: refresh it"],
+          ]}
           onClose={() => setOverlay(null)}
         />
       ) : null}

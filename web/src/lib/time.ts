@@ -20,13 +20,13 @@ export function formatWhen(targetUnix: number, nowUnix: number): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    month: "short",
+    day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(new Date(targetUnix * 1000));
   const pick = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
-  return `${pick("year")}${pick("month")}${pick("day")} ${pick("hour")}${pick("minute")} JST`;
+  return `${pick("month")} ${pick("day")}, ${pick("year")}, ${pick("hour")}:${pick("minute")} JST`;
 }

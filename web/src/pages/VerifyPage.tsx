@@ -44,6 +44,25 @@ function rawEvent(fill: FillRecord): [string, string][] {
   ];
 }
 
+// One recompute step in the treasurer's terms: what it is, how it is worked out, and the
+// value in dollars or tokens. The steps and values are main's verifier's (ts/src/lib/client/
+// verify.ts); only the words and units are added here.
+function describeStep(step: { label: string; formula: string; value: string }, fill: FillRecord): [string, string, string] {
+  const value = BigInt(step.value);
+  const buys = buysEth(fill);
+  if (step.label === "mid") return ["Oracle mid", "As the fill emitted it", `$${formatWadUsd(value)}`];
+  if (step.label === "price") {
+    const formula = step.formula === "ask" ? `Ask: mid × (1 + ${fill.spreadBps} bp)` : `Bid: mid × (1 − ${fill.spreadBps} bp)`;
+    return ["Price", formula, `$${formatWadUsd(value)}`];
+  }
+  if (step.label === "amountOut") {
+    return buys
+      ? ["Received", "USDC paid ÷ price, rounded down", formatWeth(value)]
+      : ["Received", "WETH paid × price, rounded down", formatUsdc(value)];
+  }
+  return [step.label, step.formula, step.value];
+}
+
 export function VerifyPage() {
   const { tx = "" } = useParams();
   const strategy = useLiveStrategy();
@@ -118,18 +137,21 @@ export function VerifyPage() {
                   <thead>
                     <tr>
                       <th>Step</th>
-                      <th>Formula</th>
+                      <th>How</th>
                       <th className="v-right">Value</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {steps.map((step, index) => (
-                      <tr key={`${index}:${step.label}`}>
-                        <td>{`${index + 1}. ${step.label}`}</td>
-                        <td className="v-muted">{step.formula}</td>
-                        <td className="v-right v-mono">{step.value}</td>
-                      </tr>
-                    ))}
+                    {steps.map((step, index) => {
+                      const [what, how, value] = describeStep(step, fill);
+                      return (
+                        <tr key={`${index}:${step.label}`}>
+                          <td>{`${index + 1}. ${what}`}</td>
+                          <td className="v-muted">{how}</td>
+                          <td className="v-right v-num">{value}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

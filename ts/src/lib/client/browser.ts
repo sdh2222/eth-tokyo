@@ -3,6 +3,9 @@ export { findStrategies, findLiveStrategy } from "./strategies.js";
 export { readDeskState } from "./state.js";
 export { readFills } from "./fills.js";
 export { decodeDeskError } from "./errors.js";
+// The router's own quote for a taker name. quote.ts imports taker.ts, which imports
+// @1inch/swap-vm-sdk; that package calls Node's assert, which the web aliases to a small
+// browser shim (web/src/shims/assert.ts).
+export { quoteFor } from "./quote.js";
 
-// plans.ts and quote.ts stay out of this file. Both import taker.ts, which
-// imports @1inch/swap-vm-sdk. That package needs Node's assert and blanks the browser.
+// plans.ts stays out of this file: it needs more of Node than assert.
