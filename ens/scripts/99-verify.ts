@@ -1,9 +1,12 @@
 // Acceptance checks for the ENS part (ENS_구현_매뉴얼.md §7 step 6 and §10). Exits 1 if a required check fails.
-import { decodeAbiParameters, encodeFunctionData, namehash, parseAbi, parseUnits } from 'viem'
+// After the handoff to the treasury Safe (requirement 014), run it as `npm run verify -- --safe <address>`.
+import { parseArgs } from 'node:util'
+import { decodeAbiParameters, encodeFunctionData, getAddress, namehash, parseAbi, parseUnits } from 'viem'
 import { profileAbi, registryAbi, resolverAbi } from '../src/abis.js'
 import { ADDR, CLIENTS_NAME, DESK_LABEL, DESK_NAME, publicClient } from '../src/config.js'
 import { loadDeployment, requireField } from '../src/deployments.js'
 import { dnsEncode, encodeTakerName, KEY_SPREAD, KEY_TERMS, keyResource, labelId } from '../src/encode.js'
+import { readHandoffState, roleName, rootTargets } from '../src/handoff.js'
 import { readClient, readRecords } from '../src/read.js'
 import { RESOLVER } from '../src/roles.js'
 import { DEFAULT_TERMS } from '../src/setup.js'
@@ -23,6 +26,9 @@ const treasury = requireField(d.treasury, 'treasury', 'register')
 const resolver = requireField(d.resolver, 'resolver', 'setup')
 const now = (await publicClient.getBlock()).timestamp
 const eth = { address: ADDR.ethRegistry, abi: registryAbi } as const
+// --safe adds the handoff checks (section 7). From then on the treasury that owns the name is the Safe.
+const { values: opts } = parseArgs({ options: { safe: { type: 'string' } } })
+const safe = opts.safe === undefined ? null : getAddress(opts.safe)
 
 // 1. desk.eth itself
 const [owner, deskExpiry, deskResolver, deskSub] = await Promise.all([
@@ -31,7 +37,8 @@ const [owner, deskExpiry, deskResolver, deskSub] = await Promise.all([
   publicClient.readContract({ ...eth, functionName: 'getResolver', args: [DESK_LABEL] }),
   publicClient.readContract({ ...eth, functionName: 'getSubregistry', args: [DESK_LABEL] }),
 ])
-check(same(owner, treasury), `${DESK_NAME} owned by treasury`, owner)
+const handedOff = !safe && !same(owner, treasury) ? '; if it was handed to the Safe, pass --safe <address>' : ''
+check(same(owner, safe ?? treasury), `${DESK_NAME} owned by ${safe ? 'the treasury Safe' : 'treasury'}`, owner + handedOff)
 check(deskExpiry > now, `${DESK_NAME} not expired`, iso(deskExpiry))
 check(same(deskResolver, resolver), `${DESK_NAME} resolver is the treasury resolver`)
 check(same(deskSub, d.registries?.desk ?? ''), `${DESK_NAME} subregistry wired`)
@@ -84,6 +91,18 @@ try {
 // 6. What the router person needs
 info(`dnsName for ${mmA.name} (takerData = uint8 len ‖ dnsName): ${encodeTakerName(mmA.name)}`)
 info(`treasury resolver ${resolver} | clients registry ${d.registries?.clients} | ETHRegistry ${ADDR.ethRegistry}`)
+
+// 7. Handoff to the treasury Safe (requirement 014, desk-system §6.3). The Safe's ownership of the name is check 1.
+if (safe) {
+  const s = await readHandoffState(rootTargets(d), treasury, safe)
+  for (const r of s.roots) {
+    check(r.safe === r.target.all, `${r.target.name}: Safe holds ${r.target.allName} at root`, roleName(r.safe, r.target))
+    check(r.eoa === 0n, `${r.target.name}: setup EOA holds no root role`, roleName(r.eoa, r.target))
+  }
+  check(s.desk.eoaRoles === 0n, `setup EOA holds no role on the ${DESK_NAME} token`, roleName(s.desk.eoaRoles))
+  info(`${DESK_NAME} token roles now with the Safe: ${roleName(s.desk.safeRoles)}`)
+  info('subname tokens (clients, agents, mm-*, risk) stay with the setup EOA, which holds no role on them; the Safe controls them through its root roles')
+}
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nall required checks passed')
 process.exit(failed ? 1 : 0)

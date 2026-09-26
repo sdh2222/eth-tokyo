@@ -6,6 +6,12 @@ import { sepolia } from 'viem/chains'
 
 export const RPC_URL = process.env.RPC_URL ?? 'https://ethereum-sepolia-rpc.publicnode.com'
 
+/** Host only, so a key embedded in an RPC URL's path or query is never printed. */
+export const rpcHost = (url = RPC_URL) => new URL(url).host
+
+/** True for an RPC on this machine (an anvil fork). Scripts that send use it to refuse a real chain by default. */
+export const isLocalRpc = (url = RPC_URL) => ['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname)
+
 // 확인: docs.ens.domains/learn/deployments 목록 + Blockscout verified source + `cast code` (2026-09-25)
 export const ADDR = {
   ethRegistrar: '0xabe76f6c8dfced81aa5a2bb8034202a7136b94ca',
