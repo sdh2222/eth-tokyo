@@ -349,12 +349,9 @@
   .astryx-text[data-type="wordmark"] {
     font-family: var(--font-family-wordmark);
     font-weight: var(--font-weight-normal);
-    color: var(--color-text-primary);
   }
 
-  .astryx-text[data-type="wordmark-water"] {
-    font-family: var(--font-family-wordmark);
-    font-weight: var(--font-weight-normal);
+  .astryx-text[data-color="water"] {
     color: var(--watermark-water);
   }
 
@@ -362,6 +359,10 @@
     background-color: var(--color-background-card);
     margin: var(--spacing-3) var(--spacing-4) 0;
     border-radius: var(--radius-container);
+  }
+
+  .astryx-button {
+    font-family: var(--font-family-body);
   }
 
   .astryx-button[data-variant="wallet"] {

@@ -49,22 +49,25 @@ export const watermarkTheme = defineTheme({
         borderRadius: "var(--radius-container)",
       },
     },
-    // The wordmark, "water" in the brand blue and "mark" in ink, set in LisaTerminal Paper.
+    // The wordmark, set in LisaTerminal Paper: "water" takes the water colour, "mark" stays
+    // ink. A colour goes through a `color:*` override, as TextColorMap documents; a colour
+    // inside a `type:*` override loses to the built-in data-color rule.
     text: {
       "type:wordmark": {
         fontFamily: "var(--font-family-wordmark)",
         fontWeight: "var(--font-weight-normal)",
-        color: "var(--color-text-primary)",
       },
-      "type:wordmark-water": {
-        fontFamily: "var(--font-family-wordmark)",
-        fontWeight: "var(--font-weight-normal)",
+      "color:water": {
         color: "var(--watermark-water)",
       },
     },
     // The approved wallet pill: white with a sky dot screen and an ink rule; filled blue once
     // a wallet is connected.
     button: {
+      // Buttons keep the body face even inside a LisaTerminal Paper banner.
+      base: {
+        fontFamily: "var(--font-family-body)",
+      },
       "variant:wallet": {
         backgroundColor: "var(--color-background-card)",
         backgroundImage: "radial-gradient(var(--color-background-body) 0.92px, transparent 1px)",

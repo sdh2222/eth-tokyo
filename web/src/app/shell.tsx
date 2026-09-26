@@ -1,86 +1,195 @@
-import { type ReactNode } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useAccount, useChainId, useConnect, useSwitchChain } from "wagmi";
-import { BannerList, bannersFrom } from "./banners";
+import { useEffect, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { AppShell } from "@astryxdesign/core/AppShell";
+import { Banner } from "@astryxdesign/core/Banner";
+import { BreadcrumbItem, Breadcrumbs } from "@astryxdesign/core/Breadcrumbs";
+import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
+import { Kbd } from "@astryxdesign/core/Kbd";
+import { SideNav, SideNavCollapseButton, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
+import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
+import { VStack } from "@astryxdesign/core/VStack";
+import { useHotkeys } from "@astryxdesign/core/hooks";
+import { bannersFrom, type Banner as DeskBanner } from "./banners";
+import { COUNTERPARTY_PAGES, roleOf, selectedHref, trailFor, treasuryPages, type NavPage } from "./nav";
+import { useRole } from "./role";
+import { WalletControl } from "./WalletControl";
+import { WindowPill } from "./WindowPill";
+import { Wordmark } from "./Wordmark";
 import { ToastProvider } from "../components/Toast";
-import {
-  BANNER_OWNER,
-  CONNECT_WALLET,
-  FOOTER,
-  MARK,
-  NAV_LABEL,
-  ROLE_LABEL,
-  SWITCH_SEPOLIA,
-} from "../copy/en";
-import { NOW } from "../desk/fixture/state";
-import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
-import { useCanAct, useWalletLabel } from "../hooks/useCanAct";
-import { formatWhen } from "../lib/time";
-import { formatAddr } from "../lib/format";
 import { DemoDrawer } from "../pages/DemoDrawer";
-import { homeFor, useRole, type Role } from "./role";
+import { BANNER_NETWORK, BANNER_OWNER, SWITCH_SEPOLIA } from "../copy/en";
+import { NOW } from "../desk/fixture/state";
+import { useCanAct } from "../hooks/useCanAct";
+import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
+import { formatWhen } from "../lib/time";
 
-const NAV: Record<Role, { to: string; label: string; end: boolean }[]> = {
-  treasury: [
-    { to: "/desk", label: NAV_LABEL.dashboard, end: true },
-    { to: "/open", label: NAV_LABEL.open, end: true },
-    { to: "/counterparties", label: NAV_LABEL.counterparties, end: true },
-    { to: "/controls", label: NAV_LABEL.controls, end: true },
-    { to: "/fills", label: NAV_LABEL.fills, end: false },
-    { to: "/program", label: NAV_LABEL.program, end: true },
-  ],
-  mm: [
-    { to: "/trade", label: NAV_LABEL.trade, end: true },
-    { to: "/desk", label: NAV_LABEL.dashboard, end: true },
-    { to: "/fills", label: NAV_LABEL.fills, end: false },
-    { to: "/program", label: NAV_LABEL.program, end: true },
-  ],
-};
+const SEPOLIA = 11155111;
+const COLLAPSE_KEYS = "mod+b";
 
-const ROLES: Role[] = ["treasury", "mm"];
-
+// The app frame. Landing keeps its own frame; every other page sits in the shell.
 export function AppFrame({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const showHeader = pathname !== "/" && !pathname.startsWith("/dev/shell");
+  return <ToastProvider>{pathname === "/" ? children : <Shell>{children}</Shell>}</ToastProvider>;
+}
+
+// AppShell "Full Featured": TopNav for identity and account, SideNav for the pages, and
+// page-level banners above the content. The SideNav collapse state is controlled here and
+// shared with the SideNavCollapseButton in the TopNav heading, as the SideNav page shows.
+function Shell({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const [role, setRole] = useRole();
+  const live = useLiveStrategy();
+  const deskLive = Boolean(live.data);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const collapsible = { isCollapsed, onCollapsedChange: setIsCollapsed };
+
+  // useHotkeys paired with Kbd, so the shortcut shown is the one registered.
+  useHotkeys([{ keys: COLLAPSE_KEYS, onPress: () => setIsCollapsed((value) => !value) }]);
+
+  // The section of the page in view is the role: Trade and My fills are the counterparty's.
+  const pageRole = roleOf(location);
+  useEffect(() => {
+    if (pageRole && pageRole !== role) setRole(pageRole);
+  }, [pageRole, role, setRole]);
+
+  const selected = selectedHref(location, role, deskLive);
+  const trail = trailFor(location, role, deskLive);
 
   return (
-    <ToastProvider>
-      <div className="min-h-screen flex flex-col">
-        {showHeader ? <AppHeader /> : null}
-        <main
-          className={
-            showHeader
-              ? "mx-auto flex w-full min-w-0 max-w-[var(--max)] flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8"
-              : "flex w-full flex-1 flex-col"
+    <AppShell
+      variant="wash"
+      height="auto"
+      contentPadding={6}
+      banner={<NetworkBanner />}
+      topNav={
+        <TopNav
+          label="Account"
+          heading={
+            <HStack gap={2} vAlign="center">
+              <Tooltip
+                content={
+                  <HStack gap={1} vAlign="center">
+                    Pages <Kbd keys={COLLAPSE_KEYS} />
+                  </HStack>
+                }
+              >
+                <SideNavCollapseButton collapsible={collapsible} />
+              </Tooltip>
+              <TopNavHeading logo={<Wordmark />} logoLabel="watermark" />
+            </HStack>
           }
-        >
-          {showHeader ? <PageNotices /> : null}
-          {children}
-          {showHeader ? <DemoDrawer /> : null}
-        </main>
-        {pathname.startsWith("/dev/shell") ? null : (
-          <footer className="break-words px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
-        )}
-      </div>
-    </ToastProvider>
+          endContent={
+            <HStack gap={4} vAlign="center">
+              <WindowPill />
+              <WalletControl />
+            </HStack>
+          }
+        />
+      }
+      sideNav={
+        <SideNav aria-label="Pages" collapsible={{ ...collapsible, hasButton: false }}>
+          <SideNavSection title="Treasury">
+            {treasuryPages(deskLive).map((page) => (
+              <NavItem key={page.href} page={page} selected={selected} />
+            ))}
+          </SideNavSection>
+          <SideNavSection title="Counterparty">
+            {COUNTERPARTY_PAGES.map((page) => (
+              <NavItem key={page.href} page={page} selected={selected} />
+            ))}
+          </SideNavSection>
+        </SideNav>
+      }
+    >
+      <VStack gap={4}>
+        {trail ? (
+          <Breadcrumbs>
+            {trail.map((crumb) => (
+              <BreadcrumbItem key={crumb.label} {...(crumb.href ? { href: crumb.href } : {})}>
+                {crumb.label}
+              </BreadcrumbItem>
+            ))}
+          </Breadcrumbs>
+        ) : null}
+        <DeskBanners isTreasury={role === "treasury"} />
+        {children}
+        {/* The old demo drawer (Shift+D or ?demo=1) until the overlays step rebuilds it. */}
+        <DemoDrawer />
+      </VStack>
+    </AppShell>
   );
 }
 
-function PageNotices() {
-  const { wrongNetwork, readOnlyTreasury } = useCanAct();
+function NavItem({ page, selected }: { page: NavPage; selected: string | null }) {
+  return <SideNavItem label={page.label} href={page.href} isSelected={page.href === selected} />;
+}
+
+// System-wide: the AppShell banner slot. An error banner stays until the network is fixed.
+function NetworkBanner() {
+  const account = useAccount();
+  const configChainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const chainId = account.status === "connected" && account.chainId != null ? account.chainId : configChainId;
+  if (account.status !== "connected" || chainId === SEPOLIA) return null;
+  return (
+    <Banner
+      status="error"
+      container="section"
+      title={BANNER_NETWORK}
+      endContent={
+        <Button label={SWITCH_SEPOLIA} variant="secondary" size="sm" onClick={() => switchChain({ chainId: SEPOLIA })} />
+      }
+    />
+  );
+}
+
+const STATUS = { danger: "error", warning: "warning", info: "info" } as const;
+
+type PageBanner = { id: string; status: "error" | "warning" | "info"; title: string; description?: string; action?: DeskBanner["action"] };
+
+// Banner page: keep titles short, so a notice's first sentence is the title and the rest
+// its description; don't stack two banners of one status, so those combine into one.
+function toPageBanners(list: readonly DeskBanner[]): PageBanner[] {
+  const out: PageBanner[] = [];
+  for (const item of list) {
+    const status = STATUS[item.level];
+    const split = item.text.indexOf(". ");
+    const title = split > 0 ? item.text.slice(0, split + 1) : item.text;
+    const rest = split > 0 ? item.text.slice(split + 2) : undefined;
+    const same = out.find((banner) => banner.status === status);
+    if (same) {
+      same.description = [same.description, item.text].filter(Boolean).join(" ");
+      continue;
+    }
+    out.push({
+      id: item.id,
+      status,
+      title,
+      ...(rest ? { description: rest } : {}),
+      ...(item.action ? { action: item.action } : {}),
+    });
+  }
+  return out;
+}
+
+// Page-level notices about the desk, above the content (Banner container "section").
+// Info banners can be dismissed; warnings and errors stay.
+function DeskBanners({ isTreasury }: { isTreasury: boolean }) {
   const navigate = useNavigate();
-  const [role] = useRole();
+  const { readOnlyTreasury } = useCanAct();
   const live = useLiveStrategy();
   const state = useDeskState(live.data ?? null);
   const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
   const desk = state.data;
-  const banners = bannersFrom({
-    ...(wrongNetwork ? { wrongNetwork: true, onSwitch: () => switchChain({ chainId: 11155111 }) } : {}),
+
+  const notices = bannersFrom({
     ...(live.data?.warning ? { strategyWarning: live.data.warning, onControls: () => navigate("/controls") } : {}),
     ...(desk?.oracleStale ? { oracleStale: true, maxStaleness: desk.maxStaleness } : {}),
     ...(live.isSuccess ? { loaded: true, live: live.data } : {}),
-    ...(role === "treasury" ? { isTreasury: true, onOpen: () => navigate("/open") } : {}),
+    ...(isTreasury ? { isTreasury: true, onOpen: () => navigate("/open") } : {}),
     ...(desk
       ? {
           secondsToDeadline: desk.deadline - now,
@@ -89,112 +198,30 @@ function PageNotices() {
         }
       : {}),
   });
+  const banners = toPageBanners(
+    isTreasury && readOnlyTreasury ? [{ id: "owner", level: "info", text: BANNER_OWNER }, ...notices] : notices,
+  ).slice(0, 2);
 
+  if (banners.length === 0) return null;
   return (
-    <>
-      {readOnlyTreasury ? <p className="text-body">{BANNER_OWNER}</p> : null}
-      <BannerList banners={banners} />
-    </>
-  );
-}
-
-function AppHeader() {
-  const [role, setRole] = useRole();
-  const navigate = useNavigate();
-  const live = useLiveStrategy();
-  const links = NAV[role].filter((link) => !(role === "treasury" && live.data && link.to === "/open"));
-
-  function pick(next: Role) {
-    if (next === role) return;
-    setRole(next);
-    navigate(homeFor(next));
-  }
-
-  return (
-    <header className="sticky top-0 z-20 bg-bg">
-      <div className="mx-auto flex w-full max-w-[var(--max)] flex-wrap items-center gap-3 px-4 py-4 sm:gap-5 sm:px-8">
-        <span className="text-h3">{MARK}</span>
-        <div className="ml-auto flex flex-wrap items-center gap-3">
-          <NetworkChip />
-          <WalletChip />
-          <div className="mode-switch" role="radiogroup" aria-label="Mode">
-            <span className="mode-thumb" style={{ transform: `translateX(${ROLES.indexOf(role) * 100}%)` }} />
-            {ROLES.map((item) => (
-              <button
-                key={item}
-                type="button"
-                role="radio"
-                aria-checked={item === role}
-                onClick={() => pick(item)}
-              >
-                {ROLE_LABEL[item]}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <nav className="mx-auto flex w-full max-w-[var(--max)] flex-wrap gap-2 px-4 pb-4 sm:px-8" aria-label="Pages">
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.end}
-            className={({ isActive }) =>
-              isActive ? "page-tab bg-text text-body text-onfocus" : "page-tab bg-transparent text-body text-muted"
-            }
-          >
-            {link.label}
-          </NavLink>
-        ))}
-      </nav>
-    </header>
-  );
-}
-
-function NetworkChip() {
-  const account = useAccount();
-  const configChainId = useChainId();
-  const chainId =
-    account.status === "connected" && account.chainId != null ? account.chainId : configChainId;
-  const { switchChain } = useSwitchChain();
-
-  if (chainId === 11155111) return null;
-
-  return (
-    <button
-      type="button"
-      className="rounded-control bg-danger px-3 py-2 text-body text-onfocus"
-      onClick={() => switchChain({ chainId: 11155111 })}
-    >
-      {SWITCH_SEPOLIA}
-    </button>
-  );
-}
-
-function WalletChip() {
-  const { address, status } = useAccount();
-  const { connect, connectors } = useConnect();
-  const label = useWalletLabel();
-
-  if (status === "connected" && address) {
-    return (
-      <span className="text-body">
-        <span className="num">{formatAddr(address)}</span> <span className="text-muted">{label}</span>
-      </span>
-    );
-  }
-
-  const connector = connectors[0];
-
-  return (
-    <button
-      type="button"
-      className="header-wallet text-small"
-      onClick={() => {
-        if (connector) connect({ connector });
-      }}
-    >
-      {CONNECT_WALLET}
-    </button>
+    <VStack gap={2}>
+      {banners.map((banner) => (
+        <Banner
+          key={banner.id}
+          status={banner.status}
+          container="section"
+          title={banner.title}
+          {...(banner.description ? { description: banner.description } : {})}
+          isDismissable={banner.status === "info"}
+          {...(banner.action
+            ? {
+                endContent: (
+                  <Button label={banner.action.label} variant="secondary" size="sm" onClick={banner.action.onClick} />
+                ),
+              }
+            : {})}
+        />
+      ))}
+    </VStack>
   );
 }

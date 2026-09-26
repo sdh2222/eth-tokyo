@@ -6,6 +6,5 @@ export {};
 declare module "@astryxdesign/core/theme" {
   interface CustomTextTypes {
     wordmark: true;
-    "wordmark-water": true;
   }
 }

@@ -4,7 +4,7 @@ import type { Role } from "./role";
 export type NavPage = { label: string; href: string };
 
 export const DASHBOARD: NavPage = { label: "Dashboard", href: "/desk" };
-// Takes Dashboard's place in the Treasury section while no desk program is live.
+// Listed under Dashboard while no desk program is live (the IA sitemap's conditional page).
 export const OPEN_A_DESK: NavPage = { label: "Open a desk", href: "/open" };
 
 export const TREASURY_PAGES: readonly NavPage[] = [
@@ -20,7 +20,7 @@ export const MY_FILLS: NavPage = { label: "My fills", href: "/fills?mine" };
 export const COUNTERPARTY_PAGES: readonly NavPage[] = [{ label: "Trade", href: "/trade" }, MY_FILLS];
 
 export function treasuryPages(deskLive: boolean): readonly NavPage[] {
-  return deskLive ? TREASURY_PAGES : TREASURY_PAGES.map((page) => (page === DASHBOARD ? OPEN_A_DESK : page));
+  return deskLive ? TREASURY_PAGES : TREASURY_PAGES.flatMap((page) => (page === DASHBOARD ? [page, OPEN_A_DESK] : [page]));
 }
 
 type Location = { pathname: string; search: string };

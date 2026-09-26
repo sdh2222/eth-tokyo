@@ -210,12 +210,9 @@ export const watermarkTheme = {
       },
       "type:wordmark": {
         "fontFamily": "var(--font-family-wordmark)",
-        "fontWeight": "var(--font-weight-normal)",
-        "color": "var(--color-text-primary)"
+        "fontWeight": "var(--font-weight-normal)"
       },
-      "type:wordmark-water": {
-        "fontFamily": "var(--font-family-wordmark)",
-        "fontWeight": "var(--font-weight-normal)",
+      "color:water": {
         "color": "var(--watermark-water)"
       }
     },
@@ -227,6 +224,9 @@ export const watermarkTheme = {
       }
     },
     "button": {
+      "base": {
+        "fontFamily": "var(--font-family-body)"
+      },
       "variant:wallet": {
         "backgroundColor": "var(--color-background-card)",
         "backgroundImage": "radial-gradient(var(--color-background-body) 0.92px, transparent 1px)",
