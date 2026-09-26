@@ -43,11 +43,8 @@ export function encodePriceArgs(a: {
   oracleDecimals: number;
   baseDecimals: number;
   quoteDecimals: number;
-  maxStaleness: number;
+  maxBlocks: number;
   wStarBps: number;
-  kappaBps: number;
-  sMinBps: number;
-  sMaxBps: number;
 }): Hex {
   return encodePacked(
     [
@@ -58,9 +55,6 @@ export function encodePriceArgs(a: {
       "uint8",
       "uint8",
       "uint8",
-      "uint32",
-      "uint16",
-      "uint16",
       "uint16",
       "uint16",
     ],
@@ -72,11 +66,8 @@ export function encodePriceArgs(a: {
       a.oracleDecimals,
       a.baseDecimals,
       a.quoteDecimals,
-      a.maxStaleness,
+      a.maxBlocks,
       a.wStarBps,
-      a.kappaBps,
-      a.sMinBps,
-      a.sMaxBps,
     ],
   );
 }
@@ -88,10 +79,19 @@ export function encodeTakerArgs(name: string): Hex {
   return encodePacked(["uint8", "bytes"], [len, dns]);
 }
 
-export function encodeTerms(tierBps: number, cap: bigint): Hex {
+export function encodeTerms(
+  sSellBps: number,
+  sBuyBps: number,
+  cap: bigint,
+): Hex {
   return encodeAbiParameters(
-    [{ type: "uint8" }, { type: "uint16" }, { type: "uint128" }],
-    [1, tierBps, cap],
+    [
+      { type: "uint8" },
+      { type: "uint16" },
+      { type: "uint16" },
+      { type: "uint128" },
+    ],
+    [1, sSellBps, sBuyBps, cap],
   );
 }
 

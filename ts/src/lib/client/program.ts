@@ -30,17 +30,13 @@ export function decodeProgram(program: Hex): DecodedProgram {
 export function describeProgram(d: DecodedProgram, cfg: DeskConfig): string[] {
   const when = formatJst(d.deadline);
   const target = Math.round(d.price.wStarBps / 100);
-  const kappa = (d.price.kappaBps / 100).toFixed(0);
-  const sMin = (d.price.sMinBps / 100).toFixed(2);
-  const sMax = (d.price.sMaxBps / 100).toFixed(2);
-  const minutes = Math.round(d.price.maxStaleness / 60);
+  const blocks = d.price.maxBlocks;
   const suffix = dnsToName(d.gate.suffix);
   return [
     `Open until ${when}`,
     `Only names under ${suffix} may trade`,
-    `Price: oracle mid, skewed toward ${target}% ETH (κ ${kappa}%)`,
-    `Spread between ${sMin}% and ${sMax}%, set per name`,
-    `Oracle older than ${minutes} minutes blocks trading`,
+    `Price: oracle mid. A sell stops at ${target}% ETH`,
+    `Open for ${blocks} blocks after the oracle update`,
     cfg.ens.suffix === suffix
       ? "Suffix matches the config"
       : `Suffix differs from ${cfg.ens.suffix}`,
@@ -88,11 +84,8 @@ function parsePrice(bytes: Uint8Array): PriceArgs {
     oracleDecimals: bytes[80],
     baseDecimals: bytes[81],
     quoteDecimals: bytes[82],
-    maxStaleness: Number(readUint(bytes.slice(83, 87))),
-    wStarBps: Number(readUint(bytes.slice(87, 89))),
-    kappaBps: Number(readUint(bytes.slice(89, 91))),
-    sMinBps: Number(readUint(bytes.slice(91, 93))),
-    sMaxBps: Number(readUint(bytes.slice(93, 95))),
+    maxBlocks: Number(readUint(bytes.slice(83, 85))),
+    wStarBps: Number(readUint(bytes.slice(85, 87))),
   };
 }
 
@@ -129,10 +122,7 @@ function emptyPrice(): PriceArgs {
     oracleDecimals: 0,
     baseDecimals: 0,
     quoteDecimals: 0,
-    maxStaleness: 0,
+    maxBlocks: 0,
     wStarBps: 0,
-    kappaBps: 0,
-    sMinBps: 0,
-    sMaxBps: 0,
   };
 }

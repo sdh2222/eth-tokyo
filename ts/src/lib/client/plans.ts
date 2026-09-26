@@ -108,17 +108,18 @@ export function planDock(ctx: DeskCtx, hash: Hex): PlannedTx {
 export function planSetTerms(
   ctx: DeskCtx,
   name: string,
-  tierBps: number,
+  sSellBps: number,
+  sBuyBps: number,
   cap: bigint,
 ): PlannedTx {
-  if (tierBps > 0xffff || cap <= 0n) {
+  if (sSellBps >= sBuyBps || sBuyBps >= 10_000 || cap <= 0n) {
     throw decodeDeskError({ code: "INVALID_POLICY" });
   }
-  return termsTx(ctx, name, encodeTerms(tierBps, cap), "set terms");
+  return termsTx(ctx, name, encodeTerms(sSellBps, sBuyBps, cap), "set terms");
 }
 
-export function planCutOff(ctx: DeskCtx, name: string, tierBps = 0): PlannedTx {
-  return termsTx(ctx, name, encodeTerms(tierBps, 0n), "cut off");
+export function planCutOff(ctx: DeskCtx, name: string): PlannedTx {
+  return termsTx(ctx, name, encodeTerms(3, 10, 0n), "cut off");
 }
 
 export function planMultiSend(txs: PlannedTx[]): PlannedTx {
@@ -212,11 +213,7 @@ export async function planShip(
   },
 ): Promise<{ txs: PlannedTx[]; strategyHash: Hex; program: Hex }> {
   const desk = { ...ctx.cfg.desk, ...spreadPolicy(p.policy) };
-  if (
-    desk.sMinBps > desk.sMaxBps ||
-    desk.wStarBps > 10_000 ||
-    desk.kappaBps >= 10_000
-  ) {
+  if (desk.maxBlocks === 0 || desk.wStarBps > 10_000) {
     throw decodeDeskError({ code: "INVALID_POLICY" });
   }
   const deadline = BigInt(
@@ -269,10 +266,7 @@ function spreadPolicy(
   if (!policy) return {};
   const out: Partial<DeskCtx["cfg"]["desk"]> = {};
   if (policy.wStarBps !== undefined) out.wStarBps = policy.wStarBps;
-  if (policy.kappaBps !== undefined) out.kappaBps = policy.kappaBps;
-  if (policy.sMinBps !== undefined) out.sMinBps = policy.sMinBps;
-  if (policy.sMaxBps !== undefined) out.sMaxBps = policy.sMaxBps;
-  if (policy.maxStaleness !== undefined) out.maxStaleness = policy.maxStaleness;
+  if (policy.maxBlocks !== undefined) out.maxBlocks = policy.maxBlocks;
   return out;
 }
 

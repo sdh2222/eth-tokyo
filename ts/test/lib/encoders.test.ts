@@ -19,10 +19,10 @@ const cfg = placeholderConfig();
 const gate =
   "0x00000000000000000000000000000000000000e100000000000000000000000000000000000000d100000000000000000000000000000000000000c100000000000000000000000000000000000000a107636c69656e7473046465736b0365746800";
 const price =
-  "0x00000000000000000000000000000000000000a1000000000000000000000000000000000000000a00000000000000000000000000000000000000ee00000000000000000000000000000000000000dc08120600000e101b5800c8000500c8";
+  "0x00000000000000000000000000000000000000a1000000000000000000000000000000000000000a00000000000000000000000000000000000000ee00000000000000000000000000000000000000dc08120600031b58";
 const taker = "0x17046d6d2d6107636c69656e7473046465736b0365746800";
 const program =
-  "0x0d05006ab13b8014080000000000000001226200000000000000000000000000000000000000e100000000000000000000000000000000000000d100000000000000000000000000000000000000c100000000000000000000000000000000000000a107636c69656e7473046465736b0365746800235f00000000000000000000000000000000000000a1000000000000000000000000000000000000000a00000000000000000000000000000000000000ee00000000000000000000000000000000000000dc08120600000e101b5800c8000500c8";
+  "0x0d05006ab13b8014080000000000000001226200000000000000000000000000000000000000e100000000000000000000000000000000000000d100000000000000000000000000000000000000c100000000000000000000000000000000000000a107636c69656e7473046465736b0365746800235700000000000000000000000000000000000000a1000000000000000000000000000000000000000a00000000000000000000000000000000000000ee00000000000000000000000000000000000000dc08120600031b58";
 
 describe("T-TS-1 encodings", () => {
   it("matches the section 9 vectors", () => {
@@ -47,97 +47,60 @@ describe("T-TS-1 encodings", () => {
         oracleDecimals: 8,
         baseDecimals: 18,
         quoteDecimals: 6,
-        maxStaleness: 3600,
+        maxBlocks: 3,
         wStarBps: 7000,
-        kappaBps: 200,
-        sMinBps: 5,
-        sMaxBps: 200,
       }),
     ).toBe(price);
     expect(encodeTakerArgs("mm-a.clients.desk.eth")).toBe(taker);
     expect(
       buildProgram(cfg, { deadline: 1790000000n, salt: 1n }).toString(),
     ).toBe(program);
-    expect(encodeTerms(10, 100_000n * 10n ** 6n)).toBe(
-      "0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000174876e800",
+    expect(encodeTerms(3, 10, 50n * 10n ** 18n)).toBe(
+      "0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000002b5e3af16b1880000",
     );
     expect(encodeSpread(40, 1n)).toMatch(/^0x/);
   });
 });
 
 describe("T-TS-2 price mirror", () => {
-  const rows = [
-    {
-      base: 900n * 10n ** 18n,
-      quote: 400_000n * 10n ** 6n,
-      s: 10,
-      cells: [
-        ["buy", true, 3_987_984_000n, 10n ** 18n],
-        ["buy", false, 10n ** 18n, 3_987_984_000n],
-        ["sell", true, 10n ** 18n, 3_980_016_000n],
-        ["sell", false, 3_980_016_000n, 10n ** 18n],
-        ["buy", true, 1_000n * 10n ** 6n, 250753262801455572n],
-        ["sell", true, 5n * 10n ** 17n, 1_990_008_000n],
-      ],
-    },
-    {
-      base: 700n * 10n ** 18n,
-      quote: 1_200_000n * 10n ** 6n,
-      s: 10,
-      cells: [
-        ["buy", true, 3_987_984_000n, 996000000000000000n],
-        ["buy", false, 10n ** 18n, 4_004_000_000n],
-        ["sell", true, 10n ** 18n, 3_996_000_000n],
-        ["sell", false, 3_980_016_000n, 996000000000000000n],
-        ["buy", true, 1_000n * 10n ** 6n, 249750249750249750n],
-        ["sell", true, 5n * 10n ** 17n, 1_998_000_000n],
-      ],
-    },
-    {
-      base: 100n * 10n ** 18n,
-      quote: 1_200_000n * 10n ** 6n,
-      s: 10,
-      cells: [
-        ["buy", true, 3_987_984_000n, 987115956392467789n],
-        ["buy", false, 10n ** 18n, 4_040_036_000n],
-        ["sell", true, 10n ** 18n, 4_031_964_000n],
-        ["sell", false, 3_980_016_000n, 987115956392467790n],
-        ["buy", true, 1_000n * 10n ** 6n, 247522546828790634n],
-        ["sell", true, 5n * 10n ** 17n, 2_015_982_000n],
-      ],
-    },
+  const cells = [
+    ["buy", true, 4_001_200_000n, 10n ** 18n],
+    ["buy", false, 10n ** 18n, 4_001_200_000n],
+    ["sell", true, 10n ** 18n, 3_996_000_000n],
+    ["sell", false, 3_996_000_000n, 10n ** 18n],
+    ["buy", true, 1_000n * 10n ** 6n, 249925022493252024n],
+    ["sell", true, 5n * 10n ** 17n, 1_998_000_000n],
   ] as const;
 
-  it("matches every section 9 amount", () => {
-    for (const row of rows) {
-      for (const [side, exactIn, amount, expected] of row.cells) {
-        const got = priceMirror({
-          baseBal: row.base,
-          quoteBal: row.quote,
-          answer: 4000n * 10n ** 8n,
-          s: row.s,
-          cfg,
-          side,
-          exactIn,
-          amount,
-        });
-        expect(exactIn ? got.amountOut : got.amountIn).toBe(expected);
-      }
+  it("quotes the oracle mid with two widths", () => {
+    for (const [side, exactIn, amount, expected] of cells) {
+      const got = priceMirror({
+        baseBal: 900n * 10n ** 18n,
+        quoteBal: 400_000n * 10n ** 6n,
+        answer: 4000n * 10n ** 8n,
+        sSellBps: 3,
+        sBuyBps: 10,
+        cap: 50n * 10n ** 18n,
+        cfg,
+        side,
+        exactIn,
+        amount,
+      });
+      expect(exactIn ? got.amountOut : got.amountIn).toBe(expected);
+      expect(got.sellStopped).toBe(false);
     }
-    const v4 = priceMirror({
-      baseBal: 100n * 10n ** 18n,
+    const stopped = priceMirror({
+      baseBal: 700n * 10n ** 18n,
       quoteBal: 1_200_000n * 10n ** 6n,
       answer: 4000n * 10n ** 8n,
-      s: 5,
+      sSellBps: 3,
+      sBuyBps: 10,
       cfg,
       side: "buy",
       exactIn: true,
-      amount: 100_000n * 10n ** 6n,
+      amount: 1_000n * 10n ** 6n,
     });
-    expect(v4.floorBps).toBe(7);
-    expect(v4.sFinal).toBe(7);
-    expect(v4.spreadSource).toBe(2);
-    expect(v4.amountOut).toBe(24759675164946479981n);
+    expect(stopped.sellStopped).toBe(true);
   });
 });
 

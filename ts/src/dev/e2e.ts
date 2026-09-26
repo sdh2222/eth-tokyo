@@ -21,7 +21,8 @@ export function runChecks(): { id: string; pass: boolean; detail: string }[] {
       amountIn: 1_000n * 10n ** 6n,
       amountOut: 0n,
       midWad: 4000n * 10n ** 18n,
-      spreadBps: 0,
+      sSellBps: cfg.desk.sSellBps,
+      sBuyBps: cfg.desk.sBuyBps,
       wBeforeWad: 7000n * 10n ** 14n,
       tokenIn: tokenAddress(cfg.tokens.usdc),
       base: tokenAddress(cfg.tokens.weth),
@@ -50,8 +51,8 @@ export function runChecks(): { id: string; pass: boolean; detail: string }[] {
     printOnly: false,
     replay: false,
   });
-  const low = clamp(1, cfg.desk.sMinBps, cfg.desk.sMaxBps);
-  const high = clamp(500, cfg.desk.sMinBps, cfg.desk.sMaxBps);
+  const sell = cfg.desk.sSellBps;
+  const buy = cfg.desk.sBuyBps;
   return [
     {
       id: "Q-E2E-1",
@@ -90,8 +91,8 @@ export function runChecks(): { id: string; pass: boolean; detail: string }[] {
     },
     {
       id: "Q-E2E-7",
-      pass: low === 5 && high === 200,
-      detail: `clamped ${low} and ${high}`,
+      pass: sell === 3 && buy === 10 && sell < buy,
+      detail: `sell ${sell} bp, buy ${buy} bp`,
     },
   ];
 }
@@ -105,15 +106,12 @@ function fillArgs(cfg: ReturnType<typeof placeholderConfig>) {
   return {
     amountIn: 1_000n * 10n ** 6n,
     midWad: 4000n * 10n ** 18n,
-    spreadBps: 0,
+    sSellBps: cfg.desk.sSellBps,
+    sBuyBps: cfg.desk.sBuyBps,
     wBeforeWad: 7000n * 10n ** 14n,
     tokenIn: tokenAddress(cfg.tokens.usdc),
     base: tokenAddress(cfg.tokens.weth),
   };
-}
-
-function clamp(bps: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, bps));
 }
 
 const checks = runChecks();

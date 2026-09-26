@@ -20,11 +20,8 @@ export type PriceArgs = {
   oracleDecimals: number;
   baseDecimals: number;
   quoteDecimals: number;
-  maxStaleness: number;
+  maxBlocks: number;
   wStarBps: number;
-  kappaBps: number;
-  sMinBps: number;
-  sMaxBps: number;
 };
 
 export type DecodedInstruction = {

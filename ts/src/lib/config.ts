@@ -20,11 +20,10 @@ export type DeskConfig = {
     oracleDecimals: number;
     baseDecimals: number;
     quoteDecimals: number;
-    maxStaleness: number;
+    maxBlocks: number;
     wStarBps: number;
-    kappaBps: number;
-    sMinBps: number;
-    sMaxBps: number;
+    sSellBps: number;
+    sBuyBps: number;
     strategyTtlDays: number;
     shipWeth: string;
     shipUsdc: string;
@@ -95,11 +94,10 @@ export function placeholderConfig(): DeskConfig {
       oracleDecimals: 8,
       baseDecimals: 18,
       quoteDecimals: 6,
-      maxStaleness: 3600,
+      maxBlocks: 3,
       wStarBps: 7000,
-      kappaBps: 200,
-      sMinBps: 5,
-      sMaxBps: 200,
+      sSellBps: 3,
+      sBuyBps: 10,
       strategyTtlDays: 30,
       shipWeth: "900000000000000000000",
       shipUsdc: "400000000000",

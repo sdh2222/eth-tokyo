@@ -24,7 +24,7 @@ import {
 import { priceMirror } from "../../src/lib/price.js";
 
 const program =
-  "0x0d05006ab13b8014080000000000000001226200000000000000000000000000000000000000e100000000000000000000000000000000000000d100000000000000000000000000000000000000c100000000000000000000000000000000000000a107636c69656e7473046465736b0365746800235f00000000000000000000000000000000000000a1000000000000000000000000000000000000000a00000000000000000000000000000000000000ee00000000000000000000000000000000000000dc08120600000e101b5800c8000500c8" as const;
+  "0x0d05006ab13b8014080000000000000001226200000000000000000000000000000000000000e100000000000000000000000000000000000000d100000000000000000000000000000000000000c100000000000000000000000000000000000000a107636c69656e7473046465736b0365746800235700000000000000000000000000000000000000a1000000000000000000000000000000000000000a00000000000000000000000000000000000000ee00000000000000000000000000000000000000dc08120600031b58" as const;
 
 const cfg = {
   ...placeholderConfig(),
@@ -85,9 +85,8 @@ describe("T-TS-6 program", () => {
     expect(describeProgram(decoded, cfg)).toEqual([
       "Open until 2026-09-21 23:13 JST",
       "Only names under clients.desk.eth may trade",
-      "Price: oracle mid, skewed toward 70% ETH (κ 2%)",
-      "Spread between 0.05% and 2.00%, set per name",
-      "Oracle older than 60 minutes blocks trading",
+      "Price: oracle mid. A sell stops at 70% ETH",
+      "Open for 3 blocks after the oracle update",
       "Suffix matches the config",
     ]);
     const withUnknown = decodeProgram(`${program}6301aa`);
@@ -100,9 +99,9 @@ describe("T-TS-6 program", () => {
 describe("T-TS-7 plans", () => {
   it("plans terms, cutoff, dock and a multisend", () => {
     const ctx = { client: {}, cfg } as unknown as DeskCtx;
-    expect(planSetTerms(ctx, "mm-a.clients.desk.eth", 10, 1000n).label).toBe(
-      "set terms",
-    );
+    expect(
+      planSetTerms(ctx, "mm-a.clients.desk.eth", 3, 10, 50n * 10n ** 18n).label,
+    ).toBe("set terms");
     expect(planCutOff(ctx, "mm-a.clients.desk.eth").label).toBe("cut off");
     expect(planDock(ctx, "0x" + "ab".repeat(32)).label).toBe("dock");
     const packed = planMultiSend([planDock(ctx, "0x" + "ab".repeat(32))]);
@@ -139,10 +138,12 @@ describe("T-TS-8 state", () => {
 describe("T-TS-9 quote", () => {
   it("sets mirrorMatches when the call equals the price mirror", async () => {
     const mirror = priceMirror({
-      baseBal: 700n * 10n ** 18n,
-      quoteBal: 1_200_000n * 10n ** 6n,
+      baseBal: 900n * 10n ** 18n,
+      quoteBal: 400_000n * 10n ** 6n,
       answer: 4000n * 10n ** 8n,
-      s: cfg.desk.sMinBps,
+      sSellBps: cfg.desk.sSellBps,
+      sBuyBps: cfg.desk.sBuyBps,
+      cap: 50n * 10n ** 18n,
       cfg,
       side: "buy",
       exactIn: true,
@@ -177,7 +178,8 @@ describe("T-TS-10 fills", () => {
         amountIn: 1_000n * 10n ** 6n,
         amountOut: 0n,
         midWad: 4000n * 10n ** 18n,
-        spreadBps: 0,
+        sSellBps: cfg.desk.sSellBps,
+        sBuyBps: cfg.desk.sBuyBps,
         wBeforeWad: 7000n * 10n ** 14n,
         tokenIn: cfg.tokens.usdc,
         base: cfg.tokens.weth,
@@ -185,7 +187,7 @@ describe("T-TS-10 fills", () => {
       cfg,
     );
     expect(check.steps.map((step) => step.label)).toEqual([
-      "rWad",
+      "mid",
       "price",
       "amountOut",
     ]);
@@ -194,7 +196,8 @@ describe("T-TS-10 fills", () => {
         amountIn: 1_000n * 10n ** 6n,
         amountOut: check.steps[2]?.value ?? 0n,
         midWad: 4000n * 10n ** 18n,
-        spreadBps: 0,
+        sSellBps: cfg.desk.sSellBps,
+        sBuyBps: cfg.desk.sBuyBps,
         wBeforeWad: 7000n * 10n ** 14n,
         tokenIn: cfg.tokens.usdc,
         base: cfg.tokens.weth,

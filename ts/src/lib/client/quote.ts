@@ -31,8 +31,8 @@ export type QuoteResult =
       amountIn: bigint;
       amountOut: bigint;
       priceWad: bigint;
-      spreadBps: number;
-      spreadSource: 0 | 1 | 2;
+      sSellBps: number;
+      sBuyBps: number;
       mirror: ReturnType<typeof priceMirror>;
       mirrorMatches: boolean;
     }
@@ -73,10 +73,12 @@ export async function quoteFor(
       ],
     });
     const mirror = priceMirror({
-      baseBal: 700n * 10n ** 18n,
-      quoteBal: 1_200_000n * 10n ** 6n,
+      baseBal: 900n * 10n ** 18n,
+      quoteBal: 400_000n * 10n ** 6n,
       answer: 4000n * 10n ** 8n,
-      s: ctx.cfg.desk.sMinBps,
+      sSellBps: ctx.cfg.desk.sSellBps,
+      sBuyBps: ctx.cfg.desk.sBuyBps,
+      cap: 50n * 10n ** 18n,
       cfg: ctx.cfg,
       side: q.side,
       exactIn,
@@ -87,8 +89,8 @@ export async function quoteFor(
       amountIn: simulated.result[0],
       amountOut: simulated.result[1],
       priceWad: mirror.rWad,
-      spreadBps: mirror.sFinal,
-      spreadSource: mirror.spreadSource,
+      sSellBps: mirror.sSellBps,
+      sBuyBps: mirror.sBuyBps,
       mirror,
       mirrorMatches:
         mirror.amountIn === simulated.result[0] &&
