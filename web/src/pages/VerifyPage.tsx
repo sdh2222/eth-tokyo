@@ -26,13 +26,6 @@ function amountText(fill: FillRecord, leg: "in" | "out"): string {
   return token.toLowerCase() === WETH ? formatWeth(amount) : formatUsdc(amount);
 }
 
-// The fill's own price in USD per ETH (wad): USDC has 6 decimals, WETH 18.
-function fillPrice(fill: FillRecord): bigint {
-  const eth = buysEth(fill) ? fill.amountOut : fill.amountIn;
-  const usdc = buysEth(fill) ? fill.amountIn : fill.amountOut;
-  return eth === 0n ? 0n : (usdc * 10n ** 12n * 10n ** 18n) / eth;
-}
-
 // The event exactly as the fill emitted it, one field per line.
 function rawEvent(fill: FillRecord): [string, string][] {
   return [
@@ -123,8 +116,7 @@ export function VerifyPage() {
             <Window title="Recompute" meta={`${steps.length} steps`}>
               {steps.map((step, index) => (
                 <div key={`${index}:${step.label}`} className="wm-window-line">
-                  <span>{`${index + 1}. ${step.label}`}</span>
-                  <span>{`${step.formula} = ${step.value}`}</span>
+                  <span>{`${index + 1}. ${step.label}: ${step.formula} = ${step.value}`}</span>
                 </div>
               ))}
             </Window>
@@ -135,14 +127,14 @@ export function VerifyPage() {
           <Section title="The trade" className="wm-span-12">
             <div className="wm-quote">
               <div className="wm-stack wm-stack-4">
-                <span className="wm-label">Fill price</span>
+                <span className="wm-label">Oracle mid</span>
                 <span className="wm-big">
-                  <span className="wm-mark">{`$${formatWadUsd(fillPrice(fill))}`}</span>
+                  <span className="wm-mark">{`$${formatWadUsd(fill.midWad)}`}</span>
                 </span>
               </div>
               <div className="wm-stack wm-stack-4">
-                <span className="wm-label">Oracle mid</span>
-                <span className="wm-big">{`$${formatWadUsd(fill.midWad)}`}</span>
+                <span className="wm-label">Spread</span>
+                <span className="wm-big">{`${fill.spreadBps} bp`}</span>
               </div>
             </div>
             <Facts
@@ -157,8 +149,6 @@ export function VerifyPage() {
                 ["Side", buysEth(fill) ? "Bought ETH" : "Sold ETH"],
                 ["Paid", amountText(fill, "in")],
                 ["Received", amountText(fill, "out")],
-                ["Oracle mid", `$${formatWadUsd(fill.midWad)}`],
-                ["Spread", `${fill.spreadBps} bp`],
                 ["ETH share before", formatShare(fill.wBeforeWad)],
                 ["Block", fill.blockNumber.toString()],
                 [
@@ -174,8 +164,7 @@ export function VerifyPage() {
               <Window title="Fill event">
                 {rawEvent(fill).map(([key, value]) => (
                   <div key={key} className="wm-window-line">
-                    <span>{key}</span>
-                    <span>{value}</span>
+                    <span>{`${key}: ${value}`}</span>
                   </div>
                 ))}
               </Window>
