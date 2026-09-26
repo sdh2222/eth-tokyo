@@ -177,6 +177,8 @@ export function buildSwapTx(
     amountOut: bigint;
     name: string;
     exactIn: boolean;
+    tokenIn?: Address;
+    tokenOut?: Address;
   },
   p: { slippageBps: number; deadlineSec: number; now?: bigint },
 ): PlannedTx {
@@ -184,6 +186,16 @@ export function buildSwapTx(
   const threshold = q.exactIn
     ? (q.amountOut * BigInt(10_000 - p.slippageBps)) / 10_000n
     : (q.amountIn * BigInt(10_000 + p.slippageBps)) / 10_000n;
+  const tokenIn =
+    q.tokenIn ??
+    (q.exactIn
+      ? need(ctx.cfg.tokens.usdc, "usdc")
+      : need(ctx.cfg.tokens.weth, "weth"));
+  const tokenOut =
+    q.tokenOut ??
+    (q.exactIn
+      ? need(ctx.cfg.tokens.weth, "weth")
+      : need(ctx.cfg.tokens.usdc, "usdc"));
   return {
     to: need(ctx.cfg.router, "router"),
     value: 0n,
@@ -193,12 +205,8 @@ export function buildSwapTx(
       functionName: "swap",
       args: [
         decodeOrder(orderBytes),
-        q.exactIn
-          ? need(ctx.cfg.tokens.usdc, "usdc")
-          : need(ctx.cfg.tokens.weth, "weth"),
-        q.exactIn
-          ? need(ctx.cfg.tokens.weth, "weth")
-          : need(ctx.cfg.tokens.usdc, "usdc"),
+        tokenIn,
+        tokenOut,
         q.exactIn ? q.amountIn : q.amountOut,
         buildTakerData({
           name: q.name,

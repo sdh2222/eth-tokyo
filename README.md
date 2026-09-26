@@ -1,6 +1,6 @@
 # Desk
 
-Desk is a treasury OTC desk on Sepolia. A DAO's Safe multisig ships one SwapVM strategy to the Aqua registry, and the strategy runs on DeskRouter, a copy of the SwapVM v1.0.2 Aqua router with two added instructions: #34 EnsGate lets a market maker fill only if its address is the `addr` of a live `*.clients.dao-treasury-a.eth` ENS name, and #35 DeskPrice reads that name's terms and spread from ENS and prices the fill from the oracle mid with an inventory skew. Tokens move between the Safe and the market maker through Aqua in the same transaction, and the contracts store no configuration.
+Desk is a treasury OTC desk on Sepolia. A DAO's Safe multisig ships one SwapVM strategy to the Aqua registry, and the strategy runs on DeskRouter, a copy of the SwapVM v1.0.2 Aqua router with two added instructions: #34 EnsGate lets a counterparty fill only if its address is the `addr` of a live `*.clients.dao-treasury-a.eth` ENS name, and #35 DeskPrice reads that name's terms and spread from ENS and prices the fill from the oracle mid with an inventory skew. Tokens move between the Safe and the counterparty through Aqua in the same transaction, and the contracts store no configuration.
 
 Sepolia testnet · not audited
 

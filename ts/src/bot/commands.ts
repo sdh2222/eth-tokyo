@@ -23,6 +23,16 @@ export function legRule(leg: Leg): {
   };
 }
 
+/** The known leg is the output when the swap is exact-out, and the input when it is exact-in. */
+export function legTokens(
+  token: "weth" | "usdc",
+  exactIn: boolean,
+): { tokenIn: "weth" | "usdc"; tokenOut: "weth" | "usdc" } {
+  const tokenIn = exactIn ? token : token === "weth" ? "usdc" : "weth";
+  const tokenOut = tokenIn === "weth" ? "usdc" : "weth";
+  return { tokenIn, tokenOut };
+}
+
 export function keyName(mm: string): string {
   const id = mm.replace("mm-", "").toUpperCase();
   return `MM_${id}_PK`;

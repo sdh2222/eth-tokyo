@@ -85,7 +85,7 @@ describe("T-TS-6 program", () => {
     expect(describeProgram(decoded, cfg)).toEqual([
       "Open until 2026-09-21 23:13 JST",
       "Only names under clients.desk.eth may trade",
-      "Price: oracle mid. A sell stops at 70% ETH",
+      "Price: the oracle mid, with the widths scaled by the distance from 70% ETH. A sell stops at 70% ETH",
       "Open for 3 blocks after the oracle update",
       "Suffix matches the config",
     ]);
@@ -240,6 +240,24 @@ describe("T-TS-10 fills", () => {
     expect(again.matches).toBe(true);
   });
 
+  it("recomputes a fill on the stored widths", () => {
+    const check = verifyFill(
+      {
+        amountIn: 1_000n * 10n ** 6n,
+        amountOut: 249_925_022_493_252_024n,
+        midWad: 4000n * 10n ** 18n,
+        sSellBps: 3,
+        sBuyBps: 10,
+        wBeforeWad: 9n * 10n ** 17n,
+        tokenIn: cfg.tokens.usdc,
+        base: cfg.tokens.weth,
+      },
+      cfg,
+    );
+    expect(check.matches).toBe(true);
+    expect(check.steps[1]?.value).toBe(4_001_200_000_000_000_000_000n);
+  });
+
   it("reads fill logs", async () => {
     const client = { getLogs: async () => [] };
     expect(await readFills({ client, cfg } as unknown as DeskCtx)).toEqual([]);
@@ -255,6 +273,21 @@ describe("T-TS-11 errors", () => {
     });
     expect(decodeDeskError({ data }).code).toBe("DeskPriceNoTerms");
     expect(decodeDeskError({ data: "0xdeadbeef" }).code).toBe("UNKNOWN");
+    const stale = encodeErrorResult({
+      abi: [
+        {
+          type: "error",
+          name: "DeskPriceOracleStale",
+          inputs: [
+            { name: "updatedAt", type: "uint256" },
+            { name: "maxAge", type: "uint256" },
+          ],
+        },
+      ],
+      errorName: "DeskPriceOracleStale",
+      args: [1n, 600n],
+    });
+    expect(decodeDeskError({ data: stale }).code).toBe("DeskPriceOracleStale");
     const swap = buildSwapTx(
       { client: {}, cfg } as unknown as DeskCtx,
       encodeAbiParameters(
