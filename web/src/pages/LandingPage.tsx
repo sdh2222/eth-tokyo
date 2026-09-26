@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LANDING } from "../copy/en";
-import { LandingAgent } from "./LandingAgent";
+import { LandingOrbit } from "./LandingOrbit";
 import { LandingSwarm } from "./LandingSwarm";
 import "./landing.css";
 
@@ -224,11 +224,11 @@ export function LandingPage() {
       </div>
 
       <section className="wm-section">
-        <p className="wm-label">{LANDING.agent.label}</p>
-        <h2 className="wm-h2">{LANDING.agent.title}</h2>
-        <LandingAgent />
-        <p className="wm-caption">{LANDING.agent.line}</p>
-        <Notes notes={LANDING.agent.notes} />
+        <p className="wm-label">{LANDING.orbit.label}</p>
+        <h2 className="wm-h2">{LANDING.orbit.title}</h2>
+        <LandingOrbit />
+        <p className="wm-caption">{LANDING.orbit.line}</p>
+        <Notes notes={LANDING.orbit.notes} />
       </section>
     </div>
   );

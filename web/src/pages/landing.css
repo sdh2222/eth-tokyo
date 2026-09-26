@@ -334,10 +334,6 @@ body:has(.wm-landing) {
   aspect-ratio: 560 / 360;
 }
 
-.wm-swarm-wide canvas {
-  aspect-ratio: 560 / 260;
-}
-
 .wm-swarm figcaption {
   margin-top: 12px;
   font-size: clamp(24px, 2.4vw, 32px);
@@ -352,70 +348,83 @@ body:has(.wm-landing) {
   letter-spacing: -0.02em;
 }
 
-/* ---------- the agent moves the spread ---------- */
+/* ---------- a price per taker ---------- */
 
-.wm-fig-note {
-  display: block;
-  max-width: 26em;
-  margin-top: 8px;
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: 0;
-  line-height: 1.45;
-  opacity: 0.7;
+.wm-orbit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: 48px;
+  margin-top: 72px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wm-ink);
 }
 
-.wm-legend {
+.wm-orbit-figure {
+  margin: 0;
+}
+
+.wm-orbit-figure canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 640 / 400;
+}
+
+.wm-orbit-figure figcaption {
+  margin-top: 12px;
+  font-size: 18px;
+  line-height: 1.45;
+  opacity: 0.75;
+}
+
+.wm-orbit-side {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 32px;
-  margin: 32px 0 0;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--wm-ink);
+}
+
+.wm-orbit-list,
+.wm-orbit-log {
+  margin: 0 0 32px;
   padding: 0;
   list-style: none;
+}
+
+.wm-orbit-list li {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 18px;
+}
+
+.wm-orbit-name {
   font-family: "LisaTerminal Paper", "Courier New", monospace;
   font-size: 16px;
 }
 
-.wm-legend li {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+.wm-orbit-list li[data-tier="tight"] .wm-orbit-tier {
+  color: var(--wm-water-strong);
+  font-weight: 500;
 }
 
-.wm-key {
-  display: inline-block;
+.wm-orbit-trend {
+  font-size: 16px;
+  opacity: 0.7;
 }
 
-.wm-key-line {
-  width: 24px;
-  height: 3px;
-  background: var(--wm-ink);
+.wm-orbit-log li {
+  padding: 6px 0;
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 16px;
+  line-height: 1.35;
 }
 
-.wm-key-band {
-  width: 24px;
-  height: 14px;
-  background: radial-gradient(circle, var(--wm-dot) 1px, transparent 1.2px) 0 0 / 3px 3px;
-  border-top: 2px solid var(--wm-dot);
-  border-bottom: 2px solid var(--wm-dot);
-}
-
-.wm-key-terms {
-  width: 24px;
-  height: 2px;
-  background: repeating-linear-gradient(90deg, var(--wm-ink) 0 4px, transparent 4px 8px);
-}
-
-.wm-key-sign {
-  width: 10px;
-  height: 10px;
-  background: var(--wm-ink);
-}
-
-.wm-key-write {
-  width: 4px;
-  height: 6px;
-  background: var(--wm-dot);
+.wm-orbit-log li:not(:first-child) {
+  opacity: 0.45;
 }
 
 /* ---------- section fields ---------- */
@@ -474,7 +483,8 @@ body:has(.wm-landing) {
 
 
 @media (max-width: 900px) {
-  .wm-notes {
+  .wm-notes,
+  .wm-orbit {
     grid-template-columns: 1fr;
   }
 
