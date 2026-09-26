@@ -350,27 +350,7 @@ body:has(.wm-landing) {
 
 /* ---------- section fields ---------- */
 
-/* Each section after the hero stands on its own full-bleed field. */
-.wm-band-sky {
-  background: var(--field-sky);
-}
-
-.wm-band-sky .wm-row {
-  border-top-color: rgb(17 17 17 / 0.15);
-}
-
-.wm-band-sky .wm-row-head {
-  border-top-color: var(--wm-ink);
-}
-
-.wm-band-sky .wm-cell-off {
-  fill: rgb(17 17 17 / 0.22);
-}
-
-.wm-band-sky .wm-timeline-fills .wm-cell-on {
-  fill: var(--wm-water-strong);
-}
-
+/* One section stands on the water field, as a break from the white. */
 .wm-band-water {
   --wm-on-water: #ffffff;
   background: var(--wm-water-strong);
