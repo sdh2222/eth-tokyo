@@ -6,7 +6,7 @@ import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Badge, Card, Header, Page, type Tone } from "../ui/v";
+import { Badge, Card, Header, Page, Status, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Risk agent (IA: "What spread is the agent setting, and inside which limits?"). Main's flow
@@ -17,18 +17,27 @@ import { SafeDialog } from "./open/SafeDialog";
 
 // The keeper's note in words. The note reads "markout 2bp repeat 12 sizeUp true cut 1"
 // (ts/src/lib/counterparty.ts signNote); anything else is shown as written.
-function humanWhy(write: AgentWrite): string {
+// Amber when the agent widened for a warning sign, green when it saw none.
+function humanWhy(write: AgentWrite): { text: string; tone?: Tone } {
   const size = write.tier === "tight" ? "Small fill" : write.tier === "standard" ? "Mid-size fill" : write.tier ? "Large fill" : "";
   const match = /markout (\d+)bp repeat (\w+) sizeUp (true|false) cut (\d+)/.exec(write.note ?? "");
-  if (!match) return [size, write.note].filter(Boolean).join(" · ") || "—";
+  if (!match) return { text: [size, write.note].filter(Boolean).join(" · ") || "—" };
   const [, markout, repeat, sizeUp, cut] = match;
   const signs = [
     Number(markout) > 0 ? `taker gained ${markout} bp` : "",
     repeat && repeat !== "none" ? `back after ${repeat} blocks` : "",
     sizeUp === "true" ? "sized up" : "",
   ].filter(Boolean);
-  const why = signs.length > 0 && Number(cut) > 0 ? `${signs.join(", ")}: ${cut} bp wider` : "no warning signs";
-  return [size, why].filter(Boolean).join(" · ");
+  const widened = signs.length > 0 && Number(cut) > 0;
+  const why = widened ? `${signs.join(", ")}: ${cut} bp wider` : "no warning signs";
+  return { text: [size, why].filter(Boolean).join(" · "), tone: widened ? "amber" : "green" };
+}
+
+function Why({ write, onTerms }: { write: AgentWrite | undefined; onTerms: boolean }) {
+  if (onTerms) return <>On its terms</>;
+  if (!write) return <>No write yet</>;
+  const why = humanWhy(write);
+  return why.tone ? <Status tone={why.tone}>{why.text}</Status> : <>{why.text}</>;
 }
 
 function headerState(agentCount: number, liveCount: number): { label: string; tone: Tone } {
@@ -100,7 +109,9 @@ export function AgentPage() {
                     <td className="v-right">{q ? `+${q.sellBps} bp` : "—"}</td>
                     <td className="v-right v-muted">{name.terms ? `−${name.terms.buyBps} / +${name.terms.sellBps}` : "—"}</td>
                     <td className="v-right v-muted">{write ? formatWhen(write.writtenAt, now) : "—"}</td>
-                    <td className="v-muted v-wrap">{q?.source === "terms" ? "On its terms" : write ? humanWhy(write) : "No write yet"}</td>
+                    <td className="v-muted v-wrap">
+                      <Why write={write} onTerms={q?.source === "terms"} />
+                    </td>
                   </tr>
                 );
               })}
@@ -140,7 +151,12 @@ export function AgentPage() {
                 <tr>
                   <td>
                     ETH share above 70%
-                    {above ? <span className="v-muted"> · now</span> : null}
+                    {above ? (
+                      <>
+                        {" "}
+                        <Badge tone="blue">Now</Badge>
+                      </>
+                    ) : null}
                   </td>
                   <td className="v-right">Buy 1 bp wider, sell 1 bp tighter</td>
                 </tr>
