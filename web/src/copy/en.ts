@@ -137,3 +137,10 @@ export const PAGE = {
   program: "The program",
   agent: "Risk agent",
 } as const;
+
+export const LANDING = {
+  how: "How it works",
+  open: "Open the app",
+  headline: "Making Treasury Asset Disposal Inefficiency Solved",
+  via: "via 1inch Aqua & ENSv2",
+} as const;

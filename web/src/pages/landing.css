@@ -1,0 +1,156 @@
+/* Landing. White ground, one picture in sky-blue dither (web/scripts/landing-dither.mjs),
+   the headline, and two actions. */
+
+.wm-landing {
+  --wm-ink: var(--ink);
+  --wm-white: var(--on-ink);
+  /* The wordmark's water blue from the approved header (shell.css), and the same hue a step
+     deeper for text on white (4.9:1). */
+  --wm-water: #0080bc;
+  --wm-water-strong: #0077af;
+
+  min-height: 100vh;
+  overflow-x: clip;
+  background: var(--color-background-body);
+  color: var(--wm-ink);
+  font-family: var(--font-family-body);
+}
+
+/* The Astryx reset gives p and h1 their own face. Here they follow the page. */
+.wm-landing p,
+.wm-landing h1 {
+  font-family: inherit;
+}
+
+.wm-landing a:focus-visible {
+  outline: 2px solid var(--wm-ink);
+  outline-offset: 3px;
+}
+
+/* ---------- top line ---------- */
+
+.wm-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 32px;
+}
+
+.wm-mark {
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 16px;
+  line-height: 28px;
+  text-decoration: none;
+}
+
+.wm-word-water {
+  color: var(--wm-water);
+}
+
+.wm-word-mark {
+  color: var(--wm-ink);
+}
+
+.wm-top-links {
+  display: flex;
+  gap: 24px;
+  font-size: 16px;
+}
+
+.wm-top-links a {
+  color: var(--wm-ink);
+  text-decoration: none;
+}
+
+.wm-top-links a:hover {
+  color: var(--wm-water-strong);
+}
+
+/* ---------- hero ---------- */
+
+.wm-hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 64px);
+  min-height: calc(100svh - 64px);
+  padding: 0 32px 64px;
+}
+
+.wm-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.wm-sky img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  max-width: none;
+  height: auto;
+  transform: translate(-50%, -52%);
+  image-rendering: pixelated;
+}
+
+.wm-hero-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 960px;
+  text-align: center;
+}
+
+.wm-headline {
+  margin: 0;
+  font-size: clamp(48px, 6.2vw, 92px);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.wm-via {
+  margin: 24px 0 0;
+  color: var(--wm-water-strong);
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.wm-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.wm-button {
+  padding: 12px 16px;
+  background: var(--wm-ink);
+  color: var(--wm-white);
+  font-size: 16px;
+  text-decoration: none;
+  transition: background-color 150ms ease-out;
+}
+
+.wm-button:hover {
+  background: var(--wm-water-strong);
+}
+
+.wm-link {
+  color: var(--wm-ink);
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.wm-link:hover {
+  color: var(--wm-water-strong);
+}
