@@ -33,6 +33,6 @@ Source: main #21 changed `desk.terms` to `abi.encode(uint8 1, uint16 sSellBps, u
   - a `sSell` or `sBuy` word above `0xFFFF`
 
   The run output is pasted in the PR.
-- [ ] On Sepolia today (read-only), verify reports that the `desk.terms` of mm-a and mm-b are still the old 96-byte format, which the router rejects.
+- [ ] Before the Safe's write (on Sepolia before block 11784991, or on a fork pinned there), verify reports that the `desk.terms` of mm-a and mm-b are the old 96-byte format, which the router rejects. After the write, on Sepolia (read-only), it reports both as passing.
 - [ ] On an anvil Sepolia fork, the impersonated Safe writes `(1, 3, 10, 50 WETH)` to mm-a and mm-b. After that, `npm run verify -- --safe <Safe>` passes and prints sSell 3, sBuy 10 and cap 50 WETH. No private key is used.
 - [ ] `npm run typecheck` passes, and nothing is sent to Sepolia.
