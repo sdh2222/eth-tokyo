@@ -2,6 +2,11 @@
 
 This repository builds on SwapVM v1.0.2 (https://github.com/1inch/swap-vm, git submodule `contracts/lib/swap-vm`): SwapVM — © Degensoft Ltd 2025, licensed under `LicenseRef-Degensoft-SwapVM-1.1`. The license text is in [LICENSES/SwapVM-1.1.txt](LICENSES/SwapVM-1.1.txt), copied verbatim from swap-vm v1.0.2. This project is not affiliated with or endorsed by Degensoft or 1inch.
 
+## Fonts
+
+- Die Grotesk C, Regular and Medium, © Klim Type Foundry. Licensed for this project's website under Klim's web font licence. The files are not in this repository: the build fetches them from a private repo into `web/public/fonts/die-grotesk/`, which git ignores. Do not copy, reuse or redistribute them.
+- LisaTerminal Paper, © Kreative Software, in `web/public/fonts/compare/`. Used under the Kreative Software Relay Fonts Free Use License, included verbatim in `web/public/fonts/compare/LisaTerminal-FreeLicense.txt`.
+
 ## Modified files
 
 Every file that is derived from SwapVM or modifies it, with its change and date (SwapVM-1.1 §3.1 D; Desk system §12).

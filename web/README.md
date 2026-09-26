@@ -14,4 +14,6 @@ pnpm -C web build
 pnpm -C web preview --host 127.0.0.1 --port 4173
 ```
 
+Die Grotesk C is a licensed Klim font and is not in this repo. `dev` and `build` run `scripts/fetch-fonts.mjs` first, which copies it from the private `sdh2222/watermark-fonts` repo when `FONTS_TOKEN` is set (a GitHub token that can read that repo). Locally you can instead put `die-grotesk-c-regular.woff2` and `die-grotesk-c-medium.woff2` in `web/public/fonts/die-grotesk/`. Without either, the page falls back to `system-ui`.
+
 Live mode (`VITE_DESK_MODE=live`) waits for `@desk/lib`. Until that client is in the repo, keep `VITE_DESK_MODE=fixture`.

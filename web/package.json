@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/fetch-fonts.mjs && vite",
+    "build": "node scripts/fetch-fonts.mjs && tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint src",
     "typecheck": "tsc -b --pretty false",
