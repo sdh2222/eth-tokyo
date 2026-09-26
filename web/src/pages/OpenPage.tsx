@@ -393,20 +393,6 @@ export function OpenPage() {
               <div className="v-col-6 v-stack v-stack-24">
                 <Block title="How the agent reads this policy">
                   <Dl items={POLICY_RULES} />
-                  <div className="v-muted">
-                    After each fill the agent writes that name's desk.spread. A policy without these sentences leaves the tier widths.
-                  </div>
-                </Block>
-                <Block title="Terms fence">
-                  <Dl
-                    items={[
-                      ["Sell width", b?.terms ? `${b.terms.sellBps} bp` : "—"],
-                      ["Buy width", b?.terms ? `${b.terms.buyBps} bp` : "—"],
-                      ["Cap per fill", b?.terms ? formatWeth(b.terms.cap) : "—"],
-                      ["Agent", b?.agent.name ?? "—"],
-                    ]}
-                  />
-                  <div className="v-muted">The agent stays inside this fence. The terms change with one Safe signature.</div>
                 </Block>
               </div>
             </div>

@@ -23,8 +23,6 @@ import { formatCountdown, useClock } from "../hooks/useClock";
 import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
-import { formatWhen } from "../lib/time";
-import { SpreadStrip, WindowCells } from "../ui/cells";
 import { Badge, Card, Dl, Empty, Header, Note, Page, type Tone } from "../ui/v";
 
 // Trade (IA: "Can I trade now, at what price, and how much?"). Vercel-style: the header says
@@ -309,7 +307,6 @@ export function TradePage() {
                 [YOU_PAY, pay],
                 [YOU_RECEIVE, receive],
                 ["Your limits", terms ? `Up to ${formatEth(terms.cap)} per fill` : "No terms on the client names"],
-                ...(entry && entry.expiry > 0n ? ([["Name valid until", formatWhen(Number(entry.expiry), now)]] as const) : []),
               ]}
             />
             <details className="v-details">
@@ -354,18 +351,11 @@ export function TradePage() {
                 <span className="v-label">{side === "buy" ? "Ask · you buy ETH" : "Bid · you sell ETH"}</span>
                 <span className="v-figure-lg">{price}</span>
               </div>
-              <SpreadStrip sellBps={shown.sellBps} buyBps={shown.buyBps} fenceSellBps={terms?.sellBps} fenceBuyBps={terms?.buyBps} />
               <Dl
                 items={[
                   ["Source", sourceLabel],
                   ["Oracle mid", `$${formatWadUsd(midWad)}`],
-                  [
-                    "Price window",
-                    <span key="window" className="v-row v-row-8">
-                      <span className="v-num">{windowLeft > 0 ? formatCountdown(windowLeft) : "Closed"}</span>
-                      <WindowCells secondsLeft={windowLeft} windowSeconds={WINDOW_SECONDS} />
-                    </span>,
-                  ],
+                  ["Price window", windowLeft > 0 ? `${formatCountdown(windowLeft)} left` : "Closed"],
                   ["Valid", priceNote],
                 ]}
               />
