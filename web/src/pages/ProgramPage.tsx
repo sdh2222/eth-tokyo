@@ -18,17 +18,17 @@ export function ProgramPage() {
         {lines.length === 0 ? <li className="text-body">—</li> : null}
         {lines.map((line, index) => (
           <li key={line} className="flex gap-4 rounded-card border border-border bg-surface p-5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-program text-small text-onfocus">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-surface text-small text-text">
               {index + 1}
             </span>
             <p className="text-body">{line}</p>
           </li>
         ))}
       </ol>
-      <section className="rounded-card border border-border bg-text p-5 text-onfocus">
-        <p className="text-small text-onfocus/80">Bytecode</p>
+      <section className="rounded-card p-5">
+        <p className="text-small text-muted">Bytecode</p>
         <p className="num mt-2 break-all text-body">{liveMode ? "—" : PROGRAM_HEX}</p>
-        <p className="mt-3 text-small text-onfocus/80">
+        <p className="mt-3 text-small text-muted">
           {liveMode ? "—" : `${PROGRAM_LENGTH_NOTE} (${bytes} bytes)`}
         </p>
       </section>

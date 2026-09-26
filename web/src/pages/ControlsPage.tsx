@@ -39,7 +39,7 @@ export function ControlsPage() {
       <ol className="grid gap-3">
         {lines.map((line, index) => (
           <li key={line} className="flex gap-4 rounded-card border border-border bg-surface p-5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-program text-small text-onfocus">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-surface text-small text-text">
               {index + 1}
             </span>
             <p className="text-body">{line}</p>

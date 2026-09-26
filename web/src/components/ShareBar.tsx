@@ -22,8 +22,8 @@ export function ShareBar({
 
   return (
     <div>
-      <div className="relative h-3 rounded-pill bg-treasury-tint" aria-label={caption}>
-        <div className="h-3 rounded-pill bg-treasury" style={{ width: `${share}%` }} />
+      <div className="relative h-3 rounded-pill bg-surface" aria-label={caption}>
+        <div className="h-3 rounded-pill bg-text" style={{ width: `${share}%` }} />
         <div
           className="absolute top-0 h-3 w-[2px] bg-text"
           style={{ left: `${target}%` }}

@@ -12,14 +12,14 @@ const LABEL = {
 export type StatusKind = keyof typeof LABEL;
 
 const TONE: Record<StatusKind, string> = {
-  Live: "bg-treasury-tint text-treasury",
+  Live: "bg-surface text-text",
   Stopped: "bg-surface text-muted",
   NotOpen: "bg-surface text-muted",
-  Expired: "bg-ens-tint text-ens",
-  NoTerms: "bg-mm-tint text-mm",
-  WrongResolver: "bg-ens-tint text-ens",
-  NoAddress: "bg-ens-tint text-ens",
-  Stale: "bg-mm-tint text-mm",
+  Expired: "bg-surface text-danger",
+  NoTerms: "bg-surface text-warning",
+  WrongResolver: "bg-surface text-danger",
+  NoAddress: "bg-surface text-danger",
+  Stale: "bg-surface text-warning",
 };
 
 export function StatusBadge({ kind }: { kind: StatusKind }) {

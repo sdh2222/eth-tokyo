@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAccount, useChainId, useConnect, useSwitchChain } from "wagmi";
 import { BannerList, bannersFrom } from "./banners";
@@ -60,7 +60,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {children}
           {showHeader ? <DemoDrawer /> : null}
         </main>
-        <footer className="break-words border-t border-border bg-surface px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
+        <footer className="break-words px-4 py-6 text-small text-muted shadow-overlay sm:px-8">{FOOTER}</footer>
       </div>
     </ToastProvider>
   );
@@ -100,13 +100,9 @@ function PageNotices() {
 
 function AppHeader() {
   const [role, setRole] = useRole();
-  const [open, setOpen] = useState<Role | null>(null);
   const navigate = useNavigate();
   const live = useLiveStrategy();
-  const shown = open ?? null;
-  const links = shown
-    ? NAV[shown].filter((link) => !(shown === "treasury" && live.data && link.to === "/open"))
-    : [];
+  const links = NAV[role].filter((link) => !(role === "treasury" && live.data && link.to === "/open"));
 
   function pick(next: Role) {
     if (next === role) return;
@@ -115,56 +111,45 @@ function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-bg">
+    <header className="sticky top-0 z-20 bg-bg">
       <div className="mx-auto flex w-full max-w-[var(--max)] flex-wrap items-center gap-3 px-4 py-4 sm:gap-5 sm:px-8">
         <span className="text-h3">{MARK}</span>
-        <div className="relative" onMouseLeave={() => setOpen(null)}>
-          <div className="flex gap-1 rounded-control bg-surface p-1" role="group" aria-label="Role">
-            {ROLES.map((item) => (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={item === role}
-                aria-expanded={open === item}
-                className={
-                  item === role
-                    ? "border-transparent bg-text px-3 py-2 text-body text-onfocus"
-                    : "border-transparent bg-transparent px-3 py-2 text-body text-muted"
-                }
-                onMouseEnter={() => setOpen(item)}
-                onFocus={() => setOpen(item)}
-                onClick={() => pick(item)}
-              >
-                {ROLE_LABEL[item]}
-              </button>
-            ))}
-          </div>
-          {shown ? (
-            <nav
-              className="absolute left-0 top-full z-10 flex min-w-full flex-wrap gap-4 rounded-control border border-border bg-bg px-3 py-3 shadow-overlay"
-              aria-label="Pages"
-            >
-              {links.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.end}
-                  onClick={() => setRole(shown)}
-                  className={({ isActive }) =>
-                    isActive && shown === role ? "text-body text-text" : "text-body text-muted"
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              ))}
-            </nav>
-          ) : null}
-        </div>
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex flex-wrap items-center gap-3">
           <NetworkChip />
           <WalletChip />
+          <label className="flex items-center gap-2 text-small text-muted">
+            Mode
+            <select
+              aria-label="Mode"
+              className="text-body text-text"
+              value={role}
+              onChange={(event) => pick(event.target.value as Role)}
+            >
+              {ROLES.map((item) => (
+                <option key={item} value={item}>
+                  {ROLE_LABEL[item]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
+      <nav className="mx-auto flex w-full max-w-[var(--max)] flex-wrap gap-2 px-4 pb-4 sm:px-8" aria-label="Pages">
+        {links.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            end={link.end}
+            className={({ isActive }) =>
+              isActive
+                ? "rounded-control bg-text px-3 py-2 text-body text-onfocus no-underline"
+                : "rounded-control bg-transparent px-3 py-2 text-body text-muted no-underline shadow-none"
+            }
+          >
+            {link.label}
+          </NavLink>
+        ))}
+      </nav>
     </header>
   );
 }

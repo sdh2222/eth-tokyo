@@ -21,7 +21,7 @@ import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { useOracleRound } from "../hooks/useOracle";
 import { formatShare, formatUsd } from "../lib/format";
 
-const STEP_COLOR = ["bg-treasury", "bg-mm", "bg-aqua"] as const;
+const STEP_COLOR = ["bg-surface", "bg-surface", "bg-surface"] as const;
 
 export function LandingPage() {
   const live = useLiveStrategy();
