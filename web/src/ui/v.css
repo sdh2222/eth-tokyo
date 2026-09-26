@@ -6,11 +6,12 @@
 
 .v-page {
   /* The watermark palette, four colours and nothing else: ENS blue #0080bc, light blue
-     #cee1e8, dark blue #011a25, white #f6f6f6. Secondary text is dark blue at 66% and 48%
+     #cce6f2 (ENS blue at 20% on white; the palette's #cee1e8 read grey), dark blue #011a25,
+     white #f6f6f6. Secondary text is dark blue at 66% and 48%
      on white; borders stay a neutral gray. States use the palette too: in force is light
      blue, a warning is a dark blue outline, a stop is dark blue filled. */
   --v-blue: #0080bc;
-  --v-light: #cee1e8;
+  --v-light: #cce6f2;
   --v-dark: #011a25;
   --v-white: #f6f6f6;
   --v-bg: #ffffff;

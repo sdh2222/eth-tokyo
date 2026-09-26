@@ -191,7 +191,7 @@
   border-radius: 999px;
   border: 1px solid #011a25;
   background-color: #ffffff;
-  background-image: radial-gradient(#cee1e8 0.92px, transparent 1px);
+  background-image: radial-gradient(#cce6f2 0.92px, transparent 1px);
   background-size: 2px 2px;
   color: #011a25;
   height: 32px;
@@ -207,7 +207,7 @@
 
 .mul-shell .watermark-wallet:hover {
   background-color: #ffffff;
-  background-image: radial-gradient(#cee1e8 0.92px, transparent 1px);
+  background-image: radial-gradient(#cce6f2 0.92px, transparent 1px);
   background-size: 2px 2px;
 }
 
@@ -347,7 +347,7 @@
 .mul-banners .astryx-button[data-variant="primary"]:hover,
 .mul-banners .astryx-button[data-variant="primary"]:active {
   background-color: #ffffff;
-  background-image: radial-gradient(#cee1e8 0.92px, transparent 1px);
+  background-image: radial-gradient(#cce6f2 0.92px, transparent 1px);
   background-size: 2px 2px;
   color: #011a25;
 }
@@ -368,7 +368,7 @@
 
 .mul-banners .astryx-banner .astryx-button[data-variant="ghost"]:hover,
 .mul-banners .astryx-banner .astryx-button[data-variant="ghost"]:active {
-  background: #cee1e8;
+  background: #cce6f2;
   background-image: none;
   color: #011a25;
 }
