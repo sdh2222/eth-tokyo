@@ -255,11 +255,17 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
     <div className="wm-swarm">
       <figure>
         <canvas ref={openRef} aria-hidden="true" />
-        <figcaption>{copy.open}</figcaption>
+        <figcaption>
+          {copy.open}
+          <span className="wm-fig-note">{copy.openNote}</span>
+        </figcaption>
       </figure>
       <figure>
         <canvas ref={namedRef} aria-hidden="true" />
-        <figcaption>{copy.named}</figcaption>
+        <figcaption>
+          {copy.named}
+          <span className="wm-fig-note">{copy.namedNote}</span>
+        </figcaption>
       </figure>
     </div>
   );

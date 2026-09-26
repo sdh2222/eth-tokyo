@@ -348,15 +348,87 @@ body:has(.wm-landing) {
   letter-spacing: -0.02em;
 }
 
-/* ---------- a price per taker ---------- */
+/* ---------- section 3: centred ---------- */
+
+.wm-section-center {
+  text-align: center;
+}
+
+.wm-section-center .wm-h2 {
+  margin-inline: auto;
+}
+
+.wm-section-center .wm-swarm {
+  text-align: left;
+}
+
+.wm-fig-note {
+  display: block;
+  max-width: 30em;
+  margin-top: 12px;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  opacity: 0.8;
+}
+
+/* ---------- section 4: text left, orbit right ---------- */
+
+.wm-split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 64px;
+  align-items: start;
+}
+
+.wm-split-text {
+  position: sticky;
+  top: 48px;
+}
+
+.wm-split .wm-h2 {
+  font-size: clamp(40px, 4vw, 56px);
+}
+
+.wm-steps {
+  margin: 48px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wm-steps li {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  column-gap: 16px;
+  padding: 20px 0;
+  border-top: 1px solid #e5e5e5;
+}
+
+.wm-step-number {
+  grid-row: span 2;
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 16px;
+  color: var(--wm-water-strong);
+}
+
+.wm-step-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.wm-step-body {
+  margin: 6px 0 0;
+  font-size: 17px;
+  line-height: 1.45;
+  opacity: 0.75;
+}
 
 .wm-orbit {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
-  gap: 48px;
-  margin-top: 72px;
-  padding-top: 16px;
-  border-top: 1px solid var(--wm-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 }
 
 .wm-orbit-figure {
@@ -371,34 +443,38 @@ body:has(.wm-landing) {
 
 .wm-orbit-figure figcaption {
   margin-top: 12px;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.45;
   opacity: 0.75;
 }
 
-.wm-orbit-side {
+.wm-orbit-data {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-left: 16px;
-  border-left: 1px solid var(--wm-ink);
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wm-ink);
 }
 
-.wm-orbit-list,
-.wm-orbit-log {
-  margin: 0 0 32px;
-  padding: 0;
-  list-style: none;
-}
-
-.wm-orbit-list li {
-  display: grid;
-  grid-template-columns: 64px 1fr auto;
-  gap: 12px;
-  align-items: baseline;
-  padding: 10px 0;
-  border-bottom: 1px solid #e5e5e5;
+.wm-orbit-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 18px;
+}
+
+.wm-orbit-table th {
+  padding: 0 0 10px;
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 16px;
+  font-weight: 400;
+  text-align: left;
+  opacity: 0.6;
+}
+
+.wm-orbit-table td {
+  padding: 10px 0;
+  border-top: 1px solid #e5e5e5;
+  font-variant-numeric: tabular-nums;
 }
 
 .wm-orbit-name {
@@ -406,14 +482,26 @@ body:has(.wm-landing) {
   font-size: 16px;
 }
 
-.wm-orbit-list li[data-tier="tight"] .wm-orbit-tier {
+.wm-orbit-table tr[data-tier="tight"] .wm-orbit-tier {
   color: var(--wm-water-strong);
   font-weight: 500;
 }
 
-.wm-orbit-trend {
-  font-size: 16px;
+.wm-orbit-change {
   opacity: 0.7;
+}
+
+.wm-orbit-help {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  opacity: 0.65;
+}
+
+.wm-orbit-log {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
 .wm-orbit-log li {
@@ -484,8 +572,12 @@ body:has(.wm-landing) {
 
 @media (max-width: 900px) {
   .wm-notes,
-  .wm-orbit {
+  .wm-split {
     grid-template-columns: 1fr;
+  }
+
+  .wm-split-text {
+    position: static;
   }
 
   .wm-swarm {

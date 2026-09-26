@@ -147,26 +147,32 @@ function paint(image: ImageData, t: number, colors: { price: string; ink: string
   }
 }
 
-type Row = { name: string; tier: Tier; trend: "closer" | "out" | null };
+type Row = { name: string; tier: Tier; from: Tier | null };
 
 function rowsAt(t: number): Row[] {
   return TAKERS.map((taker, who) => {
     let tier = taker.start;
-    let trend: Row["trend"] = null;
+    let from: Tier | null = null;
     for (const event of EVENTS) {
       if (event.who !== who || t < event.at + DASH) continue;
-      if (RADIUS[event.to] < RADIUS[tier]) trend = "closer";
-      else if (RADIUS[event.to] > RADIUS[tier]) trend = "out";
+      // Keep the last move that changed the spread; a trade that keeps it is not a change.
+      if (event.to !== tier) from = tier;
       tier = event.to;
     }
-    return { name: taker.name, tier, trend };
+    return { name: taker.name, tier, from };
   });
 }
 
+// The last three trades, newest first, each with the spread it moved from and to.
 function logAt(t: number) {
-  return EVENTS.filter((event) => t >= event.at + DASH)
-    .slice(-3)
-    .reverse();
+  const tiers = TAKERS.map((taker) => taker.start);
+  const lines: { at: number; who: number; trade: string; from: Tier; to: Tier }[] = [];
+  for (const event of EVENTS) {
+    if (t < event.at + DASH) break;
+    lines.push({ at: event.at, who: event.who, trade: event.trade, from: tiers[event.who]!, to: event.to });
+    tiers[event.who] = event.to;
+  }
+  return lines.slice(-3).reverse();
 }
 
 export function LandingOrbit() {
@@ -259,29 +265,43 @@ export function LandingOrbit() {
         <canvas ref={canvasRef} aria-hidden="true" />
         <figcaption>{copy.caption}</figcaption>
       </figure>
-      <aside className="wm-orbit-side" aria-live="off">
-        <p className="wm-note-kicker">{copy.listTitle}</p>
-        <ul className="wm-orbit-list">
-          {rows.map((row) => (
-            <li key={row.name} data-tier={row.tier}>
-              <span className="wm-orbit-name">{row.name}</span>
-              <span className="wm-orbit-tier">{copy.tier[row.tier]}</span>
-              <span className="wm-orbit-trend">
-                {row.trend === "closer" ? copy.closer : row.trend === "out" ? copy.out : ""}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="wm-note-kicker">{copy.logTitle}</p>
-        <ul className="wm-orbit-log">
-          {log.map((event) => (
-            <li key={event.at}>
-              {TAKERS[event.who]!.name} {copy.traded} {event.trade}
-              {event.to === "limit" ? ` ${copy.why}` : ""} → {copy.result[event.to]}
-            </li>
-          ))}
-        </ul>
-      </aside>
+      <div className="wm-orbit-data">
+        <table className="wm-orbit-table">
+          <thead>
+            <tr>
+              <th>{copy.table.taker}</th>
+              <th>{copy.table.now}</th>
+              <th>{copy.table.change}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.name} data-tier={row.tier}>
+                <td className="wm-orbit-name">{row.name}</td>
+                <td className="wm-orbit-tier">{copy.tier[row.tier]}</td>
+                <td className="wm-orbit-change">
+                  {row.from && row.from !== row.tier ? `${copy.short[row.from]} → ${copy.short[row.tier]}` : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="wm-orbit-help">{copy.spreadHelp}</p>
+        <div>
+          <p className="wm-note-kicker">{copy.logTitle}</p>
+          <ul className="wm-orbit-log">
+            {log.map((line) => (
+              <li key={line.at}>
+                {TAKERS[line.who]!.name} {copy.traded} {line.trade}
+                {line.to === "limit" ? copy.why : ""}.{" "}
+                {line.from === line.to
+                  ? `${copy.stays} ${copy.short[line.to]}.`
+                  : `${copy.spread} ${copy.short[line.from]} → ${copy.short[line.to]}.`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

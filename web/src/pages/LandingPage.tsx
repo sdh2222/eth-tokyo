@@ -214,21 +214,29 @@ export function LandingPage() {
       </section>
 
       <div className="wm-band wm-band-water">
-      <section className="wm-section">
+      <section className="wm-section wm-section-center">
         <p className="wm-label">{LANDING.gate.label}</p>
         <h2 className="wm-h2">{LANDING.gate.title}</h2>
         <LandingSwarm named="#ffffff" unnamed="#111111" />
         <p className="wm-caption">{LANDING.gate.caption}</p>
-        <Notes notes={LANDING.gate.notes} />
       </section>
       </div>
 
-      <section className="wm-section">
-        <p className="wm-label">{LANDING.orbit.label}</p>
-        <h2 className="wm-h2">{LANDING.orbit.title}</h2>
+      <section className="wm-section wm-split">
+        <div className="wm-split-text">
+          <p className="wm-label">{LANDING.orbit.label}</p>
+          <h2 className="wm-h2">{LANDING.orbit.title}</h2>
+          <ol className="wm-steps">
+            {LANDING.orbit.steps.map((step, index) => (
+              <li key={step.title}>
+                <span className="wm-step-number">{String(index + 1).padStart(2, "0")}</span>
+                <p className="wm-step-title">{step.title}</p>
+                <p className="wm-step-body">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
         <LandingOrbit />
-        <p className="wm-caption">{LANDING.orbit.line}</p>
-        <Notes notes={LANDING.orbit.notes} />
       </section>
     </div>
   );
