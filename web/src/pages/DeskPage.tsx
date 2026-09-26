@@ -8,7 +8,7 @@ import { formatCountdown, useClock } from "../hooks/useClock";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Badge, Card, Empty, Header, Metric, Metrics, Page } from "../ui/v";
+import { Badge, Card, Empty, Header, Metric, Metrics, Page, Status } from "../ui/v";
 
 // Dashboard: is the desk live, what does each counterparty pay now, what is in the Safe,
 // and what just traded. Numbers only; how the agent sets widths is on the Risk agent page.
@@ -86,7 +86,11 @@ export function DeskPage() {
           <Metric
             label="Oracle mid"
             value={`$${formatWadUsd(midWad)}`}
-            hint={windowLeft > 0 ? `Fills open for ${formatCountdown(windowLeft)}` : "Fills closed until the next update"}
+            hint={
+              <Status tone={windowLeft > 60 ? "green" : windowLeft > 0 ? "amber" : "red"}>
+                {windowLeft > 0 ? `Fills open for ${formatCountdown(windowLeft)}` : "Fills closed until the next update"}
+              </Status>
+            }
           />
           <Metric label="ETH share" value={formatBpsShare(b.inventory.wBps)} hint={`Sells no ETH at ${formatBpsShare(b.inventory.wStarBps)}`} />
           <Metric label="WETH in the Safe" value={weth !== undefined ? formatWeth(weth) : "—"} />

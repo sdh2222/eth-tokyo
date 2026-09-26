@@ -95,7 +95,7 @@ export function VerifyPage() {
       />
 
       {check ? (
-        <Card>
+        <Card className={`v-verdict v-verdict-${verdict.tone}`}>
           <div className="v-stack v-stack-8">
             <div className="v-figure">
               <Status tone={verdict.tone}>{verdict.title}</Status>

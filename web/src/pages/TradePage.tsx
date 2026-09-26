@@ -24,7 +24,7 @@ import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { DotSlider } from "../ui/slider";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
-import { Badge, Card, Dl, Empty, Header, Note, Page, type Tone } from "../ui/v";
+import { Badge, Card, Dl, Empty, Header, Note, Page, Status, type Tone } from "../ui/v";
 
 // Trade (IA: "Can I trade now, at what price, and how much?"). Vercel-style: the header says
 // who trades and whether they can, a refusal is one Note above the grid, then the Order card
@@ -233,7 +233,13 @@ export function TradePage() {
       <Header
         title="Trade"
         description={entry ? `${entry.name} · WETH / USDC` : "WETH / USDC"}
-        actions={<Badge tone={canTrade ? "green" : "red"}>{canTrade ? "Can trade" : "Can't trade"}</Badge>}
+        actions={
+          address === undefined ? (
+            <Badge>Not connected</Badge>
+          ) : (
+            <Badge tone={canTrade ? "green" : "red"}>{canTrade ? "Can trade" : "Can't trade"}</Badge>
+          )
+        }
       />
 
       {refusal ? (
@@ -367,7 +373,12 @@ export function TradePage() {
                 items={[
                   ["Source", sourceLabel],
                   ["Oracle mid", `$${formatWadUsd(midWad)}`],
-                  ["Price window", windowLeft > 0 ? `${formatCountdown(windowLeft)} left` : "Closed"],
+                  [
+                    "Price window",
+                    <Status key="window" tone={windowLeft > 60 ? "green" : windowLeft > 0 ? "amber" : "red"}>
+                      {windowLeft > 0 ? `${formatCountdown(windowLeft)} left` : "Closed"}
+                    </Status>,
+                  ],
                   ["Valid", priceNote],
                 ]}
               />

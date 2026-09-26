@@ -543,6 +543,10 @@ textarea.v-input {
 .v-note[data-tone="red"] > span:first-child::before { background: #e03131; }
 .v-note[data-tone="blue"] > span:first-child::before { background: var(--v-accent); }
 
+/* Verify's verdict card: tinted green when the recompute matches, red when it does not. */
+.v-card.v-verdict-green { border-color: #b7e2c4; background: var(--v-green-bg); }
+.v-card.v-verdict-red { border-color: #f5c2c2; background: var(--v-red-bg); }
+
 /* Empty state: the dither clouds, one line, one action, centred in a card. */
 .v-empty {
   display: flex;
