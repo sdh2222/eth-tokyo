@@ -12,7 +12,7 @@ import { SafeDialog } from "./open/SafeDialog";
 
 // Open a desk (IA: the six-step wizard). Plain page kit.
 // Screens SC-18: the stepper 3 columns, the step 9; on Policy the controls 6 and the preview 6.
-// Back and Continue sit at the bottom of the step. ?step=N deep-links to a step (1-based).
+// Back and Continue stay pinned at the bottom of the page. ?step=N deep-links to a step (1-based).
 
 const STEPS = [
   { label: "Safe", description: "Check the Safe that signs the program and holds the tokens." },
@@ -376,7 +376,7 @@ export function OpenPage() {
             )}
           </Section>
 
-          <div className="wm-row wm-between">
+          <div className="wm-row wm-between wm-footer-bar">
             <button
               type="button"
               className="wm-link"

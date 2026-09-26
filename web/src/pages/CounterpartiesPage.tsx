@@ -15,7 +15,7 @@ import { SafeDialog } from "./open/SafeDialog";
 // opens the Safe signing overlay (O1). Cut off shows one confirm sentence first (SC-05).
 
 const SAFE_WALLET = "Safe{Wallet}";
-const COLUMNS = 4;
+const COLUMNS = 3;
 
 type NameStatus = "Live" | "Expired" | "Can't trade";
 
@@ -67,6 +67,20 @@ function isDraftValid(draft: Draft): boolean {
   return whole.test(draft.sell.trim()) && whole.test(draft.buy.trim()) && amount.test(draft.cap.trim());
 }
 
+// A break chance before each dot, so a long ENS name wraps at its labels on a phone.
+function NameText({ name }: { name: string }) {
+  return (
+    <>
+      {name.split(".").map((part, index) => (
+        <Fragment key={index}>
+          {index > 0 ? <wbr /> : null}
+          {index > 0 ? `.${part}` : part}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
 function Expiry({ seconds }: { seconds: number }) {
   if (seconds <= 0) return <>No expiry set</>;
   const date = new Date(seconds * 1000);
@@ -110,14 +124,8 @@ function TermsEditor({
         <details className="wm-raw">
           <summary>Show raw</summary>
           <Window title="ENS records" meta={row.name}>
-            <div className="wm-window-line">
-              <span>addr</span>
-              <span>{row.addr}</span>
-            </div>
-            <div className="wm-window-line">
-              <span>expiry</span>
-              <span>{row.expiry > 0 ? String(row.expiry) : "none"}</span>
-            </div>
+            <div>{`addr ${row.addr}`}</div>
+            <div>{`expiry ${row.expiry > 0 ? String(row.expiry) : "none"}`}</div>
           </Window>
         </details>
       </div>
@@ -266,7 +274,6 @@ export function CounterpartiesPage() {
                   <tr>
                     <th>Name</th>
                     <th>Status</th>
-                    <th>Expires</th>
                     <th className="wm-right" aria-label="Edit" />
                   </tr>
                 </thead>
@@ -277,12 +284,19 @@ export function CounterpartiesPage() {
                     return (
                       <Fragment key={row.id}>
                         <tr data-selected={isOpen ? "true" : undefined}>
-                          <td className="wm-label">{row.name}</td>
+                          <td>
+                            <div className="wm-stack wm-stack-4">
+                              <span className="wm-label">
+                                <NameText name={row.name} />
+                              </span>
+                              <span className="wm-muted wm-num">
+                                {row.expiry > 0 ? "Expires " : null}
+                                <Expiry seconds={row.expiry} />
+                              </span>
+                            </div>
+                          </td>
                           <td>
                             <Pill tone={row.status === "Live" ? "success" : "danger"}>{row.status}</Pill>
-                          </td>
-                          <td className="wm-num">
-                            <Expiry seconds={row.expiry} />
                           </td>
                           <td className="wm-right">
                             <button

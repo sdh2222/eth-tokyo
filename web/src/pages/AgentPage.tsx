@@ -159,10 +159,7 @@ export function AgentPage() {
           <details className="wm-raw">
             <summary>Show raw</summary>
             <Window title="Agent" meta={b.agent.name}>
-              <div className="wm-window-line">
-                <span>addr</span>
-                <span>{b.agent.addr}</span>
-              </div>
+              <div>{`addr ${b.agent.addr}`}</div>
             </Window>
           </details>
           <div className="wm-grid">

@@ -200,6 +200,16 @@
   gap: 16px;
 }
 
+/* The label keeps its width; a long hash or address on the right wraps instead. */
+.wm-window-line > :first-child {
+  flex-shrink: 0;
+}
+
+.wm-window-line > :last-child {
+  min-width: 0;
+  text-align: right;
+}
+
 /* Sky is the accent: a highlighter behind the one number that matters. */
 .wm-mark {
   background: var(--wm-sky);
@@ -560,4 +570,20 @@ textarea.wm-input {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 24px;
+}
+
+/* A field's error line. */
+.wm-error {
+  color: var(--wm-danger);
+  font-weight: 500;
+}
+
+/* Back and Continue stay in view at the bottom of the wizard (SC-18). */
+.wm-footer-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: #ffffff;
+  border-top: 2px solid var(--wm-ink);
+  padding: 16px 0;
 }

@@ -312,7 +312,7 @@ export function TradePage() {
               <Window title="Quote" meta={SOURCE_LABEL[b.quote.source].toLowerCase()}>
                 <div className="wm-window-line">
                   <span>{`PRICE · ${side === "buy" ? BUY_ETH : SELL_ETH}`}</span>
-                  <span>{price}</span>
+                  <span className="wm-mark">{price}</span>
                 </div>
                 <div className="wm-window-line">
                   <span>QUOTE</span>
@@ -361,9 +361,8 @@ export function TradePage() {
           </div>
         </Section>
 
-        <Section title={TRADING_AS} className="wm-span-12">
+        <Section title={`${TRADING_AS} ${entry?.name ?? (label || "no wallet")}`} className="wm-span-12">
           <div className="wm-stats">
-            <Stat label="Name" value={entry?.name ?? (label || "No wallet")} />
             <Stat label="Status" value={canTrade ? "Can trade" : "Can't trade"} note={tradeReason} />
             <Stat
               label="Price window"
