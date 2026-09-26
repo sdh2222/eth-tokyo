@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { formatWadUsd } from "../desk/book";
+import { formatWadUsd, shortName } from "../desk/book";
 import { buysEth, fillEth, fillPrice } from "../desk/fills";
 import type { FillRecord } from "../desk/types";
 import { useBook } from "../hooks/useBook";
@@ -35,7 +35,7 @@ function FillRow({ fill, now }: { fill: FillRecord; now: number }) {
   return (
     <tr>
       <td className="v-muted">{formatWhen(fill.blockTime, now)}</td>
-      <td>{fill.name}</td>
+      <td>{shortName(fill.name)}</td>
       <td>
         {buys ? "Bought ETH" : "Sold ETH"}
       </td>
@@ -74,10 +74,11 @@ export function FillsPage() {
   }
 
   const all = fills.data ?? [];
-  const names = [...new Set([...(book.data?.names ?? []).map((name) => name.name), ...all.map((fill) => fill.name)])];
+  // Fills carry the short label (mm-a) and the book the full ENS name; both key on the label.
+  const names = [...new Set([...(book.data?.names ?? []).map((name) => shortName(name.name)), ...all.map((fill) => shortName(fill.name))])];
   const filtered = all.filter((fill) => {
     if (mine && (!address || fill.taker.toLowerCase() !== address.toLowerCase())) return false;
-    if (!mine && mm && fill.name !== mm) return false;
+    if (!mine && mm && shortName(fill.name) !== shortName(mm)) return false;
     if (side === "buy" && !buysEth(fill)) return false;
     if (side === "sell" && buysEth(fill)) return false;
     return true;
@@ -91,18 +92,8 @@ export function FillsPage() {
   const isFiltered = (!mine && mm !== null) || side !== "all";
   const reset = () => set({ mm: null, side: null, page: null });
 
-  let empty = (
-    <Empty
-      picture="pier"
-      title="No fills yet"
-      description="Counterparties fill from the Trade page."
-      action={
-        <Link className="v-btn v-btn-secondary" to="/trade">
-          Trade
-        </Link>
-      }
-    />
-  );
+  // Treasury view: fills come from counterparties, so there is nothing for the treasury to do here.
+  let empty = <Empty picture="pier" title="No fills yet" description="Fills appear here as counterparties trade against the desk." />;
   if (fills.isLoading) {
     empty = <Empty title="Reading the fills…" />;
   } else if (mine && !address) {
@@ -139,7 +130,7 @@ export function FillsPage() {
         <select
           className="v-input"
           aria-label="Counterparty"
-          value={mm ?? ""}
+          value={mm ? shortName(mm) : ""}
           onChange={(event) => set({ mm: event.target.value || null, page: null })}
         >
           <option value="">All counterparties</option>
