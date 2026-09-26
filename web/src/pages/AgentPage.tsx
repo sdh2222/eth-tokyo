@@ -5,7 +5,7 @@ import type { DeskBook } from "../desk/book";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr, formatWeth } from "../lib/format";
-import { Empty, Facts, Page, PageHead, Pill, Section, Stat, Window, type Tone } from "../ui/plain";
+import { Empty, Facts, Page, PageHead, Pill, Section, Window, type Tone } from "../ui/plain";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Risk agent (IA: "What spread is the agent setting, and inside which limits?"). Plain page kit.
@@ -71,14 +71,32 @@ export function AgentPage() {
       <div className="wm-grid">
         <Section title="Live spread" className="wm-span-12" aside={<Pill tone={state.tone}>{state.label}</Pill>}>
           {b.spread ? (
-            <div className="wm-stats">
-              <Stat label="Sell width" value={`${b.spread.sellBps} bp`} note={b.terms ? `Limit ${b.terms.sellBps} bp` : undefined} />
-              <Stat label="Buy width" value={`${b.spread.buyBps} bp`} note={b.terms ? `Limit ${b.terms.buyBps} bp` : undefined} />
-              <Stat
-                label="Valid until"
-                value={<time dateTime={new Date(validUntil * 1000).toISOString()}>{formatDateTime(validUntil)}</time>}
+            <>
+              <div className="wm-quote">
+                <div className="wm-stack wm-stack-4">
+                  <span className="wm-label">Sell width</span>
+                  <span className="wm-big">
+                    <span className="wm-mark">{`${b.spread.sellBps} bp`}</span>
+                  </span>
+                  {b.terms ? <span className="wm-muted">{`Limit ${b.terms.sellBps} bp`}</span> : null}
+                </div>
+                <div className="wm-stack wm-stack-4">
+                  <span className="wm-label">Buy width</span>
+                  <span className="wm-big">
+                    <span className="wm-mark">{`${b.spread.buyBps} bp`}</span>
+                  </span>
+                  {b.terms ? <span className="wm-muted">{`Limit ${b.terms.buyBps} bp`}</span> : null}
+                </div>
+              </div>
+              <Facts
+                items={[
+                  [
+                    "Valid until",
+                    <time dateTime={new Date(validUntil * 1000).toISOString()}>{formatDateTime(validUntil)}</time>,
+                  ],
+                ]}
               />
-            </div>
+            </>
           ) : (
             <p>{`The agent has not written desk.spread on ${b.name}.`}</p>
           )}
@@ -132,7 +150,7 @@ export function AgentPage() {
               ["ENS name", b.agent.name],
               [
                 "Address",
-                <a href={`${sepoliaConfig.explorer}/address/${b.agent.addr}`} target="_blank" rel="noreferrer">
+                <a className="wm-link" href={`${sepoliaConfig.explorer}/address/${b.agent.addr}`} target="_blank" rel="noreferrer">
                   {formatAddr(b.agent.addr)}
                 </a>,
               ],
@@ -149,7 +167,7 @@ export function AgentPage() {
           </details>
           <div className="wm-grid">
             <div className="wm-span-6 wm-stack wm-stack-8">
-              <h3 className="wm-kicker">Can write</h3>
+              <h3 className="wm-label">Can write</h3>
               <ul className="wm-list">
                 {CAN_WRITE.map(([record, what]) => (
                   <li key={record}>
@@ -160,7 +178,7 @@ export function AgentPage() {
               </ul>
             </div>
             <div className="wm-span-6 wm-stack wm-stack-8">
-              <h3 className="wm-kicker">Cannot</h3>
+              <h3 className="wm-label">Cannot</h3>
               <ul className="wm-list">
                 {CANNOT.map((item) => (
                   <li key={item}>{item}</li>

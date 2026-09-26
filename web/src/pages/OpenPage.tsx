@@ -195,15 +195,9 @@ export function OpenPage() {
                   ]}
                 />
                 <Window title="Safe" meta="Sepolia">
-                  <div className="wm-window-line">
-                    <span>SAFE</span>
-                    <span>{sepoliaConfig.safe}</span>
-                  </div>
+                  <div>{`SAFE\u00a0\u00a0\u00a0 ${sepoliaConfig.safe}`}</div>
                   {FIXTURE_OWNERS.map((owner, i) => (
-                    <div className="wm-window-line" key={owner}>
-                      <span>{`OWNER ${i + 1}`}</span>
-                      <span>{owner}</span>
-                    </div>
+                    <div key={owner}>{`OWNER ${i + 1} ${owner}`}</div>
                   ))}
                 </Window>
               </>
@@ -276,11 +270,17 @@ export function OpenPage() {
                     </span>
                   </label>
                 </div>
-                <p className="wm-note">
-                  {ethShare !== null
-                    ? `At the oracle mid these amounts are ${formatBpsShare(Math.round(ethShare * 10_000))} ETH. Tokens stay in the Safe until a fill.`
-                    : "Tokens stay in the Safe until a fill."}
-                </p>
+                {ethShare !== null ? (
+                  <div className="wm-stack wm-stack-4">
+                    <span className="wm-label">ETH share at the oracle mid</span>
+                    <span className="wm-big">
+                      <span className="wm-mark">{formatBpsShare(Math.round(ethShare * 10_000))}</span>
+                    </span>
+                    <span className="wm-muted">{`The target is ${formatBpsShare(TARGET_BPS)}. Tokens stay in the Safe until a fill.`}</span>
+                  </div>
+                ) : (
+                  <p className="wm-note">Tokens stay in the Safe until a fill.</p>
+                )}
               </>
             )}
 

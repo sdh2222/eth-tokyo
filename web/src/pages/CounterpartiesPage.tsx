@@ -7,7 +7,7 @@ import { CLIENT_SUFFIX } from "../ens/names";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr, formatWeth } from "../lib/format";
-import { Empty, Facts, Page, PageHead, Pill, Section, Window } from "../ui/plain";
+import { Empty, Facts, Page, PageHead, Pill, Section, Stat, Window } from "../ui/plain";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Counterparties (IA: "Who can trade with my desk, and on what terms?"). Plain page kit.
@@ -15,7 +15,7 @@ import { SafeDialog } from "./open/SafeDialog";
 // opens the Safe signing overlay (O1). Cut off shows one confirm sentence first (SC-05).
 
 const SAFE_WALLET = "Safe{Wallet}";
-const COLUMNS = 6;
+const COLUMNS = 4;
 
 type NameStatus = "Live" | "Expired" | "Can't trade";
 
@@ -26,7 +26,6 @@ type NameRow = {
   expiry: number;
   status: NameStatus;
   terms: string;
-  width: string;
   reason: string;
 };
 
@@ -38,15 +37,13 @@ function termsText(terms: DeskBook["terms"]): string {
   return `sell ${terms.sellBps} bp · buy ${terms.buyBps} bp · cap ${formatWeth(terms.cap)}`;
 }
 
-function widthText(book: DeskBook): string {
-  if (book.spread?.live) return `sell ${book.spread.sellBps} bp · buy ${book.spread.buyBps} bp`;
-  if (book.terms) return `sell ${book.terms.sellBps} bp · buy ${book.terms.buyBps} bp`;
-  return "No quote";
+function nowNote(book: DeskBook, side: "sellBps" | "buyBps"): string {
+  if (book.spread?.live) return `Now ${book.spread[side]} bp · agent spread`;
+  return "Now the terms width";
 }
 
 function toRows(book: DeskBook, now: number): NameRow[] {
   const terms = termsText(book.terms);
-  const width = widthText(book);
   return book.names.map((entry) => {
     const expiry = Number(entry.expiry);
     const expired = expiry > 0 && expiry <= now;
@@ -55,7 +52,7 @@ function toRows(book: DeskBook, now: number): NameRow[] {
     if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
     else if (status === "Can't trade" && !book.terms) reason = "The client names do not store the same valid desk.terms.";
     else if (status === "Can't trade") reason = "Its address or resolver does not pass the gate.";
-    return { id: entry.name, name: entry.name, addr: entry.addr, expiry, status, terms, width, reason };
+    return { id: entry.name, name: entry.name, addr: entry.addr, expiry, status, terms, reason };
   });
 }
 
@@ -70,8 +67,14 @@ function isDraftValid(draft: Draft): boolean {
   return whole.test(draft.sell.trim()) && whole.test(draft.buy.trim()) && amount.test(draft.cap.trim());
 }
 
-function formatDate(seconds: number): string {
-  return new Date(seconds * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+function Expiry({ seconds }: { seconds: number }) {
+  if (seconds <= 0) return <>No expiry set</>;
+  const date = new Date(seconds * 1000);
+  return (
+    <time dateTime={date.toISOString()}>
+      {date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+    </time>
+  );
 }
 
 function TermsEditor({
@@ -101,8 +104,7 @@ function TermsEditor({
           items={[
             ["Can trade", row.reason],
             ["Address", <span className="wm-num">{formatAddr(row.addr)}</span>],
-            ["Expires", row.expiry > 0 ? <time dateTime={new Date(row.expiry * 1000).toISOString()}>{formatDate(row.expiry)}</time> : "No expiry set"],
-            ["Terms", row.terms],
+            ["Terms now", row.terms],
           ]}
         />
         <details className="wm-raw">
@@ -159,7 +161,7 @@ function TermsEditor({
             />
           </label>
         </div>
-        <p className="wm-muted">{`Saving proposes a new desk.terms record to the Safe. Two of three owners sign in ${SAFE_WALLET}.`}</p>
+        <p className="wm-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</p>
         <div className="wm-row wm-between">
           <div className="wm-row wm-row-24">
             <button type="submit" className="wm-btn" disabled={!isDraftValid(draft)}>
@@ -232,18 +234,29 @@ export function CounterpartiesPage() {
     );
   }
 
-  const rows = toRows(book.data, now);
+  const b = book.data;
+  const rows = toRows(b, now);
+  const liveCount = rows.filter((row) => row.status === "Live").length;
 
   return (
     <Page>
-      <PageHead kicker={book.data.name} title="Counterparties" lede={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
+      <PageHead kicker={b.name} title="Counterparties" lede={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
+
+      <div className="wm-stats">
+        <Stat label="Can trade" value={`${liveCount} of ${rows.length}`} note="Names that pass the gate now." />
+        {b.terms ? (
+          <>
+            <Stat label="Sell width limit" value={`${b.terms.sellBps} bp`} note={nowNote(b, "sellBps")} />
+            <Stat label="Buy width limit" value={`${b.terms.buyBps} bp`} note={nowNote(b, "buyBps")} />
+            <Stat label="Cap per fill" value={formatWeth(b.terms.cap)} />
+          </>
+        ) : (
+          <Stat label="Terms" value="None" note="The client names disagree or are missing." />
+        )}
+      </div>
 
       <div className="wm-grid">
-        <Section
-          title="Client book"
-          className="wm-span-12"
-          aside={<span className="wm-muted wm-num">{rows.length === 1 ? "1 name" : `${rows.length} names`}</span>}
-        >
+        <Section title="Client book" className="wm-span-12">
           {rows.length === 0 ? (
             <Empty title={`No counterparties yet. The Safe adds a name under ${CLIENT_SUFFIX} with an address, terms and an expiry.`} />
           ) : (
@@ -253,9 +266,7 @@ export function CounterpartiesPage() {
                   <tr>
                     <th>Name</th>
                     <th>Status</th>
-                    <th>Terms</th>
-                    <th>Width now</th>
-                    <th>Address</th>
+                    <th>Expires</th>
                     <th className="wm-right" aria-label="Edit" />
                   </tr>
                 </thead>
@@ -266,13 +277,13 @@ export function CounterpartiesPage() {
                     return (
                       <Fragment key={row.id}>
                         <tr data-selected={isOpen ? "true" : undefined}>
-                          <td>{row.name}</td>
+                          <td className="wm-label">{row.name}</td>
                           <td>
                             <Pill tone={row.status === "Live" ? "success" : "danger"}>{row.status}</Pill>
                           </td>
-                          <td>{row.terms}</td>
-                          <td>{row.width}</td>
-                          <td className="wm-num">{formatAddr(row.addr)}</td>
+                          <td className="wm-num">
+                            <Expiry seconds={row.expiry} />
+                          </td>
                           <td className="wm-right">
                             <button
                               type="button"

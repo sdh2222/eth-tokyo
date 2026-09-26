@@ -30,14 +30,8 @@ export function SafeDialog({
             {`Nothing is sent from this page. An owner proposes the transaction in ${SAFE_WALLET}, and it lands once two of the three owners have signed.`}
           </p>
           <Window title="Safe" meta="Sepolia">
-            <div className="wm-window-line">
-              <span>SAFE</span>
-              <span>{sepoliaConfig.safe}</span>
-            </div>
-            <div className="wm-window-line">
-              <span>SIGNERS</span>
-              <span>2 of 3 owners</span>
-            </div>
+            <div>{`SAFE\u00a0\u00a0\u00a0\u00a0 ${sepoliaConfig.safe}`}</div>
+            <div>{`SIGNERS\u00a0 2 of 3 owners`}</div>
           </Window>
         </div>
         <div className="wm-row wm-between">

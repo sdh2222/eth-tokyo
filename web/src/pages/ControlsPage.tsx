@@ -4,13 +4,13 @@ import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { useBook } from "../hooks/useBook";
 import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatWeth } from "../lib/format";
-import { Empty, Facts, Page, PageHead, Pill, Section } from "../ui/plain";
+import { Empty, Page, PageHead, Pill, Section, Stat } from "../ui/plain";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Controls (IA: "What does it take to change or stop the desk?"). Plain page kit.
-// Screens SC-21: the live program 12 columns, then Change (the one primary) and the Stop
-// outline, then the "what changes how" table 12. Stop asks one sentence (AlertDialog), then
-// the Safe dialog (SC-05).
+// Screens SC-21: what is live now 12 columns, then Change (the one primary) and the Stop
+// outline, then the "what changes how" table 12 and the checks. Stop asks one sentence
+// (AlertDialog), then the Safe dialog (SC-05).
 
 // The oracle owner, from docs/agent-design.md ("Live chain"). The agent must not be it.
 const ORACLE_OWNER = "0x1AC95a5e4CD739D01130f705f93D3bE070407c2b";
@@ -19,8 +19,12 @@ const CHANGE_HREF = "/open?step=2";
 type ChangeRow = { id: string; how: string; what: string; linkLabel: string; href: string };
 type Check = { id: string; label: string; ok: boolean; pass: string; fail: string };
 
-function formatWhen(seconds: number): string {
-  return new Date(seconds * 1000).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+function formatDay(seconds: number): string {
+  return new Date(seconds * 1000).toLocaleDateString("en-US", { dateStyle: "medium" });
+}
+
+function formatTime(seconds: number): string {
+  return new Date(seconds * 1000).toLocaleTimeString("en-US", { timeStyle: "short" });
 }
 
 export function ControlsPage() {
@@ -102,6 +106,7 @@ export function ControlsPage() {
       fail: "More than one program is live. Stop the extra one.",
     },
   ];
+  const passed = checks.filter((check) => check.ok).length;
 
   return (
     <Page>
@@ -109,7 +114,7 @@ export function ControlsPage() {
 
       <div className="wm-grid">
         <Section
-          title="Live program"
+          title="Live now"
           className="wm-span-12"
           aside={
             <Link className="wm-link" to="/program">
@@ -117,17 +122,12 @@ export function ControlsPage() {
             </Link>
           }
         >
-          <Facts
-            items={[
-              ["Status", <Pill tone="success">Live</Pill>],
-              ["Shipped", `Block ${strategy.shippedAt.block.toLocaleString("en-US")}`],
-              ["Closes", formatWhen(deadline)],
-              ["Strategy hash", formatHash(strategy.strategyHash)],
-            ]}
-          />
-        </Section>
-
-        <div className="wm-span-12 wm-stack">
+          <div className="wm-stats">
+            <Stat label="Desk" value="Live" note={`Shipped in block ${strategy.shippedAt.block.toLocaleString("en-US")}.`} />
+            <Stat label="Closes" value={formatDay(deadline)} note={`At ${formatTime(deadline)}.`} />
+            <Stat label="Checks" value={`${passed} of ${checks.length} pass`} note="Listed below." />
+            <Stat label="Strategy hash" value={formatHash(strategy.strategyHash)} note="What the Safe signed." />
+          </div>
           <div className="wm-row wm-row-24">
             <Link className="wm-btn" to={CHANGE_HREF}>
               Change
@@ -136,10 +136,10 @@ export function ControlsPage() {
               Stop the desk
             </button>
           </div>
-          <p className="wm-note">
+          <p className="wm-muted">
             Change docks this program and ships a new one in one Safe transaction. Stop docks it.
           </p>
-        </div>
+        </Section>
 
         <Section title="What changes how" className="wm-span-12">
           <div className="wm-table-wrap">

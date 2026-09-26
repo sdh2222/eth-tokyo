@@ -56,6 +56,12 @@ function instructions(program: Hex): InstructionRow[] {
   return rows;
 }
 
+// Terminal rows: the label padded with no-break spaces so values line up in the mono face,
+// and a long value wraps under it on a phone.
+function pad(label: string): string {
+  return label.padEnd(13, "\u00a0");
+}
+
 function shortArgs(args: string): string {
   return args.length > ARGS_SHOWN ? `${args.slice(0, 18)}…${args.slice(-12)}` : args;
 }
@@ -110,9 +116,8 @@ export function ProgramPage() {
           <ol className="wm-list">
             {lines.map((line, index) => (
               <li key={line}>
-                <span className="wm-row wm-row-8">
-                  <span className="wm-muted wm-num">{index + 1}</span>
-                  <span>{line}</span>
+                <span>
+                  <span className="wm-label wm-num">{`${index + 1}.`}</span> {line}
                 </span>
               </li>
             ))}
@@ -161,16 +166,10 @@ export function ProgramPage() {
 
         <Section title="Signature" className="wm-span-12">
           <Window title="Signed by the Safe" meta="Sepolia">
-            <div className="wm-window-line">
-              <span>STRATEGY HASH</span>
-              <span>{strategy.strategyHash}</span>
-            </div>
-            <div className="wm-window-line">
-              <span>SHIPPED IN</span>
-              <span>{`block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</span>
-            </div>
-            <div className="wm-window-line">
-              <span>SHIP TX</span>
+            <div>{`${pad("STRATEGY HASH")} ${strategy.strategyHash}`}</div>
+            <div>{`${pad("SHIPPED IN")} block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</div>
+            <div>
+              {`${pad("SHIP TX")} `}
               <a href={`${explorer}/tx/${strategy.shippedAt.tx}`} target="_blank" rel="noreferrer">
                 {formatHash(strategy.shippedAt.tx)}
               </a>
