@@ -162,7 +162,10 @@ export function LandingPage() {
 
       <footer className="wm-footer">
         <div className="wm-footer-row">
-          <Wordmark />
+          <div>
+            <Wordmark />
+            <p className="wm-footer-born">{LANDING.footer.born}</p>
+          </div>
           <nav className="wm-top-links" aria-label="Footer">
             <a href="#how">{LANDING.how}</a>
             {LANDING.close.doors.map((door) => (
@@ -172,6 +175,39 @@ export function LandingPage() {
             ))}
             <Link to="/fills">{LANDING.footer.fills}</Link>
           </nav>
+        </div>
+        <div className="wm-footer-cols">
+          <div>
+            <p className="wm-footer-label">{LANDING.footer.builtBy}</p>
+            <ul className="wm-footer-list">
+              {LANDING.footer.builders.map((handle) => (
+                <li key={handle}>
+                  <a href={`https://github.com/${handle}`} target="_blank" rel="noreferrer">
+                    {handle} ↗
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="wm-footer-small">
+              {LANDING.footer.with}{" "}
+              <a href={LANDING.footer.club.href} target="_blank" rel="noreferrer">
+                {LANDING.footer.club.name}
+              </a>
+            </p>
+          </div>
+          <div>
+            <p className="wm-footer-label">{LANDING.footer.builtOn}</p>
+            <ul className="wm-footer-list">
+              {LANDING.footer.stack.map((item) => (
+                <li key={item.name}>
+                  <a href={item.href} target="_blank" rel="noreferrer">
+                    {item.name} ↗
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="wm-footer-small">{LANDING.footer.thanks}</p>
+          </div>
         </div>
         <p className="wm-footer-note">{FOOTER}</p>
       </footer>

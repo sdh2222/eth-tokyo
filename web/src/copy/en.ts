@@ -194,5 +194,18 @@ export const LANDING = {
       },
     ],
   },
-  footer: { fills: "Verify a fill" },
+  footer: {
+    fills: "Verify a fill",
+    born: "Born at ETHGlobal Tokyo 2026",
+    builtBy: "Built by",
+    builders: ["hyeon-Sec", "sdh2222", "3DUCK"],
+    club: { name: "@BlockchainatYU", href: "https://x.com/BlockchainatYU" },
+    with: "with",
+    builtOn: "Built on",
+    stack: [
+      { name: "1inch Aqua", href: "https://github.com/1inch/aqua" },
+      { name: "ENSv2", href: "https://ens.domains/ensv2" },
+    ],
+    thanks: "Thank you to the 1inch and ENS teams for the ground this stands on.",
+  },
 } as const;

@@ -485,7 +485,7 @@ body:has(.wm-landing) {
 .wm-footer-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px 32px;
 }
@@ -494,8 +494,65 @@ body:has(.wm-landing) {
   flex-wrap: wrap;
 }
 
+.wm-footer .wm-mark {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.wm-footer-born {
+  margin: 12px 0 0;
+  font-size: 16px;
+}
+
+.wm-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 320px));
+  gap: 32px 64px;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px dotted rgb(17 17 17 / 0.35);
+}
+
+/* Two classes, so it outranks the rule that sets p to the page face. */
+.wm-footer .wm-footer-label {
+  margin: 0 0 12px;
+  color: var(--wm-water-strong);
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+}
+
+.wm-footer-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 20px;
+}
+
+.wm-footer-cols a {
+  color: var(--wm-ink);
+  text-decoration: none;
+}
+
+.wm-footer-cols a:hover {
+  color: var(--wm-water-strong);
+}
+
+.wm-footer-small {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.wm-footer-small a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .wm-footer-note {
-  margin: 24px 0 0;
+  margin: 40px 0 0;
   font-size: 13px;
   line-height: 1.5;
   opacity: 0.6;
