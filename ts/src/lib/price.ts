@@ -1,23 +1,26 @@
 import type { DeskConfig } from "./config.js";
 
 const WAD = 10n ** 18n;
-/** 200 bp. `r = mid * (1 - kappa * (w - w*))`. The same constant as `DeskPrice.KAPPA_BPS`. */
-export const KAPPA_BPS = 200n;
+const BPS_DENOM = 10_000n * WAD;
 
-/** Reservation mid. Below `wStarWad` the term flips and `r` rises. */
-export function skewedMid(
+/** Ask and bid on the oracle. Above `wStarWad` the sell width shrinks and the buy width grows by `|w - w*|`. */
+export function widthQuotes(
   pWad: bigint,
   wWad: bigint,
   wStarWad: bigint,
-): bigint {
-  const denom = 10_000n * WAD;
-  if (wWad >= wStarWad) {
-    const cut = KAPPA_BPS * (wWad - wStarWad);
-    if (cut >= denom) return 0n;
-    return (pWad * (denom - cut)) / denom;
-  }
-  const lift = KAPPA_BPS * (wStarWad - wWad);
-  return (pWad * (denom + lift)) / denom;
+  sSellBps: number,
+  sBuyBps: number,
+): { askWad: bigint; bidWad: bigint } {
+  const gap = wWad >= wStarWad ? wWad - wStarWad : wStarWad - wWad;
+  const delta = gap > WAD ? WAD : gap;
+  const heavy = wWad >= wStarWad;
+  const sellNum = BigInt(sSellBps) * (heavy ? WAD - delta : WAD + delta);
+  const buyNum = BigInt(sBuyBps) * (heavy ? WAD + delta : WAD - delta);
+  return {
+    askWad: (pWad * (BPS_DENOM + sellNum)) / BPS_DENOM,
+    bidWad:
+      buyNum >= BPS_DENOM ? 0n : (pWad * (BPS_DENOM - buyNum)) / BPS_DENOM,
+  };
 }
 
 export interface PriceInput {
@@ -58,9 +61,14 @@ export function priceMirror(input: PriceInput): PriceResult {
   const wStar = BigInt(d.wStarBps) * 10n ** 14n;
   const baseIsIn = input.side === "sell";
   const sellStopped = !baseIsIn && wWad <= wStar;
-  const rWad = skewedMid(pWad, wWad, wStar);
-  const askWad = (rWad * BigInt(10_000 + input.sSellBps)) / 10_000n;
-  const bidWad = (rWad * BigInt(10_000 - input.sBuyBps)) / 10_000n;
+  const { askWad, bidWad } = widthQuotes(
+    pWad,
+    wWad,
+    wStar,
+    input.sSellBps,
+    input.sBuyBps,
+  );
+  const rWad = pWad;
   const price = baseIsIn ? bidWad : askWad;
   let amountIn: bigint;
   let amountOut: bigint;

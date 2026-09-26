@@ -18,8 +18,6 @@ abstract contract DeskPrice is IDeskEvents {
     using ContextLib for Context;
 
     uint256 internal constant WAD = 1e18;
-    /// @dev 200 bp. `r = mid * (1 - kappa * (w - w*))`. A program argument would change the golden tail.
-    uint256 internal constant KAPPA_BPS = 200;
 
     error DeskPriceInvalidArgs();
     error DeskPriceMissingName();
@@ -160,27 +158,19 @@ abstract contract DeskPrice is IDeskEvents {
         wWad = Math.mulDiv(ethValue, WAD, book, Math.Rounding.Floor);
     }
 
+    /// @dev The oracle stays the price. Above `w*` the sell width is multiplied by `1 - (w - w*)` and the buy width by `1 + (w - w*)`. Below `w*` the signs flip.
     function _quotes(uint256 pWad, uint256 wWad, uint256 wStarWad, uint16 sSell, uint16 sBuy)
         private
         pure
         returns (uint256 askWad, uint256 bidWad)
     {
-        uint256 rWad = _skew(pWad, wWad, wStarWad);
-        askWad = Math.mulDiv(rWad, 10_000 + uint256(sSell), 10_000, Math.Rounding.Floor);
-        bidWad = Math.mulDiv(rWad, 10_000 - uint256(sBuy), 10_000, Math.Rounding.Floor);
-    }
-
-    /// @dev `r = p * (10_000 * WAD ± KAPPA_BPS * |w - w*|) / (10_000 * WAD)`. Below `w*` the sign flips, so `r` rises.
-    function _skew(uint256 pWad, uint256 wWad, uint256 wStarWad) private pure returns (uint256 rWad) {
+        uint256 delta = wWad >= wStarWad ? wWad - wStarWad : wStarWad - wWad;
+        if (delta > WAD) delta = WAD;
+        uint256 sellNum = uint256(sSell) * (wWad >= wStarWad ? WAD - delta : WAD + delta);
+        uint256 buyNum = uint256(sBuy) * (wWad >= wStarWad ? WAD + delta : WAD - delta);
         uint256 denom = 10_000 * WAD;
-        if (wWad >= wStarWad) {
-            uint256 cut = KAPPA_BPS * (wWad - wStarWad);
-            if (cut >= denom) return 0;
-            rWad = Math.mulDiv(pWad, denom - cut, denom, Math.Rounding.Floor);
-        } else {
-            uint256 lift = KAPPA_BPS * (wStarWad - wWad);
-            rWad = Math.mulDiv(pWad, denom + lift, denom, Math.Rounding.Floor);
-        }
+        askWad = Math.mulDiv(pWad, denom + sellNum, denom, Math.Rounding.Floor);
+        bidWad = buyNum >= denom ? 0 : Math.mulDiv(pWad, denom - buyNum, denom, Math.Rounding.Floor);
     }
 
     function _amounts(

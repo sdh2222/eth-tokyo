@@ -85,7 +85,7 @@ describe("T-TS-6 program", () => {
     expect(describeProgram(decoded, cfg)).toEqual([
       "Open until 2026-09-21 23:13 JST",
       "Only names under clients.desk.eth may trade",
-      "Price: inventory shifts the oracle mid, then the two widths. A sell stops at 70% ETH",
+      "Price: the oracle mid, with the widths scaled by the distance from 70% ETH. A sell stops at 70% ETH",
       "Open for 3 blocks after the oracle update",
       "Suffix matches the config",
     ]);
@@ -240,11 +240,11 @@ describe("T-TS-10 fills", () => {
     expect(again.matches).toBe(true);
   });
 
-  it("recomputes a fill on the skewed mid", () => {
+  it("recomputes a fill on the scaled widths", () => {
     const check = verifyFill(
       {
         amountIn: 1_000n * 10n ** 6n,
-        amountOut: 250_928_737_443_024_120n,
+        amountOut: 249_940_014_396_544_829n,
         midWad: 4000n * 10n ** 18n,
         sSellBps: 3,
         sBuyBps: 10,
@@ -255,7 +255,7 @@ describe("T-TS-10 fills", () => {
       cfg,
     );
     expect(check.matches).toBe(true);
-    expect(check.steps[1]?.value).toBe(3_985_195_200_000_000_000_000n);
+    expect(check.steps[1]?.value).toBe(4_000_960_000_000_000_000_000n);
   });
 
   it("reads fill logs", async () => {
