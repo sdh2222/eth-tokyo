@@ -1,4 +1,5 @@
 import type { Address } from "./types";
+import { POLICY_TEMPLATE } from "./policy";
 
 // The desk book from docs/agent-design.md ("Book"), as ts/src/lib/agent.ts types it.
 // Widths are basis points; `wBps` is the ETH share of the Safe book.
@@ -71,8 +72,7 @@ export function fixtureBook(now: number): DeskBook {
     inventory: { wBps: 9000, wStarBps: 7000 },
     terms: { sellBps: 3, buyBps: 10, cap: 50n * WAD },
     spread: null,
-    policy:
-      "Keep the book near 70% ETH. Quote tighter when counterparties buy ETH and we hold more than the target; widen toward the terms when the book nears 70%.",
+    policy: POLICY_TEMPLATE,
     quote: { ask: (mid * 10003n) / 10000n, bid: (mid * 9990n) / 10000n, source: "terms" },
     agent: { name: "risk.agents.dao-treasury-a.eth", addr: "0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899" },
     names: [

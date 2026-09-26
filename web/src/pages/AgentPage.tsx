@@ -6,7 +6,8 @@ import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Badge, Card, Header, Page, Status, type Tone } from "../ui/v";
+import { readPolicy } from "../desk/policy";
+import { Badge, Card, Dl, Header, Page, Status, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Risk agent (IA: "What spread is the agent setting, and inside which limits?"). Main's flow
@@ -46,11 +47,94 @@ function headerState(agentCount: number, liveCount: number): { label: string; to
   return { label: "Live", tone: "green" };
 }
 
+// The policy: the text the Safe wrote to desk.policy. Edit opens the text; while you type, the
+// card says what the agent will read from it (the keeper's parser). Propose hands it to the
+// Safe dialog; an empty text or one the agent reads nothing from is stopped here.
+function PolicyCard({ className, policy }: { className: string; policy: string }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [tried, setTried] = useState(false);
+  const [isSafeOpen, setIsSafeOpen] = useState(false);
+  const editing = draft !== null;
+  const text = draft ?? policy;
+  const reading = readPolicy(text);
+  const error = text.trim() === "" ? "Write a policy before proposing it." : reading.lines.length === 0 ? "The agent reads nothing from this text: it keeps the tier widths." : null;
+
+  function cancel() {
+    setDraft(null);
+    setTried(false);
+  }
+
+  function propose() {
+    setTried(true);
+    if (error === null) setIsSafeOpen(true);
+  }
+
+  return (
+    <Card
+      className={className}
+      title="Policy"
+      actions={
+        editing ? null : (
+          <button type="button" className="v-btn v-btn-secondary" onClick={() => setDraft(policy)}>
+            Edit
+          </button>
+        )
+      }
+      footer={
+        editing ? (
+          <>
+            <span>{draft === policy ? "No changes yet." : "Not written until the Safe signs."}</span>
+            <span className="v-actions">
+              <button type="button" className="v-btn v-btn-secondary" onClick={cancel}>
+                Cancel
+              </button>
+              <button type="button" className="v-btn" onClick={propose} disabled={draft === policy}>
+                Propose to Safe
+              </button>
+            </span>
+          </>
+        ) : null
+      }
+    >
+      {editing ? (
+        <div className="v-stack">
+          <label className="v-field">
+            <span className="v-label">desk.policy</span>
+            <textarea
+              className="v-input"
+              lang="ko"
+              rows={8}
+              value={draft}
+              aria-invalid={tried && error !== null}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+            {tried && error ? <span className="v-error">{error}</span> : null}
+          </label>
+          <div className="v-stack v-stack-8">
+            <span className="v-label">What the agent reads</span>
+            {reading.lines.length > 0 ? <Dl items={reading.lines} /> : null}
+            {reading.missing.map((rule) => (
+              <span key={rule} className="v-muted">{`No ${rule} found: the agent keeps the tier widths for it.`}</span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p lang="ko">{policy || "The Safe has not written a policy yet."}</p>
+      )}
+      <SafeDialog
+        isOpen={isSafeOpen}
+        onOpenChange={setIsSafeOpen}
+        title="Propose the new policy"
+        description="The Safe writes this text to desk.policy on the desk name. The agent reads it from the next fill on."
+      />
+    </Card>
+  );
+}
+
 export function AgentPage() {
   const book = useBook();
   const now = useClock();
   const writes = useAgentWrites();
-  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
 
   if (!book.data) {
     return (
@@ -69,6 +153,9 @@ export function AgentPage() {
   const state = headerState(agentCount, liveCount);
 
   const above = b.inventory.wBps > b.inventory.wStarBps;
+  const below = b.inventory.wBps < b.inventory.wStarBps;
+  // The inventory and suspicion rows come from desk.policy, read with the keeper's own parser.
+  const reading = readPolicy(b.policy);
 
   return (
     <Page>
@@ -148,46 +235,35 @@ export function AgentPage() {
                   <td>Larger fill</td>
                   <td className="v-right">Its terms</td>
                 </tr>
-                <tr>
-                  <td>
-                    ETH share above 70%
-                    {above ? (
-                      <>
-                        {" "}
-                        <Badge tone="blue">Now</Badge>
-                      </>
-                    ) : null}
-                  </td>
-                  <td className="v-right">Buy 1 bp wider, sell 1 bp tighter</td>
-                </tr>
-                <tr>
-                  <td>Taker gained, came back fast or sized up</td>
-                  <td className="v-right">Both 1 bp wider</td>
-                </tr>
+                {reading.lines.map(([when, then], index) => {
+                  const isNow = reading.step !== null && ((index === 0 && above) || (index === 1 && below));
+                  return (
+                    <tr key={when}>
+                      <td className="v-wrap">
+                        {when}
+                        {isNow ? (
+                          <>
+                            {" "}
+                            <Badge tone="blue">Now</Badge>
+                          </>
+                        ) : null}
+                      </td>
+                      <td className="v-right">{then}</td>
+                    </tr>
+                  );
+                })}
+                {reading.missing.map((rule) => (
+                  <tr key={rule}>
+                    <td className="v-muted v-wrap" colSpan={2}>{`The policy has no ${rule}.`}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </Card>
 
-        <Card
-          className="v-col-5"
-          title="Policy"
-          actions={
-            <button type="button" className="v-btn v-btn-secondary" onClick={() => setIsPolicyOpen(true)}>
-              Edit
-            </button>
-          }
-        >
-          <p>{b.policy || "The Safe has not written a policy yet."}</p>
-        </Card>
+        <PolicyCard className="v-col-5" policy={b.policy} />
       </div>
-
-      <SafeDialog
-        isOpen={isPolicyOpen}
-        onOpenChange={setIsPolicyOpen}
-        title="Edit policy"
-        description="The new policy is written to desk.policy on the desk name as a Safe transaction."
-      />
     </Page>
   );
 }
