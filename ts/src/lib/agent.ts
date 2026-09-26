@@ -20,13 +20,29 @@ export type AgentTerms = { sellBps: number; buyBps: number; cap: bigint };
 
 export type AgentStats = AgentSpread & { writtenAt: bigint };
 
+export type QuoteSource = "router" | "spread" | "terms";
+
+export type DeskQuote = {
+  ask: bigint;
+  bid: bigint;
+  source: QuoteSource;
+};
+
 /** What GET /v1/desks/{name} returns. Widths are basis points. `wBps` is the ETH share. */
 export type DeskBook = {
   name: string;
-  oracle: { answer: bigint; updatedAt: bigint; ageBlocks: number };
+  oracle: {
+    answer: bigint;
+    updatedAt: bigint;
+    ageBlocks: number;
+    fresh: boolean;
+  };
   inventory: { wBps: number; wStarBps: number };
-  terms: AgentTerms;
+  terms: AgentTerms | null;
   spread: (AgentSpread & { live: boolean }) | null;
+  policy: string;
+  quote: DeskQuote | null;
+  agent: { name: string; addr: Address };
   names: { name: string; addr: Address; expiry: bigint; live: boolean }[];
 };
 
@@ -139,3 +155,5 @@ export function planAgentWrites(a: {
     },
   };
 }
+
+export { acceptDeskName, quoteFromRecords, readBook } from "./book.js";

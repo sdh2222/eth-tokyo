@@ -1,4 +1,4 @@
-import { decodeFunctionData } from "viem";
+import { decodeFunctionData, encodeAbiParameters } from "viem";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,6 +8,11 @@ import {
   planAgentWrites,
   AGENT_SCOPE,
 } from "../../src/lib/agent.js";
+import {
+  acceptDeskName,
+  parseLiveSpread,
+  quoteFromRecords,
+} from "../../src/lib/book.js";
 
 const resolver = "0x00000000000000000000000000000000000000a1" as const;
 const terms = { sellBps: 3, buyBps: 10, cap: 50n * 10n ** 18n };
@@ -81,5 +86,45 @@ describe("agent writes", () => {
         writtenAt: 1_700_000_000n,
       }),
     ).toThrow(/outside the Safe/);
+  });
+
+  it("treats a 96-byte spread as absent", () => {
+    const old = encodeAbiParameters(
+      [{ type: "uint8" }, { type: "uint16" }, { type: "uint64" }],
+      [1, 40, 1_800_000_000n],
+    );
+    expect((old.length - 2) / 2).toBe(96);
+    expect(parseLiveSpread(old, terms, 1_700_000_000n)).toBeNull();
+  });
+
+  it("accepts a 128-byte spread inside the 3/10 fence", () => {
+    const live = encodeAgentSpread({
+      sellBps: 2,
+      buyBps: 8,
+      validUntil: 1_800_000_000n,
+    });
+    expect(parseLiveSpread(live, terms, 1_700_000_000n)).toEqual({
+      sellBps: 2,
+      buyBps: 8,
+      validUntil: 1_800_000_000n,
+    });
+  });
+
+  it("falls back to terms when the sell width is outside the fence", () => {
+    const wide = encodeAgentSpread({
+      sellBps: 4,
+      buyBps: 8,
+      validUntil: 1_800_000_000n,
+    });
+    const quote = quoteFromRecords(4000n * 10n ** 18n, terms, wide, 1_700_000_000n);
+    expect(quote?.source).toBe("terms");
+    expect(quote?.ask).toBe(4001200000000000000000n);
+    expect(quote?.bid).toBe(3996000000000000000000n);
+  });
+
+  it("refuses every desk name except dao-treasury-a", () => {
+    expect(acceptDeskName(["--name", "dao-treasury-a"])).toBe("dao-treasury-a");
+    expect(acceptDeskName(["--name", "mm-a"])).toBeNull();
+    expect(acceptDeskName(["--name", "dao-treasury-a", "--write"])).toBeNull();
   });
 });
