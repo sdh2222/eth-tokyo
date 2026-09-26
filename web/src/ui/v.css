@@ -657,3 +657,11 @@ textarea.v-input {
   rx: 5px;
   stroke: var(--v-text-3);
 }
+
+/* A table cell that may wrap (a reason, a note). */
+.v-table td.v-wrap {
+  min-width: 240px;
+  white-space: normal;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}

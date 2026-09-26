@@ -123,7 +123,7 @@ export function fixtureWrites(now: number): AgentWrite[] {
       validUntil: now + 540,
       writtenAt: now - 60,
       tier: "standard",
-      note: "standard 2/8 · above 70% ETH: sell −1, buy +1",
+      note: "markout 0bp repeat none sizeUp false cut 0",
     },
     {
       name: "mm-b.clients.dao-treasury-a.eth",

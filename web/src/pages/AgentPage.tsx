@@ -1,12 +1,12 @@
 import { useState } from "react";
 import sepoliaConfig from "@config";
-import { formatBpsShare, nameQuote, shortName, type DeskBook } from "../desk/book";
+import { nameQuote, shortName, type AgentWrite } from "../desk/book";
 import { useAgentWrites, writeFor } from "../hooks/useAgentWrites";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Badge, Card, Dl, Header, Page, type Tone } from "../ui/v";
+import { Badge, Card, Header, Page, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
 // Risk agent (IA: "What spread is the agent setting, and inside which limits?"). Main's flow
@@ -15,26 +15,26 @@ import { SafeDialog } from "./open/SafeDialog";
 // decides, the policy, then identity and permissions. Read-only except the policy edit,
 // which opens the Safe signing overlay (O1).
 
-// Widths as bid / ask around the mid, e.g. "−9 / +1 bp" (the Dashboard's order).
-function widths(sellBps: number, buyBps: number): string {
-  return `−${buyBps} / +${sellBps} bp`;
+// The keeper's note in words. The note reads "markout 2bp repeat 12 sizeUp true cut 1"
+// (ts/src/lib/counterparty.ts signNote); anything else is shown as written.
+function humanWhy(write: AgentWrite): string {
+  const size = write.tier === "tight" ? "Small fill" : write.tier === "standard" ? "Mid-size fill" : write.tier ? "Large fill" : "";
+  const match = /markout (\d+)bp repeat (\w+) sizeUp (true|false) cut (\d+)/.exec(write.note ?? "");
+  if (!match) return [size, write.note].filter(Boolean).join(" · ") || "—";
+  const [, markout, repeat, sizeUp, cut] = match;
+  const signs = [
+    Number(markout) > 0 ? `taker gained ${markout} bp` : "",
+    repeat && repeat !== "none" ? `back after ${repeat} blocks` : "",
+    sizeUp === "true" ? "sized up" : "",
+  ].filter(Boolean);
+  const why = signs.length > 0 && Number(cut) > 0 ? `${signs.join(", ")}: ${cut} bp wider` : "no warning signs";
+  return [size, why].filter(Boolean).join(" · ");
 }
 
 function headerState(agentCount: number, liveCount: number): { label: string; tone: Tone } {
   if (agentCount === 0) return { label: "No live spread", tone: "amber" };
   if (agentCount < liveCount) return { label: `${agentCount} of ${liveCount} live`, tone: "amber" };
   return { label: "Live", tone: "green" };
-}
-
-// The inventory step desk.policy applies now: above the target the agent sells tighter and
-// buys wider, below it the other way round.
-function policyStep(book: DeskBook): { value: string; hint: string } {
-  const { wBps, wStarBps } = book.inventory;
-  const target = `${wStarBps / 100}%`;
-  const share = `ETH ${formatBpsShare(wBps)}`;
-  if (wBps > wStarBps) return { value: `Above ${target}`, hint: `${share} · sell −1 / buy +1 bp` };
-  if (wBps < wStarBps) return { value: `Below ${target}`, hint: `${share} · sell +1 / buy −1 bp` };
-  return { value: `At ${target}`, hint: `${share} · no step` };
 }
 
 export function AgentPage() {
@@ -58,7 +58,8 @@ export function AgentPage() {
   const liveCount = b.names.filter((name) => name.live).length;
   const agentCount = b.names.filter((name) => name.live && name.spread?.live).length;
   const state = headerState(agentCount, liveCount);
-  const step = policyStep(b);
+
+  const above = b.inventory.wBps > b.inventory.wStarBps;
 
   return (
     <Page>
@@ -75,13 +76,14 @@ export function AgentPage() {
         actions={<Badge tone={state.tone}>{state.label}</Badge>}
       />
 
-      <Card title="Spreads by counterparty" flush>
+      <Card title="Widths now" flush>
         <div className="v-table-wrap">
           <table className="v-table">
             <thead>
               <tr>
                 <th>Counterparty</th>
-                <th className="v-right">Widths now</th>
+                <th className="v-right">Bid</th>
+                <th className="v-right">Ask</th>
                 <th className="v-right">Terms</th>
                 <th className="v-right">Set</th>
                 <th>Why</th>
@@ -94,10 +96,11 @@ export function AgentPage() {
                 return (
                   <tr key={name.name}>
                     <td>{shortName(name.name)}</td>
-                    <td className="v-right">{q ? widths(q.sellBps, q.buyBps) : "—"}</td>
-                    <td className="v-right v-muted">{name.terms ? widths(name.terms.sellBps, name.terms.buyBps) : "—"}</td>
+                    <td className="v-right">{q ? `−${q.buyBps} bp` : "—"}</td>
+                    <td className="v-right">{q ? `+${q.sellBps} bp` : "—"}</td>
+                    <td className="v-right v-muted">{name.terms ? `−${name.terms.buyBps} / +${name.terms.sellBps}` : "—"}</td>
                     <td className="v-right v-muted">{write ? formatWhen(write.writtenAt, now) : "—"}</td>
-                    <td className="v-muted">{write ? write.note || write.tier || "—" : q?.source === "terms" ? "On its terms" : "No write yet"}</td>
+                    <td className="v-muted v-wrap">{q?.source === "terms" ? "On its terms" : write ? humanWhy(write) : "No write yet"}</td>
                   </tr>
                 );
               })}
@@ -107,16 +110,47 @@ export function AgentPage() {
       </Card>
 
       <div className="v-grid">
-        <Card className="v-col-7" title="How it decides">
-          <Dl
-            items={[
-              ["When", "After each fill, for that counterparty only. The new widths hold for 10 minutes."],
-              ["Size", "Up to 1 ETH −4 / +1 bp, up to 10 ETH −8 / +2 bp, larger at the terms."],
-              ["Inventory", `Above 70% ETH it sells 1 bp tighter and buys 1 bp wider. Now: ${step.value.toLowerCase()} (${step.hint.split(" · ")[0]}).`],
-              ["Suspicion", "Oracle moved in the taker's favour, the same name back within 50 blocks, or a larger size: 1 bp wider."],
-              ["Limits", "Always inside that counterparty's terms. It writes desk.spread and desk.stats only; terms, policy and the desk stay with the Safe."],
-            ]}
-          />
+        <Card
+          className="v-col-7"
+          title="Rules"
+          flush
+          footer="Rewritten after each fill, for that counterparty only. Valid 10 minutes, always inside its terms."
+        >
+          <div className="v-table-wrap">
+            <table className="v-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th className="v-right">Widths</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Fill up to 1 ETH</td>
+                  <td className="v-right">−4 / +1 bp</td>
+                </tr>
+                <tr>
+                  <td>Fill up to 10 ETH</td>
+                  <td className="v-right">−8 / +2 bp</td>
+                </tr>
+                <tr>
+                  <td>Larger fill</td>
+                  <td className="v-right">Its terms</td>
+                </tr>
+                <tr>
+                  <td>
+                    ETH share above 70%
+                    {above ? <span className="v-muted"> · now</span> : null}
+                  </td>
+                  <td className="v-right">Buy 1 bp wider, sell 1 bp tighter</td>
+                </tr>
+                <tr>
+                  <td>Taker gained, came back fast or sized up</td>
+                  <td className="v-right">Both 1 bp wider</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </Card>
 
         <Card
@@ -128,7 +162,7 @@ export function AgentPage() {
             </button>
           }
         >
-          <div className="v-muted">{b.policy || "The Safe has not written a policy yet."}</div>
+          <p>{b.policy || "The Safe has not written a policy yet."}</p>
         </Card>
       </div>
 
