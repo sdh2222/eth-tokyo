@@ -229,6 +229,14 @@ const abi = [
   },
   {
     type: "error",
+    name: "DeskPriceOracleStale",
+    inputs: [
+      { name: "updatedAt", type: "uint256" },
+      { name: "maxAge", type: "uint256" },
+    ],
+  },
+  {
+    type: "error",
     name: "DeskPriceInsufficientInventory",
     inputs: [
       { name: "amountOut", type: "uint256" },
@@ -268,6 +276,7 @@ const abi = [
           "DeskPriceInsufficientInventory",
           "DeskPriceSizeTooLarge",
           "DeskPriceTargetReached",
+          "DeskPriceOracleStale",
         ].includes(name),
     )
     .map((name) => ({ type: "error" as const, name, inputs: [] })),

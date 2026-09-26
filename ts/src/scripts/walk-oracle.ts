@@ -3,7 +3,6 @@
 // It is not printed and it is not copied into .env.
 // contracts/script/MoveOracle.s.sol is a different script: it reads DEPLOYER_PK and fires three prices once.
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 
 import {
@@ -14,11 +13,12 @@ import {
   type Address,
   type Hex,
 } from "viem";
-import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
+import { type PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 
 import { loadConfig } from "../lib/config.js";
 import { loadEnv, repoRoot } from "./_common/env.js";
+import { accountForLabel } from "./_common/wallet.js";
 
 export const FLOOR = 3980n * 10n ** 8n;
 export const CEILING = 4020n * 10n ** 8n;
@@ -77,19 +77,7 @@ export function parseArgs(argv: string[]): Flags {
 }
 
 function oracleAccount(): PrivateKeyAccount {
-  const path = join(homedir(), ".aqua-eth-tokyo", "wallets.txt");
-  const lines = readFileSync(path, "utf8").split(/\r?\n/);
-  const start = lines.findIndex((line) => line.trim() === "oracle");
-  if (start < 0) throw new Error("oracle label is missing from the wallet file");
-  const keyLine = lines
-    .slice(start, start + 8)
-    .find((line) => line.startsWith("Private key:"));
-  if (!keyLine) throw new Error("oracle private key line is missing");
-  const key = keyLine.slice("Private key:".length).trim();
-  if (!/^0x[0-9a-fA-F]{64}$/.test(key)) {
-    throw new Error("oracle key is not a 32-byte hex private key");
-  }
-  return privateKeyToAccount(key as Hex);
+  return accountForLabel("oracle");
 }
 
 async function sleep(ms: number): Promise<void> {

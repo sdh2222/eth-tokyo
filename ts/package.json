@@ -23,6 +23,7 @@
     "ship": "tsx src/scripts/ship.ts",
     "oracle:walk": "tsx src/scripts/walk-oracle.ts",
     "bot": "tsx src/bot/index.ts",
+    "demo": "tsx src/scripts/demo.ts",
     "e2e": "tsx src/dev/e2e.ts",
     "fixture": "tsx src/dev/fixture.ts",
     "gen:abi": "tsx src/scripts/gen-abi.ts"

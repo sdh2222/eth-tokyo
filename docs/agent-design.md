@@ -6,7 +6,7 @@ The Safe owns one agent. This repo publishes the book and the screen contract. T
 
 Sepolia. Aqua registry `0x1111113ccf1426a8e30e2bff5e005d929bf6a90a`.
 
-Router `1.0.2-desk.4` at `0x82b5303b41E0963C10c2fdA2fe5AF3732877204C` is no longer the quote rule. The router on this branch reads `desk.spread` on the desk name and uses those widths when they are live. Otherwise it uses the `desk.terms` widths. Inventory does not scale either pair. A sell of ETH by the desk reverts at or below a 70% ETH share. The cap is 50 ETH. A fill is allowed for 600 seconds after the oracle `updatedAt` (`maxBlocks` 50). This branch does not send a new router transaction.
+Router `1.0.2-desk.5` at `0xB4e89F4D45bE2419Be4fe55F82a4C23D133f0c22`, deployed in block 11787268, is the fill router. The Safe owns it. It reads `desk.spread` on the desk name and uses those widths when they are live. Otherwise it uses the `desk.terms` widths. Inventory does not scale either pair. A sell of ETH by the desk reverts at or below a 70% ETH share. The cap is 50 ETH. A fill is allowed for 600 seconds after the oracle `updatedAt` (`maxBlocks` 50). `1.0.2-desk.4` at `0x82b5303b41E0963C10c2fdA2fe5AF3732877204C` is no longer the fill router.
 
 Safe `0x213C5832c77F8e27b544881325f9E68C0434027a`. Resolver `0x228bd144dB976960E8D5AbfAe6d5CeB15346970F`.
 
@@ -24,7 +24,7 @@ One agent per Safe, created when that Safe's resolver is deployed. `grantSetterR
 
 The ENS grant covers every name on that resolver, and each treasury has its own resolver. A counterparty's key signs that counterparty's fill. It does not receive the spread grant.
 
-The Safe holds the agent's key and runs the process. This repo does not hold the key and does not send the spread transaction. The key stays in `~/.aqua-eth-tokyo/wallets.txt` on this machine. It is not copied into the repo or `.env`.
+The Safe holds the agent's key and runs the process. The key stays in `~/.aqua-eth-tokyo/wallets.txt` on this machine. It is not copied into the repo or `.env`. `pnpm -C ts demo` signs `desk.spread` with the `risk-agent` label before a fill. `planAgentWrites` still only packs the calls.
 
 ## Records
 
@@ -52,7 +52,7 @@ The Safe holds the agent's key and runs the process. This repo does not hold the
 - `agent`: `{name: "risk.agents.dao-treasury-a.eth", addr: "0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899"}`.
 - `names[]`: `{name, addr, expiry, live}` for each client. `live` is the ENS gate for that name.
 
-At mid 4000 with terms 3 and 10 and no live spread, ask is 4001.2 and bid is 3996. The same book with a live spread of sell 2 and buy 8 asks 4000.8 and bids 3996.8. A sell at or below 70% ETH still reverts. The 50 ETH cap stays. desk.4 is no longer the quote rule.
+At mid 4000 with terms 3 and 10 and no live spread, ask is 4001.2 and bid is 3996. The same book with a live spread of sell 2 and buy 8 asks 4000.8 and bids 3996.8. A sell at or below 70% ETH still reverts. The 50 ETH cap stays. The fill router is `1.0.2-desk.5` at `0xB4e89F4D45bE2419Be4fe55F82a4C23D133f0c22`. desk.4 is no longer the fill router.
 
 ## Screens
 

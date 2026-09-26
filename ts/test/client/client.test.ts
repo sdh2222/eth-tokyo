@@ -273,6 +273,21 @@ describe("T-TS-11 errors", () => {
     });
     expect(decodeDeskError({ data }).code).toBe("DeskPriceNoTerms");
     expect(decodeDeskError({ data: "0xdeadbeef" }).code).toBe("UNKNOWN");
+    const stale = encodeErrorResult({
+      abi: [
+        {
+          type: "error",
+          name: "DeskPriceOracleStale",
+          inputs: [
+            { name: "updatedAt", type: "uint256" },
+            { name: "maxAge", type: "uint256" },
+          ],
+        },
+      ],
+      errorName: "DeskPriceOracleStale",
+      args: [1n, 600n],
+    });
+    expect(decodeDeskError({ data: stale }).code).toBe("DeskPriceOracleStale");
     const swap = buildSwapTx(
       { client: {}, cfg } as unknown as DeskCtx,
       encodeAbiParameters(

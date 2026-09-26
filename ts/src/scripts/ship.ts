@@ -1,6 +1,9 @@
-import { createPublicClient, http, type Hex } from "viem";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { loadConfig } from "../lib/config.js";
+import { createPublicClient, http, type Hex } from "viem";
+import { sepolia } from "viem/chains";
+
 import {
   findLiveStrategy,
   findStrategies,
@@ -11,6 +14,10 @@ import {
   type PlannedTx,
   type StrategyInfo,
 } from "../lib/client/index.js";
+import { loadConfig } from "../lib/config.js";
+import { loadEnv, repoRoot } from "./_common/env.js";
+import { executeSafeCalls } from "./_common/safe-send.js";
+import { keyForLabel } from "./_common/wallet.js";
 
 export type ShipFlags = {
   salt?: bigint;
@@ -102,11 +109,15 @@ export async function plannedTxs(
 
 async function main(): Promise<void> {
   const flags = parseArgs(process.argv.slice(2));
-  const { readFileSync, writeFileSync } = await import("node:fs");
-  const cfg = loadConfig(JSON.parse(readFileSync(flags.config, "utf8")));
-  const client = createPublicClient({
-    transport: http(flags.rpc ?? "http://127.0.0.1:8545"),
-  });
+  loadEnv();
+  const cfg = loadConfig(
+    JSON.parse(readFileSync(join(repoRoot, flags.config), "utf8")),
+  );
+  const fromEnv = process.env.SEPOLIA_RPC_URL?.trim();
+  const rpc =
+    flags.rpc ??
+    (fromEnv ? fromEnv : "https://ethereum-sepolia-rpc.publicnode.com");
+  const client = createPublicClient({ chain: sepolia, transport: http(rpc) });
   const ctx: DeskCtx = { client, cfg };
   const live = await findLiveStrategy(ctx);
   const choice = decide(live, flags);
@@ -119,19 +130,20 @@ async function main(): Promise<void> {
     console.log(formatPlan(cfg.safe === "" ? "unset" : cfg.safe, txs));
     process.exit(0);
   }
-  if (!process.env.SAFE_OWNER_1_PK || !process.env.SAFE_OWNER_2_PK) {
-    console.log(decodeMissing());
-    process.exit(2);
-  }
+  if (cfg.safe === "") throw new Error("safe is unset");
+  const hash = await executeSafeCalls({
+    rpc,
+    safe: cfg.safe,
+    calls: txs,
+    ownerKeys: [keyForLabel("safe-owner-1"), keyForLabel("safe-owner-2")],
+    executorKey: keyForLabel("risk-agent"),
+  });
+  console.log(`safe tx ${hash}`);
   const found = await findStrategies(ctx);
   writeFileSync(
-    `config/strategy.${cfg.chainId}.json`,
+    join(repoRoot, `config/strategy.${cfg.chainId}.json`),
     JSON.stringify(found, null, 2),
   );
-}
-
-function decodeMissing(): string {
-  return "chain or signing error: SAFE_OWNER_1_PK and SAFE_OWNER_2_PK are unset";
 }
 
 const isMain = process.argv[1]?.endsWith("ship.ts");
