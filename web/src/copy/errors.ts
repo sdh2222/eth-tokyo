@@ -1,3 +1,5 @@
+import { CLIENT_SUFFIX, DESK_ENS_NAME } from "../ens/names";
+
 export type ErrorSeverity = "user" | "config" | "system";
 
 export type ErrorCopy = {
@@ -19,17 +21,17 @@ export const ERRORS: Record<string, ErrorCopy> = {
   },
   EnsGateNameNotUnderDesk: {
     title: "That name isn't one of the desk's clients",
-    hint: "Only names under clients.desk.eth can trade.",
+    hint: `Only names under ${CLIENT_SUFFIX} can trade.`,
     severity: "user",
   },
   EnsGateDeskMismatch: {
     title: "The desk's ENS name is not active",
-    hint: "desk.eth has expired or points somewhere else. The treasury must renew it.",
+    hint: `${DESK_ENS_NAME} has expired or points somewhere else. The treasury must renew it.`,
     severity: "config",
   },
   EnsGateClientsMismatch: {
     title: "The client list is not active",
-    hint: "clients.desk.eth has expired or was relinked. The treasury must renew it.",
+    hint: `${CLIENT_SUFFIX} has expired or was relinked. The treasury must renew it.`,
     severity: "config",
   },
   EnsGateNameExpired: {

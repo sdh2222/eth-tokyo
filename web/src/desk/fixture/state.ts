@@ -1,4 +1,5 @@
 import { ERRORS } from "../../copy/errors";
+import { CLIENT_SUFFIX, clientName } from "../../ens/names";
 import { formatWhen } from "../../lib/time";
 import type { DeskPort } from "../port";
 import type {
@@ -112,7 +113,7 @@ export function createFixture(which: "qa" | "demo"): {
       const deadline = DEADLINE;
       return [
         `Open until ${formatWhen(deadline, NOW)}`,
-        "Only names under clients.desk.eth may trade",
+        `Only names under ${CLIENT_SUFFIX} may trade`,
         "Price: oracle mid, skewed toward 70% ETH (κ 2%)",
         "Spread between 0.05% and 2.00%, set per name",
         "Oracle older than 60 minutes blocks trading",
@@ -210,7 +211,7 @@ export function createFixture(which: "qa" | "demo"): {
           orderHash: tx,
           nameHash: tx,
           taker: "0x0000000000000000000000000000000000000005",
-          dnsName: "mm-a.clients.desk.eth",
+          dnsName: clientName("mm-a"),
           name: "mm-a",
           tokenIn: "0x0000000000000000000000000000000000000000",
           tokenOut: "" as Address,
@@ -268,10 +269,10 @@ function state(memory: Memory): DeskState {
     deadline: DEADLINE,
     maxStaleness: 3600,
     mms: [
-      mm(MM_A, "mm-a.clients.desk.eth", NOW + 86400, false, 10, 100000000000n, 20, 3991968000000000000000n, 3976032000000000000000n),
-      mm(MM_B, "mm-b.clients.desk.eth", NOW + 86400, false, 25, 50000000000n, 0, 3993960000000000000000n, 3974040000000000000000n),
-      mm(MM_C, "mm-c.clients.desk.eth", NOW - 86400, true, 10, 100000000000n, 0, 0n, 0n),
-      mm(MM_X, "mm-x.clients.desk.eth", NOW + 86400, false, 0, 0n, 0, 0n, 0n),
+      mm(MM_A, clientName("mm-a"), NOW + 86400, false, 10, 100000000000n, 20, 3991968000000000000000n, 3976032000000000000000n),
+      mm(MM_B, clientName("mm-b"), NOW + 86400, false, 25, 50000000000n, 0, 3993960000000000000000n, 3974040000000000000000n),
+      mm(MM_C, clientName("mm-c"), NOW - 86400, true, 10, 100000000000n, 0, 0n, 0n),
+      mm(MM_X, clientName("mm-x"), NOW + 86400, false, 0, 0n, 0, 0n, 0n),
     ],
   };
 }
@@ -313,10 +314,10 @@ function isDeskError(error: unknown): error is DeskError {
 
 export const FIXTURE_OWNERS = [OWNER1, OWNER2, OWNER3];
 export const FIXTURE_MMS = [
-  { name: "mm-a.clients.desk.eth", address: MM_A },
-  { name: "mm-b.clients.desk.eth", address: MM_B },
-  { name: "mm-c.clients.desk.eth", address: MM_C },
-  { name: "mm-x.clients.desk.eth", address: MM_X },
+  { name: clientName("mm-a"), address: MM_A },
+  { name: clientName("mm-b"), address: MM_B },
+  { name: clientName("mm-c"), address: MM_C },
+  { name: clientName("mm-x"), address: MM_X },
 ];
 export const FIXTURE_DEPLOYER = ZERO;
 
@@ -329,7 +330,7 @@ export function emptyConfig(): DeskConfig {
       deskRegistry: "",
       clientsRegistry: "",
       resolver: "",
-      suffix: "clients.desk.eth",
+      suffix: CLIENT_SUFFIX,
       universalResolver: "",
     },
     tokens: { weth: "", usdc: "" },

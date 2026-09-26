@@ -1,0 +1,47 @@
+{
+  "name": "@desk/lib",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/lib/index.js"
+    },
+    "./client": {
+      "types": "./dist/lib/client/index.d.ts",
+      "import": "./dist/lib/client/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "lint": "eslint . && prettier --check . --ignore-path ../.gitignore",
+    "test": "vitest run",
+    "safe:setup": "tsx src/scripts/safe-setup.ts",
+    "ship": "tsx src/scripts/ship.ts",
+    "bot": "tsx src/bot/index.ts",
+    "e2e": "tsx src/dev/e2e.ts"
+  },
+  "dependencies": {
+    "@1inch/byte-utils": "3.1.9",
+    "@1inch/sdk-core": "0.1.6",
+    "@1inch/swap-vm-sdk": "0.4.4",
+    "@safe-global/protocol-kit": "8.0.7",
+    "@safe-global/types-kit": "4.0.1",
+    "commander": "15.0.0",
+    "dotenv": "18.0.3",
+    "tsx": "4.23.15",
+    "viem": "2.56.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "eslint": "10.11.0",
+    "prettier": "3.9.9",
+    "typescript": "7.0.2",
+    "typescript-eslint": "8.70.1",
+    "typescript6": "npm:typescript@6.0.3",
+    "vitest": "5.0.1"
+  }
+}

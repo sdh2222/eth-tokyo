@@ -1,3 +1,5 @@
+import { AGENT_ENS_NAME, CLIENT_SUFFIX } from "../ens/names";
+
 export const FOOTER =
   "Sepolia testnet · not audited · Powered by SwapVM — © Degensoft Ltd 2025 · Built on 1inch Aqua and ENSv2 (not affiliated)";
 
@@ -74,9 +76,9 @@ export const STOP = "Stop the desk";
 export const CLOSE_EXCEPT = "Close all except the newest";
 export const SEED_TWO = "Seed two desks";
 export const TERMS_ENS = "Terms are managed by the ENS lane.";
-export const CP_HELP = "Each market maker is a name under clients.desk.eth. Its address, tier and cap live in its ENS records; the desk reads them at every fill. When the name expires, it can no longer trade.";
+export const CP_HELP = `Each market maker is a name under ${CLIENT_SUFFIX}. Its address, tier and cap live in its ENS records; the desk reads them at every fill. When the name expires, it can no longer trade.`;
 export const AGENT_HELP = "The agent can only change one number per market maker, inside the range the treasury set. It can't block trading.";
-export const AGENT_NAME = "risk.agents.desk.eth";
+export const AGENT_NAME = AGENT_ENS_NAME;
 export const DEPLOYER_NOTE = "Connect the deployer wallet to move the price.";
 export const STALE_NOTE = "The deployer calls MockOracle.setUpdatedAt";
 export const ANYONE = "Anyone can do this: the event carries every input.";

@@ -13,6 +13,7 @@ import { StatusBadge, type StatusKind } from "../../components/StatusBadge";
 import { Stepper } from "../../components/Stepper";
 import { TxLink } from "../../components/TxLink";
 import { seedOneFill } from "../../desk/fixture";
+import { clientName } from "../../ens/names";
 import { FIXTURE_MMS, FIXTURE_OWNERS } from "../../desk/fixture/state";
 import { labelFor } from "../../hooks/useCanAct";
 
@@ -63,7 +64,7 @@ export function Kit() {
         <SourceBadge source={2} />
       </div>
       <ShareBar shareWad={900000000000000000n} targetWad={700000000000000000n} caption="ETH share 90.0%" />
-      <AddressCell address="0x0000000000000000000000000000000000000005" ens="mm-a.clients.desk.eth" />
+      <AddressCell address="0x0000000000000000000000000000000000000005" ens={clientName("mm-a")} />
       <TxLink hash="0x0000000000000000000000000000000000000000000000000000000000000001" />
       <TxLink hash="0x0000000000000000000000000000000000000000000000000000000000000002" pending />
       <AmountInput value={amount} onChange={setAmount} unit="WETH" max="900" />
