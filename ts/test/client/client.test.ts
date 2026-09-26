@@ -131,6 +131,21 @@ describe("T-TS-8 state", () => {
         : Parameters<typeof readDeskState>[1],
     );
     expect(state.safeWallet).toEqual({ weth: 1n, usdc: 2n });
+    expect(state.balances).toEqual({ weth: 1n, usdc: 2n });
+    const mirror = priceMirror({
+      baseBal: 1n,
+      quoteBal: 2n,
+      answer: 4000n * 10n ** 8n,
+      sSellBps: cfg.desk.sSellBps,
+      sBuyBps: cfg.desk.sBuyBps,
+      cfg,
+      side: "buy",
+      exactIn: true,
+      amount: 1n,
+    });
+    expect(state.wWad).toBe(mirror.wWad);
+    expect(state.mms[0]?.askWad).toBe(mirror.askWad);
+    expect(state.mms[0]?.bidWad).toBe(mirror.bidWad);
     expect(state.mms[0]?.status).toBe("no-addr");
   });
 });
@@ -153,6 +168,11 @@ describe("T-TS-9 quote", () => {
       simulateContract: async () => ({
         result: [mirror.amountIn, mirror.amountOut, "0x" + "00".repeat(32)],
       }),
+      multicall: async () => [
+        { status: "success", result: 900n * 10n ** 18n },
+        { status: "success", result: 400_000n * 10n ** 6n },
+        { status: "success", result: [1n, 4000n * 10n ** 8n, 0n, 10n, 1n] },
+      ],
     };
     const quote = await quoteFor(
       { client, cfg } as unknown as DeskCtx,
