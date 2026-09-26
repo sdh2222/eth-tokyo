@@ -44,15 +44,9 @@
   font-display: swap;
 }
 
-.v-page h1,
-.v-page h2,
-.v-page h3,
-.v-page p,
-.v-page dl,
-.v-page dd,
-.v-page ul,
-.v-page ol,
-.v-page figure {
+/* Element reset at class weight (:where adds none), so .v-title and the other kit classes,
+   which come later in this file, still win. */
+.v-page :where(h1, h2, h3, p, dl, dd, ul, ol, figure) {
   margin: 0;
   font-family: inherit;
   font-size: inherit;
