@@ -183,8 +183,8 @@ const [canSpread, spreadRoles] = await Promise.all([
 ])
 ok(canSpread, `risk agent ${short(agentAddress)} (risk.${AGENTS_NAME}) still holds its key-scoped ${KEY_SPREAD} role (${toHex(spreadRoles)})`)
 const validUntil = (await publicClient.getBlock()).timestamp + 3600n
-await send(agent, { ...R, functionName: 'setData', args: [dnsEncode(mmA), KEY_SPREAD, encodeSpread({ spreadBps: 40, validUntil })], label: `agent writes ${KEY_SPREAD} on ${mmA}` })
+await send(agent, { ...R, functionName: 'setData', args: [dnsEncode(mmA), KEY_SPREAD, encodeSpread({ sellBps: 2, buyBps: 8, validUntil })], label: `agent writes ${KEY_SPREAD} on ${mmA}` })
 const spread = (await readRecords(resolver, mmA, (await publicClient.getBlock()).timestamp)).spread
-ok(spread?.spreadBps === 40, `${mmA} ${KEY_SPREAD} now reads 40 bps, written by the agent`)
+ok(spread?.sellBps === 2 && spread.buyBps === 8, `${mmA} ${KEY_SPREAD} now reads sell 2 bp / buy 8 bp, written by the agent`)
 
 console.log(`\nfork demo passed. Next: npm run verify -- --safe ${safe}`)

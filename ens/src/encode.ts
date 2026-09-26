@@ -47,21 +47,21 @@ export const keyResource = (key: string) => BigInt(keccak256(stringToBytes(key))
 // desk.terms is what DeskPrice reads after one abi.decode of resolve(): 128 bytes,
 // abi.encode(uint8 version, uint16 sSellBps, uint16 sBuyBps, uint128 cap). cap is WETH wei.
 // The router reverts DeskPriceNoTerms unless version is 1, sell < buy < 10000, and cap > 0.
-// desk.spread stays abi.encode(uint8 version, uint16 spreadBps, uint64 validUntil), 96 bytes.
-// The router does not read desk.spread. This decoder only reports what is stored.
+// desk.spread is abi.encode(uint8 version, uint16 sellBps, uint16 buyBps, uint64 validUntil), 128 bytes.
+// A 96-byte record is not live. The router does not read this record yet.
 const TERMS = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint16' }, { type: 'uint128' }] as const
-const SPREAD = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint64' }] as const
+const SPREAD = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint16' }, { type: 'uint64' }] as const
 const TERMS_BYTES = 128
-const SPREAD_BYTES = 96
+const SPREAD_BYTES = 128
 
 export type Terms = { version: number; sSellBps: number; sBuyBps: number; cap: bigint }
-export type Spread = { version: number; spreadBps: number; validUntil: bigint }
+export type Spread = { version: number; sellBps: number; buyBps: number; validUntil: bigint }
 
 export const encodeTerms = (t: { sSellBps: number; sBuyBps: number; cap: bigint }) =>
   encodeAbiParameters(TERMS, [RECORD_VERSION, t.sSellBps, t.sBuyBps, t.cap])
 
-export const encodeSpread = (s: { spreadBps: number; validUntil: bigint }) =>
-  encodeAbiParameters(SPREAD, [RECORD_VERSION, s.spreadBps, s.validUntil])
+export const encodeSpread = (s: { sellBps: number; buyBps: number; validUntil: bigint }) =>
+  encodeAbiParameters(SPREAD, [RECORD_VERSION, s.sellBps, s.buyBps, s.validUntil])
 
 const byteLength = (value: Hex) => (value.length - 2) / 2
 
@@ -81,7 +81,7 @@ export function decodeTerms(value: Hex): { terms: Terms | null; valid: boolean }
 /** Stored desk.spread. The router does not read this record. */
 export function decodeSpread(value: Hex, now: bigint): { spread: Spread | null; valid: boolean } {
   if (byteLength(value) !== SPREAD_BYTES) return { spread: null, valid: false }
-  const [version, spreadBps, validUntil] = decodeAbiParameters(SPREAD, value)
-  const spread = { version, spreadBps, validUntil }
-  return { spread, valid: version === RECORD_VERSION && now <= validUntil }
+  const [version, sellBps, buyBps, validUntil] = decodeAbiParameters(SPREAD, value)
+  const spread = { version, sellBps, buyBps, validUntil }
+  return { spread, valid: version === RECORD_VERSION && validUntil >= now }
 }

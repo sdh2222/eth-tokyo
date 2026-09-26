@@ -72,7 +72,7 @@ const [canSpread, canTerms, isRoot] = await Promise.all([
 check(canSpread, 'agent can write desk.spread')
 check(!canTerms, 'agent cannot write desk.terms')
 check(!isRoot, 'agent has no root data role')
-info(`${mmA.name} stored desk.spread (router does not read it): ${mmA.storedSpread ? `${mmA.storedSpread.bps} bp until ${iso(mmA.storedSpread.validUntil)}` : 'none'}`)
+info(`${mmA.name} stored desk.spread (router does not read it): ${mmA.storedSpread ? `sell ${mmA.storedSpread.sellBps} bp / buy ${mmA.storedSpread.buyBps} bp until ${iso(mmA.storedSpread.validUntil)}` : 'none'}`)
 
 // 5. Standard clients: UniversalResolverV2 walks the same hierarchy
 const ur = parseAbi(['function resolve(bytes name, bytes data) view returns (bytes result, address resolver)'])

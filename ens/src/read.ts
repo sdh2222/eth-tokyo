@@ -64,8 +64,8 @@ export async function readRecords(resolver: Address, fullName: string, now: bigi
 
 export type ClientView = Records & {
   name: string
-  /** Stored desk.spread when the 96-byte record is still inside validUntil. The router does not read it. */
-  storedSpread: { bps: number; validUntil: bigint } | null
+  /** Stored desk.spread when the 128-byte record is still inside validUntil. The router does not read it yet. */
+  storedSpread: { sellBps: number; buyBps: number; validUntil: bigint } | null
   expiries: { name: string; expiry: bigint }[]
   expiryOk: boolean
   resolver: Address
@@ -88,7 +88,7 @@ export async function readClient(fullName: string): Promise<ClientView> {
   const expiryOk = levels.every((l) => l.expiry > block.timestamp)
   const resolverOk = resolver !== zeroAddress && resolver.toLowerCase() === expected.toLowerCase()
   const storedSpread = records.spreadValid
-    ? { bps: records.spread!.spreadBps, validUntil: records.spread!.validUntil }
+    ? { sellBps: records.spread!.sellBps, buyBps: records.spread!.buyBps, validUntil: records.spread!.validUntil }
     : null
   return {
     name: fullName,

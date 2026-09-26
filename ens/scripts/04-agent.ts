@@ -69,7 +69,7 @@ if (agentWallet && (await publicClient.getBalance({ address: agent })) < parseEt
 
 // 4. The boundary. Without the agent's key, the allowed write is simulated from its address instead of sent.
 const validUntil = (await publicClient.getBlock()).timestamp + 3600n
-const allowed = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_SPREAD, encodeSpread({ spreadBps: 40, validUntil })] as const }
+const allowed = { ...R, functionName: 'setData' as const, args: [dnsEncode(target), KEY_SPREAD, encodeSpread({ sellBps: 2, buyBps: 8, validUntil })] as const }
 if (agentWallet) {
   await send(agentWallet, { ...allowed, label: `agent writes ${KEY_SPREAD} on ${target}` })
 } else {
