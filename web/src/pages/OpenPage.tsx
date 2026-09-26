@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import sepoliaConfig from "@config";
 import { formatBpsShare, formatWadUsd } from "../desk/book";
-import { POLICY_TEMPLATE, readPolicy } from "../desk/policy";
+import { englishPolicy, POLICY_TEMPLATE, readPolicy } from "../desk/policy";
 import { FIXTURE_OWNERS } from "../desk/fixture/state";
 import { useBook } from "../hooks/useBook";
 import { useCanAct } from "../hooks/useCanAct";
@@ -394,7 +394,7 @@ export function OpenPage() {
           {step === 4 && (
             <div className="v-grid">
               <label className="v-field v-col-6">
-                <span>Policy</span>
+                <span>Stored text · the agent reads its Korean sentences</span>
                 <textarea
                   className="v-input"
                   lang="ko"
@@ -409,6 +409,11 @@ export function OpenPage() {
                 </span>
               </label>
               <div className="v-col-6 v-stack v-stack-24">
+                {englishPolicy(policy) ? (
+                  <Block title="In English">
+                    <p>{englishPolicy(policy)}</p>
+                  </Block>
+                ) : null}
                 <Block title="What the agent reads">
                   <Dl items={[...policyReading.lines, POLICY_FLOOR]} />
                   {policyReading.missing.map((rule) => (

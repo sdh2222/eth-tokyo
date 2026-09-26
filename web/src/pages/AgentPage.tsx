@@ -9,7 +9,7 @@ import { useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr } from "../lib/format";
 import { formatWhen } from "../lib/time";
 import { widthsFor } from "@desk/counterparty";
-import { readPolicy } from "../desk/policy";
+import { englishPolicy, readPolicy } from "../desk/policy";
 import { Badge, Card, Dl, Empty, Header, Page, Status, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
@@ -117,7 +117,7 @@ function PolicyCard({ className, policy }: { className: string; policy: string }
       {editing ? (
         <div className="v-stack">
           <label className="v-field">
-            <span className="v-label">desk.policy</span>
+            <span className="v-label">Stored text · the agent reads its Korean sentences</span>
             <textarea
               className="v-input"
               lang="ko"
@@ -137,7 +137,17 @@ function PolicyCard({ className, policy }: { className: string; policy: string }
           </div>
         </div>
       ) : (
-        <p lang="ko">{policy || "The Safe has not written a policy yet."}</p>
+        <div className="v-stack v-stack-8">
+          <p>{policy ? englishPolicy(policy) || "The agent reads no rule from this policy." : "The Safe has not written a policy yet."}</p>
+          {policy ? (
+            <details className="v-details">
+              <summary>Stored text</summary>
+              <p lang="ko" className="v-muted">
+                {policy}
+              </p>
+            </details>
+          ) : null}
+        </div>
       )}
       <SafeDialog
         isOpen={isSafeOpen}

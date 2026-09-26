@@ -40,3 +40,30 @@ export function readPolicy(text: string): PolicyReading {
   }
   return { step, rule, lines, missing };
 }
+
+// The template's sentences the keeper does not parse, in English.
+const TEMPLATE_PREAMBLE =
+  "Names already on the book may get narrower widths than their posted terms. Large and first-time fills stay at ask 3 bp, bid 10 bp. The desk never quotes outside those terms, and the oracle mid does not move.";
+
+/**
+ * The policy in English, for the screen. The stored text stays as written (the keeper parses
+ * its Korean sentences); this says the same from what the keeper reads, plus the template's
+ * other sentences when the text is main's template.
+ */
+export function englishPolicy(text: string): string {
+  const { step, rule } = readPolicy(text);
+  const parts: string[] = [];
+  if (text.trim() === POLICY_TEMPLATE) parts.push(TEMPLATE_PREAMBLE);
+  if (step) {
+    parts.push(
+      `Above 70% ETH, the agent takes ${step.above.sell} bp off the ask width and adds ${step.above.buy} bp to the bid width. Below 70%, it adds ${step.below.sell} bp to the ask and takes ${step.below.buy} bp off the bid.`,
+    );
+  }
+  if (step || rule) parts.push("The ask stays at 1 bp or more, and both widths stay inside that name's terms.");
+  if (rule) {
+    parts.push(
+      `After a fill, if the oracle moves ${rule.markoutBps} bp or more in that name's favour, the same name is back within ${rule.withinBlocks} blocks, or the size is larger than its last fill, both widths go ${rule.cutBps} bp wider.`,
+    );
+  }
+  return parts.join(" ");
+}
