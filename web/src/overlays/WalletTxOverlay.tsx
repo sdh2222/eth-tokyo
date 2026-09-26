@@ -53,7 +53,7 @@ export function WalletTxOverlay({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-bg/80">
-      <div className="w-full max-w-[var(--max)] rounded-card bg-bg p-6 shadow-overlay">
+      <div className="w-full max-w-[var(--max)] rounded-card bg-bg p-6">
         {shown === "review" || shown === "wallet" ? (
           <>
             <p className="text-body">{kind === "approve" ? APPROVE_COPY : FILL_COPY}</p>

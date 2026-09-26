@@ -9,7 +9,6 @@ import {
   FOOTER,
   MARK,
   NAV_LABEL,
-  NETWORK_SEPOLIA,
   ROLE_LABEL,
   SWITCH_SEPOLIA,
 } from "../copy/en";
@@ -60,7 +59,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {children}
           {showHeader ? <DemoDrawer /> : null}
         </main>
-        <footer className="break-words px-4 py-6 text-small text-muted shadow-overlay sm:px-8">{FOOTER}</footer>
+        <footer className="break-words px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
       </div>
     </ToastProvider>
   );
@@ -117,21 +116,20 @@ function AppHeader() {
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <NetworkChip />
           <WalletChip />
-          <label className="flex items-center gap-2 text-small text-muted">
-            Mode
-            <select
-              aria-label="Mode"
-              className="text-body text-text"
-              value={role}
-              onChange={(event) => pick(event.target.value as Role)}
-            >
-              {ROLES.map((item) => (
-                <option key={item} value={item}>
-                  {ROLE_LABEL[item]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="mode-switch" role="radiogroup" aria-label="Mode">
+            <span className="mode-thumb" style={{ transform: `translateX(${ROLES.indexOf(role) * 100}%)` }} />
+            {ROLES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="radio"
+                aria-checked={item === role}
+                onClick={() => pick(item)}
+              >
+                {ROLE_LABEL[item]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <nav className="mx-auto flex w-full max-w-[var(--max)] flex-wrap gap-2 px-4 pb-4 sm:px-8" aria-label="Pages">
@@ -141,9 +139,7 @@ function AppHeader() {
             to={link.to}
             end={link.end}
             className={({ isActive }) =>
-              isActive
-                ? "rounded-control bg-text px-3 py-2 text-body text-onfocus no-underline"
-                : "rounded-control bg-transparent px-3 py-2 text-body text-muted no-underline shadow-none"
+              isActive ? "page-tab bg-text text-body text-onfocus" : "page-tab bg-transparent text-body text-muted"
             }
           >
             {link.label}
@@ -161,9 +157,7 @@ function NetworkChip() {
     account.status === "connected" && account.chainId != null ? account.chainId : configChainId;
   const { switchChain } = useSwitchChain();
 
-  if (chainId === 11155111) {
-    return <span className="text-body text-muted">{NETWORK_SEPOLIA}</span>;
-  }
+  if (chainId === 11155111) return null;
 
   return (
     <button
@@ -194,7 +188,7 @@ function WalletChip() {
   return (
     <button
       type="button"
-      className="text-body"
+      className="header-wallet text-small"
       onClick={() => {
         if (connector) connect({ connector });
       }}
