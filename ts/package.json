@@ -21,6 +21,7 @@
     "test": "vitest run",
     "safe:setup": "tsx src/scripts/safe-setup.ts",
     "ship": "tsx src/scripts/ship.ts",
+    "oracle:walk": "tsx src/scripts/walk-oracle.ts",
     "bot": "tsx src/bot/index.ts",
     "e2e": "tsx src/dev/e2e.ts",
     "fixture": "tsx src/dev/fixture.ts",

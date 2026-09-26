@@ -64,15 +64,15 @@ describe("T-TS-1 encodings", () => {
 
 describe("T-TS-2 price mirror", () => {
   const cells = [
-    ["buy", true, 4_001_200_000n, 10n ** 18n],
-    ["buy", false, 10n ** 18n, 4_001_200_000n],
-    ["sell", true, 10n ** 18n, 3_996_000_000n],
-    ["sell", false, 3_996_000_000n, 10n ** 18n],
-    ["buy", true, 1_000n * 10n ** 6n, 249925022493252024n],
-    ["sell", true, 5n * 10n ** 17n, 1_998_000_000n],
+    ["buy", true, 3_985_195_200n, 10n ** 18n],
+    ["buy", false, 10n ** 18n, 3_985_195_200n],
+    ["sell", true, 10n ** 18n, 3_980_016_000n],
+    ["sell", false, 3_980_016_000n, 10n ** 18n],
+    ["buy", true, 1_000n * 10n ** 6n, 250_928_737_443_024_120n],
+    ["sell", true, 5n * 10n ** 17n, 1_990_008_000n],
   ] as const;
 
-  it("quotes the oracle mid with two widths", () => {
+  it("quotes the skewed mid with two widths", () => {
     for (const [side, exactIn, amount, expected] of cells) {
       const got = priceMirror({
         baseBal: 900n * 10n ** 18n,
@@ -87,6 +87,7 @@ describe("T-TS-2 price mirror", () => {
         amount,
       });
       expect(exactIn ? got.amountOut : got.amountIn).toBe(expected);
+      expect(got.rWad).toBe(3984n * 10n ** 18n);
       expect(got.sellStopped).toBe(false);
     }
     const stopped = priceMirror({

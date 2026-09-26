@@ -1,5 +1,6 @@
 import type { DeskConfig } from "../config.js";
 import type { DeskFillEvent } from "../events.js";
+import { skewedMid } from "../price.js";
 
 const WAD = 10n ** 18n;
 
@@ -25,9 +26,11 @@ export function verifyFill(
 ): FillCheck {
   const d = cfg.desk;
   const baseIsIn = f.tokenIn.toLowerCase() === f.base.toLowerCase();
+  const wStar = BigInt(d.wStarBps) * 10n ** 14n;
+  const rWad = skewedMid(f.midWad, f.wBeforeWad, wStar);
   const price = baseIsIn
-    ? (f.midWad * BigInt(10_000 - f.sBuyBps)) / 10_000n
-    : (f.midWad * BigInt(10_000 + f.sSellBps)) / 10_000n;
+    ? (rWad * BigInt(10_000 - f.sBuyBps)) / 10_000n
+    : (rWad * BigInt(10_000 + f.sSellBps)) / 10_000n;
   const baseScale = 10n ** BigInt(18 - d.baseDecimals);
   const quoteScale = 10n ** BigInt(18 - d.quoteDecimals);
   const amountOut = baseIsIn

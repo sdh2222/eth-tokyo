@@ -1,6 +1,24 @@
 import type { DeskConfig } from "./config.js";
 
 const WAD = 10n ** 18n;
+/** 200 bp. `r = mid * (1 - kappa * (w - w*))`. The same constant as `DeskPrice.KAPPA_BPS`. */
+export const KAPPA_BPS = 200n;
+
+/** Reservation mid. Below `wStarWad` the term flips and `r` rises. */
+export function skewedMid(
+  pWad: bigint,
+  wWad: bigint,
+  wStarWad: bigint,
+): bigint {
+  const denom = 10_000n * WAD;
+  if (wWad >= wStarWad) {
+    const cut = KAPPA_BPS * (wWad - wStarWad);
+    if (cut >= denom) return 0n;
+    return (pWad * (denom - cut)) / denom;
+  }
+  const lift = KAPPA_BPS * (wStarWad - wWad);
+  return (pWad * (denom + lift)) / denom;
+}
 
 export interface PriceInput {
   baseBal: bigint;
@@ -40,8 +58,9 @@ export function priceMirror(input: PriceInput): PriceResult {
   const wStar = BigInt(d.wStarBps) * 10n ** 14n;
   const baseIsIn = input.side === "sell";
   const sellStopped = !baseIsIn && wWad <= wStar;
-  const askWad = (pWad * BigInt(10_000 + input.sSellBps)) / 10_000n;
-  const bidWad = (pWad * BigInt(10_000 - input.sBuyBps)) / 10_000n;
+  const rWad = skewedMid(pWad, wWad, wStar);
+  const askWad = (rWad * BigInt(10_000 + input.sSellBps)) / 10_000n;
+  const bidWad = (rWad * BigInt(10_000 - input.sBuyBps)) / 10_000n;
   const price = baseIsIn ? bidWad : askWad;
   let amountIn: bigint;
   let amountOut: bigint;
@@ -64,7 +83,7 @@ export function priceMirror(input: PriceInput): PriceResult {
     amountIn,
     amountOut,
     wWad,
-    rWad: pWad,
+    rWad,
     askWad,
     bidWad,
     sSellBps: input.sSellBps,

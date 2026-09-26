@@ -18,6 +18,8 @@ abstract contract DeskPrice is IDeskEvents {
     using ContextLib for Context;
 
     uint256 internal constant WAD = 1e18;
+    /// @dev 200 bp. `r = mid * (1 - kappa * (w - w*))`. A program argument would change the golden tail.
+    uint256 internal constant KAPPA_BPS = 200;
 
     error DeskPriceInvalidArgs();
     error DeskPriceMissingName();
@@ -46,7 +48,7 @@ abstract contract DeskPrice is IDeskEvents {
         uint256 wStar = uint256(a.wStarBps) * 1e14;
         if (!baseIsIn && wWad <= wStar) revert DeskPriceTargetReached(wWad, wStar);
 
-        (uint256 askWad, uint256 bidWad) = _quotes(pWad, sSell, sBuy);
+        (uint256 askWad, uint256 bidWad) = _quotes(pWad, wWad, wStar, sSell, sBuy);
         (uint256 amountIn, uint256 amountOut) = _amounts(ctx, a, askWad, bidWad, baseIsIn, baseIsOut);
         uint256 wethAmt = baseIsIn ? amountIn : amountOut;
         if (wethAmt > cap) {
@@ -158,9 +160,27 @@ abstract contract DeskPrice is IDeskEvents {
         wWad = Math.mulDiv(ethValue, WAD, book, Math.Rounding.Floor);
     }
 
-    function _quotes(uint256 pWad, uint16 sSell, uint16 sBuy) private pure returns (uint256 askWad, uint256 bidWad) {
-        askWad = Math.mulDiv(pWad, 10_000 + uint256(sSell), 10_000, Math.Rounding.Floor);
-        bidWad = Math.mulDiv(pWad, 10_000 - uint256(sBuy), 10_000, Math.Rounding.Floor);
+    function _quotes(uint256 pWad, uint256 wWad, uint256 wStarWad, uint16 sSell, uint16 sBuy)
+        private
+        pure
+        returns (uint256 askWad, uint256 bidWad)
+    {
+        uint256 rWad = _skew(pWad, wWad, wStarWad);
+        askWad = Math.mulDiv(rWad, 10_000 + uint256(sSell), 10_000, Math.Rounding.Floor);
+        bidWad = Math.mulDiv(rWad, 10_000 - uint256(sBuy), 10_000, Math.Rounding.Floor);
+    }
+
+    /// @dev `r = p * (10_000 * WAD ± KAPPA_BPS * |w - w*|) / (10_000 * WAD)`. Below `w*` the sign flips, so `r` rises.
+    function _skew(uint256 pWad, uint256 wWad, uint256 wStarWad) private pure returns (uint256 rWad) {
+        uint256 denom = 10_000 * WAD;
+        if (wWad >= wStarWad) {
+            uint256 cut = KAPPA_BPS * (wWad - wStarWad);
+            if (cut >= denom) return 0;
+            rWad = Math.mulDiv(pWad, denom - cut, denom, Math.Rounding.Floor);
+        } else {
+            uint256 lift = KAPPA_BPS * (wStarWad - wWad);
+            rWad = Math.mulDiv(pWad, denom + lift, denom, Math.Rounding.Floor);
+        }
     }
 
     function _amounts(

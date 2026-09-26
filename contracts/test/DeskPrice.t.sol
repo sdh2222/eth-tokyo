@@ -144,12 +144,12 @@ contract DeskPriceTest is Test {
     }
 
     function test_TP1_vectors() public {
-        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
-        _cell(900e18, 400_000e6, true, true, 4_001_200_000, 1e18);
-        _cell(900e18, 400_000e6, false, true, 1e18, 3_996_000_000);
-        _cell(900e18, 400_000e6, false, false, 3_996_000_000, 1e18);
-        _cell(900e18, 400_000e6, true, true, 1000e6, 249_925_022_493_252_024);
-        _cell(900e18, 400_000e6, false, true, 0.5e18, 1_998_000_000);
+        _cell(900e18, 400_000e6, true, false, 1e18, 3_985_195_200);
+        _cell(900e18, 400_000e6, true, true, 3_985_195_200, 1e18);
+        _cell(900e18, 400_000e6, false, true, 1e18, 3_980_016_000);
+        _cell(900e18, 400_000e6, false, false, 3_980_016_000, 1e18);
+        _cell(900e18, 400_000e6, true, true, 1000e6, 250_928_737_443_024_120);
+        _cell(900e18, 400_000e6, false, true, 0.5e18, 1_990_008_000);
     }
 
     function test_TP1_sellStopsAtTarget() public {
@@ -161,7 +161,7 @@ contract DeskPriceTest is Test {
             abi.encodeWithSelector(DeskPrice.DeskPriceTargetReached.selector, uint256(0.25e18), uint256(0.7e18))
         );
         harness.run(priceArgs, taker, true, address(usdc), address(weth), 1_200_000e6, 100e18, 1000e6, true);
-        _cell(100e18, 1_200_000e6, false, true, 1e18, 3_996_000_000);
+        _cell(100e18, 1_200_000e6, false, true, 1e18, 4_031_964_000);
     }
 
     function test_TP10_capIsWethAndSpreadIsIgnored() public {
@@ -169,7 +169,7 @@ contract DeskPriceTest is Test {
         (uint256 amountIn, uint256 amountOut) =
             harness.run(priceArgs, taker, true, address(usdc), address(weth), 400_000e6, 900e18, 1000e6, false);
         assertEq(amountIn, 1000e6);
-        assertEq(amountOut, 249_925_022_493_252_024);
+        assertEq(amountOut, 250_928_737_443_024_120);
         Vm.Log[] memory logs = vm.getRecordedLogs();
         (,,,,,, uint16 sell, uint16 buy,) = abi.decode(
             logs[logs.length - 1].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint16, uint256)
@@ -178,7 +178,7 @@ contract DeskPriceTest is Test {
         assertEq(buy, 10);
 
         resolver.setData(dnsName, "desk.spread", abi.encode(uint8(1), uint16(40), uint64(block.timestamp + 1000)));
-        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+        _cell(900e18, 400_000e6, true, false, 1e18, 3_985_195_200);
 
         resolver.setData(dnsName, "desk.terms", _terms(3, 10, 1e18));
         harness.run(priceArgs, taker, false, address(usdc), address(weth), 400_000e6, 900e18, 1e18, true);

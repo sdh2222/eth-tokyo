@@ -14,7 +14,7 @@
     "usdc": "0xf9c632dc8A3de673B95FF8F0645024C541D54d42"
   },
   "oracle": "0xbD625C653F6f703a4040d892882d3Ed254947404",
-  "router": "0xea3a77DC779d30574541d683bAE3dbbdA894a408",
+  "router": "0x4aEd37b536E2a8828A0dC29bc705FE2ED2e4414D",
   "safe": "0x213C5832c77F8e27b544881325f9E68C0434027a",
   "desk": {
     "oracleDecimals": 8,
@@ -25,8 +25,8 @@
     "sSellBps": 3,
     "sBuyBps": 10,
     "strategyTtlDays": 30,
-    "shipWeth": "900000000000000000000",
-    "shipUsdc": "400000000000"
+    "shipWeth": "899974881907287110350",
+    "shipUsdc": "400100000000"
   },
   "mms": [
     {

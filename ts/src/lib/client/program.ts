@@ -35,7 +35,7 @@ export function describeProgram(d: DecodedProgram, cfg: DeskConfig): string[] {
   return [
     `Open until ${when}`,
     `Only names under ${suffix} may trade`,
-    `Price: oracle mid. A sell stops at ${target}% ETH`,
+    `Price: inventory shifts the oracle mid, then the two widths. A sell stops at ${target}% ETH`,
     `Open for ${blocks} blocks after the oracle update`,
     cfg.ens.suffix === suffix
       ? "Suffix matches the config"
