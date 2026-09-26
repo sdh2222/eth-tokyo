@@ -5,12 +5,14 @@ import type { DeskBook } from "../desk/book";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr, formatWeth } from "../lib/format";
-import { Empty, Facts, Page, PageHead, Pill, Section, Window, type Tone } from "../ui/plain";
+import { formatWhen } from "../lib/time";
+import { SpreadStrip } from "../ui/cells";
+import { Badge, Card, Dl, Header, Metric, Metrics, Page, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
-// Risk agent (IA: "What spread is the agent setting, and inside which limits?"). Plain page kit.
-// Screens SC-24: every section is 12 columns. The page is read-only except the policy edit,
-// which opens the Safe signing overlay (O1).
+// Risk agent (IA: "What spread is the agent setting, and inside which limits?"). Vercel-style:
+// the spread in one metrics card, then Spread and Policy cards, then Identity and Permissions.
+// Read-only except the policy edit, which opens the Safe signing overlay (O1).
 
 type SpreadState = { label: string; tone: Tone };
 
@@ -22,10 +24,10 @@ const CAN_WRITE: readonly (readonly [string, string])[] = [
 const CANNOT = ["Policy", "Terms", "Addresses", "Caps", "Expiry", "Oracle", "Ship or stop the desk"];
 
 function spreadState(book: DeskBook, now: number): SpreadState {
-  if (book.spread === null) return { label: "No spread · quoting on terms", tone: "neutral" };
-  if (book.spread.live) return { label: "Live", tone: "success" };
-  if (Number(book.spread.validUntil) <= now) return { label: "Expired · quoting on terms", tone: "warning" };
-  return { label: "Outside terms · quoting on terms", tone: "warning" };
+  if (book.spread === null) return { label: "No spread", tone: "gray" };
+  if (book.spread.live) return { label: "Live", tone: "green" };
+  if (Number(book.spread.validUntil) <= now) return { label: "Expired", tone: "amber" };
+  return { label: "Outside fence", tone: "amber" };
 }
 
 function formatDateTime(seconds: number): string {
@@ -43,147 +45,125 @@ export function AgentPage() {
   const now = useClock();
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
 
-  if (book.isLoading) {
-    return (
-      <Page>
-        <PageHead title="Risk agent" lede="Reading the agent…" />
-      </Page>
-    );
-  }
   if (!book.data) {
     return (
       <Page>
-        <PageHead title="Risk agent" />
-        <Empty title="The agent could not be read. Check the Sepolia RPC in web/.env and reload." />
+        <Header
+          title="Risk agent"
+          description={book.isLoading ? "Reading the agent…" : "The agent could not be read. Check the Sepolia RPC in web/.env and reload."}
+        />
       </Page>
     );
   }
 
   const b = book.data;
   const state = spreadState(b, now);
-  const termsWidths = b.terms ? `sell ${b.terms.sellBps} bp · buy ${b.terms.buyBps} bp` : null;
   const validUntil = b.spread ? Number(b.spread.validUntil) : 0;
+  const live = b.spread?.live === true;
+  // The widths the quote uses now: the agent spread while it is live, otherwise the terms.
+  const widthsNow = live && b.spread ? b.spread : b.terms;
+  // The strip draws the agent's spread (even when it is outside the fence) against the terms.
+  const sell = b.spread?.sellBps ?? b.terms?.sellBps ?? 0;
+  const buy = b.spread?.buyBps ?? b.terms?.buyBps ?? 0;
 
   return (
     <Page>
-      <PageHead kicker={b.agent.name} title="Risk agent" lede="What spread is the agent setting, and inside which limits?" />
+      <Header title="Risk agent" description={b.agent.name} actions={<Badge tone={state.tone}>{state.label}</Badge>} />
 
-      <div className="wk-grid">
-        <Section title="Live spread" className="wk-span-12" aside={<Pill tone={state.tone}>{state.label}</Pill>}>
-          {b.spread ? (
-            <>
-              <div className="wk-quote">
-                <div className="wk-stack wk-stack-4">
-                  <span className="wk-label">Sell width</span>
-                  <span className="wk-big">
-                    <span className="wk-mark">{`${b.spread.sellBps} bp`}</span>
-                  </span>
-                  {b.terms ? <span className="wk-muted">{`Limit ${b.terms.sellBps} bp`}</span> : null}
-                </div>
-                <div className="wk-stack wk-stack-4">
-                  <span className="wk-label">Buy width</span>
-                  <span className="wk-big">
-                    <span className="wk-mark">{`${b.spread.buyBps} bp`}</span>
-                  </span>
-                  {b.terms ? <span className="wk-muted">{`Limit ${b.terms.buyBps} bp`}</span> : null}
-                </div>
-              </div>
-              <Facts
-                items={[
-                  [
-                    "Valid until",
-                    <time dateTime={new Date(validUntil * 1000).toISOString()}>{formatDateTime(validUntil)}</time>,
-                  ],
-                ]}
-              />
-            </>
-          ) : (
-            <p>{`The agent has not written desk.spread on ${b.name}.`}</p>
-          )}
-          <p className="wk-muted">
-            {b.spread?.live
-              ? "Both counterparties pay these widths until the time above."
-              : termsWidths
-                ? `The quote uses the terms: ${termsWidths}.`
-                : "No quote: the terms on the client names disagree or are missing."}
-          </p>
-        </Section>
+      <Card flush>
+        <Metrics>
+          <Metric label="Bid width" value={b.spread ? `−${b.spread.buyBps} bp` : "—"} />
+          <Metric label="Ask width" value={b.spread ? `+${b.spread.sellBps} bp` : "—"} />
+          <Metric
+            label="Valid until"
+            value={b.spread ? formatWhen(validUntil, now) : "—"}
+            hint={b.spread ? <time dateTime={new Date(validUntil * 1000).toISOString()}>{formatDateTime(validUntil)}</time> : undefined}
+          />
+          <Metric label="Source" value={live ? "Agent spread" : b.terms ? "Terms widths" : "No quote"} />
+        </Metrics>
+      </Card>
 
-        <Section title="Policy" className="wk-span-12">
-          <Window title="desk.policy" meta={b.name}>
-            <p>{b.policy || "The Safe has not written a policy yet."}</p>
-          </Window>
-          <p className="wk-muted">Plain English the Safe writes. The agent follows it.</p>
-          <div className="wk-row">
-            <button type="button" className="wk-btn" onClick={() => setIsPolicyOpen(true)}>
-              Edit policy
-            </button>
-          </div>
-        </Section>
-
-        <Section
-          title="Fence"
-          className="wk-span-12"
-          aside={
-            <Link className="wk-link" to="/counterparties">
-              See counterparties
+      <div className="v-grid">
+        <Card
+          className="v-col-7"
+          title="Spread"
+          actions={
+            <Link className="v-btn v-btn-secondary" to="/counterparties">
+              Counterparties
             </Link>
           }
+          footer={<span>A spread counts only inside the terms. Otherwise the quote uses the terms.</span>}
         >
-          {b.terms ? (
-            <Facts
+          <div className="v-stack v-stack-24">
+            <SpreadStrip sellBps={sell} buyBps={buy} fenceSellBps={b.terms?.sellBps} fenceBuyBps={b.terms?.buyBps} />
+            <Dl
               items={[
-                ["Sell width limit", `${b.terms.sellBps} bp`],
-                ["Buy width limit", `${b.terms.buyBps} bp`],
-                ["Cap per fill", formatWeth(b.terms.cap)],
+                ["Widths now", widthsNow ? `bid −${widthsNow.buyBps} bp · ask +${widthsNow.sellBps} bp` : "—"],
+                [
+                  "Terms fence",
+                  b.terms
+                    ? `bid −${b.terms.buyBps} bp · ask +${b.terms.sellBps} bp · cap ${formatWeth(b.terms.cap)}`
+                    : "None · the client names disagree or are missing",
+                ],
               ]}
             />
-          ) : (
-            <p>No terms: the client names disagree or are missing.</p>
-          )}
-          <p className="wk-muted">A spread counts only inside these terms. Otherwise the quote uses the terms.</p>
-        </Section>
+          </div>
+        </Card>
 
-        <Section title="Identity and permissions" className="wk-span-12">
-          <Facts
-            items={[
-              ["ENS name", b.agent.name],
-              [
-                "Address",
-                <a className="wk-link" href={`${sepoliaConfig.explorer}/address/${b.agent.addr}`} target="_blank" rel="noreferrer">
-                  {formatAddr(b.agent.addr)}
-                </a>,
-              ],
-            ]}
-          />
-          <details className="wk-raw">
-            <summary>Show raw</summary>
-            <Window title="Agent" meta={b.agent.name}>
-              <div>{`addr ${b.agent.addr}`}</div>
-            </Window>
-          </details>
-          <div className="wk-grid">
-            <div className="wk-span-6 wk-stack wk-stack-8">
-              <h3 className="wk-label">Can write</h3>
-              <ul className="wk-list">
-                {CAN_WRITE.map(([record, what]) => (
-                  <li key={record}>
-                    <span>{record}</span>
-                    <span className="wk-muted">{what}</span>
-                  </li>
-                ))}
-              </ul>
+        <Card
+          className="v-col-5"
+          title="Policy"
+          actions={
+            <button type="button" className="v-btn v-btn-secondary" onClick={() => setIsPolicyOpen(true)}>
+              Edit policy
+            </button>
+          }
+          footer={<span>Plain English the Safe writes to desk.policy. The agent follows it.</span>}
+        >
+          <p>{b.policy || "The Safe has not written a policy yet."}</p>
+        </Card>
+      </div>
+
+      <div className="v-grid">
+        <Card className="v-col-6" title="Identity">
+          <div className="v-stack">
+            <Dl
+              items={[
+                ["ENS name", b.agent.name],
+                [
+                  "Address",
+                  <a className="v-mono" href={`${sepoliaConfig.explorer}/address/${b.agent.addr}`} target="_blank" rel="noreferrer">
+                    {formatAddr(b.agent.addr)}
+                  </a>,
+                ],
+              ]}
+            />
+            <details className="v-details">
+              <summary>Show raw</summary>
+              <div className="v-code">{`addr ${b.agent.addr}`}</div>
+            </details>
+          </div>
+        </Card>
+
+        <Card className="v-col-6" title="Permissions">
+          <div className="v-grid">
+            <div className="v-col-6 v-stack v-stack-8">
+              <p className="v-label">Can write</p>
+              {CAN_WRITE.map(([record, what]) => (
+                <div key={record} className="v-stack v-stack-4">
+                  <span className="v-mono">{record}</span>
+                  <span className="v-muted">{what}</span>
+                </div>
+              ))}
             </div>
-            <div className="wk-span-6 wk-stack wk-stack-8">
-              <h3 className="wk-label">Cannot</h3>
-              <ul className="wk-list">
-                {CANNOT.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+            <div className="v-col-6 v-stack v-stack-8">
+              <p className="v-label">Cannot</p>
+              {CANNOT.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
             </div>
           </div>
-        </Section>
+        </Card>
       </div>
 
       <SafeDialog

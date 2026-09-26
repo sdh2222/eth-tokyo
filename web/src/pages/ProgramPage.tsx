@@ -2,14 +2,15 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import sepoliaConfig from "@config";
 import { PROGRAM_HEX } from "../desk/fixture/program";
-import type { DeskConfig, Hex } from "../desk/types";
+import type { DeskPort } from "../desk/port";
+import type { DeskConfig, Hex, StrategyInfo } from "../desk/types";
 import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash } from "../lib/format";
-import { Empty, Page, PageHead, Section, Window } from "../ui/plain";
+import { Card, Empty, Header, Page } from "../ui/v";
 
-// Program (IA: "What exactly did the Safe sign?"). Plain page kit.
-// Screens SC-23: plain English 12 columns, the argument table 7 and the raw terminal 5.
-// Hover on a byte segment highlights its row, and hover on a row highlights its segment.
+// Program (IA: "What exactly did the Safe sign?"). Vercel-style: plain English first, then the
+// instruction table 7 and the raw bytes 5 (SC-23). Hovering an instruction row or its byte line
+// keeps the pair in ink and dims the rest, so the two stay linked.
 
 const liveMode = import.meta.env.VITE_DESK_MODE === "live";
 
@@ -23,6 +24,12 @@ const PROGRAM_FACTS = [
   "Tokens stay in the Safe until a fill.",
 ];
 
+// The live program in plain English (Controls lists the same lines).
+export function programLines(port: DeskPort, strategy: StrategyInfo): string[] {
+  const described = port.describeProgram(strategy.decoded, sepoliaConfig as DeskConfig);
+  return described.length > 0 ? described : PROGRAM_FACTS;
+}
+
 const OPCODE_NAMES: Record<number, string> = {
   13: "Deadline",
   20: "Salt",
@@ -30,7 +37,7 @@ const OPCODE_NAMES: Record<number, string> = {
   35: "Price",
 };
 
-// Long args are shortened in the table; the raw terminal beside it has every byte.
+// Long args are shortened in the table; the raw bytes beside it have every byte.
 const ARGS_SHOWN = 34;
 
 type InstructionRow = { id: string; opcode: string; does: string; args: string; bytes: string };
@@ -56,12 +63,6 @@ function instructions(program: Hex): InstructionRow[] {
   return rows;
 }
 
-// Terminal rows: the label padded with no-break spaces so values line up in the mono face,
-// and a long value wraps under it on a phone.
-function pad(label: string): string {
-  return label.padEnd(13, "\u00a0");
-}
-
 function shortArgs(args: string): string {
   return args.length > ARGS_SHOWN ? `${args.slice(0, 18)}…${args.slice(-12)}` : args;
 }
@@ -75,61 +76,83 @@ export function ProgramPage() {
   if (live.isLoading) {
     return (
       <Page>
-        <PageHead title="Program" lede="Reading the program…" />
+        <Header title="Program" description="Reading the program…" />
       </Page>
     );
   }
   if (!strategy) {
     return (
       <Page>
-        <PageHead title="Program" lede="What the Safe signed and shipped to Aqua." />
-        <Empty
-          title="No program is live. The Safe has not shipped a desk program to Aqua."
-          action={
-            <Link className="wk-link" to="/open">
-              Open a desk
-            </Link>
-          }
-        />
+        <Header title="Program" description="What the Safe signed and shipped to Aqua." />
+        <Card>
+          <Empty
+            picture
+            title="No desk is open"
+            description="No program is shipped to Aqua. Opening a desk ships one in one Safe transaction."
+            action={
+              <Link className="v-btn" to="/open">
+                Open a desk
+              </Link>
+            }
+          />
+        </Card>
       </Page>
     );
   }
 
   // Fixture strategies carry no bytes; the fixture program stands in for them.
   const program: Hex = liveMode || strategy.program !== "0x" ? strategy.program : PROGRAM_HEX;
-  const described = port.describeProgram(strategy.decoded, sepoliaConfig as DeskConfig);
-  const lines = described.length > 0 ? described : PROGRAM_FACTS;
+  const lines = programLines(port, strategy);
   const rows = instructions(program);
-  const explorer = sepoliaConfig.explorer;
   const byteCount = (program.length - 2) / 2;
+  const block = strategy.shippedAt.block.toLocaleString("en-US");
+  // The hovered pair stays in ink; every other row and line dims.
+  const dim = (id: string) => (hovered !== null && hovered !== id ? "v-muted" : undefined);
   const hover = (id: string) => ({
+    "data-active": hovered === id ? "true" : undefined,
     onMouseEnter: () => setHovered(id),
     onMouseLeave: () => setHovered(null),
   });
 
   return (
     <Page>
-      <PageHead title="Program" lede="What the Safe signed and shipped to Aqua." />
+      <Header
+        title="Program"
+        description={
+          <>
+            <span className="v-mono" title={strategy.strategyHash}>
+              {formatHash(strategy.strategyHash)}
+            </span>
+            {` · shipped in block ${block}`}
+          </>
+        }
+        actions={
+          <a
+            className="v-btn v-btn-secondary"
+            href={`${sepoliaConfig.explorer}/tx/${strategy.shippedAt.tx}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ship transaction
+          </a>
+        }
+      />
 
-      <div className="wk-grid">
-        <Section title="In plain English" className="wk-span-12">
-          <ol className="wk-list">
-            {lines.map((line, index) => (
-              <li key={line}>
-                <span>
-                  <span className="wk-label wk-num">{`${index + 1}.`}</span> {line}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </Section>
+      <Card title="In plain English">
+        <ol className="v-stack v-stack-8">
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ol>
+      </Card>
 
-        <Section title="Instructions" className="wk-span-7">
+      <div className="v-grid">
+        <Card className="v-col-7" title="Instructions" flush>
           {rows.length === 0 ? (
-            <Empty title="No instructions in this program. The program bytes are empty." />
+            <Empty title="No instructions" description="The program bytes are empty." />
           ) : (
-            <div className="wk-table-wrap">
-              <table className="wk-table">
+            <div className="v-table-wrap">
+              <table className="v-table">
                 <thead>
                   <tr>
                     <th>Opcode</th>
@@ -139,10 +162,10 @@ export function ProgramPage() {
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id} data-selected={hovered === row.id} {...hover(row.id)}>
-                      <td className="wk-num">{row.opcode}</td>
+                    <tr key={row.id} className={dim(row.id)} {...hover(row.id)}>
+                      <td className="v-mono">{row.opcode}</td>
                       <td>{row.does}</td>
-                      <td className="wk-num" title={row.args}>
+                      <td className="v-mono" title={row.args}>
                         {shortArgs(row.args)}
                       </td>
                     </tr>
@@ -151,31 +174,17 @@ export function ProgramPage() {
               </table>
             </div>
           )}
-        </Section>
+        </Card>
 
-        <Section title="Raw bytes" className="wk-span-5">
-          <Window title="Program bytes" meta={`${byteCount} bytes`}>
-            <span>0x</span>
-            {rows.map((row) => (
-              <span key={row.id} className={hovered === row.id ? "wk-mark" : undefined} {...hover(row.id)}>
-                {row.bytes}
-              </span>
+        <Card className="v-col-5" title="Raw bytes" actions={<span className="v-label v-num">{`${byteCount} bytes`}</span>}>
+          <div className="v-code">
+            {rows.map((row, index) => (
+              <div key={row.id} className={dim(row.id)} {...hover(row.id)}>
+                {index === 0 ? `0x${row.bytes}` : row.bytes}
+              </div>
             ))}
-          </Window>
-        </Section>
-
-        <Section title="Signature" className="wk-span-12">
-          <Window title="Signed by the Safe" meta="Sepolia">
-            <div>{`${pad("STRATEGY HASH")} ${strategy.strategyHash}`}</div>
-            <div>{`${pad("SHIPPED IN")} block ${strategy.shippedAt.block.toLocaleString("en-US")}`}</div>
-            <div>
-              {`${pad("SHIP TX")} `}
-              <a href={`${explorer}/tx/${strategy.shippedAt.tx}`} target="_blank" rel="noreferrer">
-                {formatHash(strategy.shippedAt.tx)}
-              </a>
-            </div>
-          </Window>
-        </Section>
+          </div>
+        </Card>
       </div>
     </Page>
   );
