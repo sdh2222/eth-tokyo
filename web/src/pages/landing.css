@@ -357,10 +357,6 @@ body:has(.wm-landing) {
   margin-top: 64px;
 }
 
-.wm-notes-raw {
-  grid-template-columns: repeat(3, 1fr) 0.9fr;
-}
-
 .wm-note {
   padding-left: 16px;
   border-left: 1px solid var(--wm-ink);
@@ -379,18 +375,9 @@ body:has(.wm-landing) {
   opacity: 0.8;
 }
 
-.wm-note-raw {
-  margin: 0;
-  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
-  font-size: 16px;
-  line-height: 1.15;
-  word-break: break-all;
-  opacity: 0.7;
-}
 
 @media (max-width: 900px) {
-  .wm-notes,
-  .wm-notes-raw {
+  .wm-notes {
     grid-template-columns: 1fr;
   }
 

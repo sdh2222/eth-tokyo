@@ -189,6 +189,5 @@ export const LANDING = {
         body: "desk.terms on each name holds the sell width, the buy width and the cap. Changing them, or letting a name expire, changes who can fill. The program and the Aqua order stay as they are.",
       },
     ],
-    raw: "desk.terms · mm-a",
   },
 } as const;
