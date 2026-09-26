@@ -121,7 +121,7 @@ export function ControlsPage() {
     <Page>
       <Header
         title="Controls"
-        description={`${book.data?.name ?? "The desk"} · closes ${formatWhen(deadline, now)}`}
+        description={book.data?.name ?? "The desk"}
         actions={
           <>
             <Link className="v-btn" to={CHANGE_HREF}>
