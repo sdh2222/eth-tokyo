@@ -263,7 +263,6 @@ export function LandingOrbit() {
     <div className="wm-orbit">
       <figure className="wm-orbit-figure">
         <canvas ref={canvasRef} aria-hidden="true" />
-        <figcaption>{copy.caption}</figcaption>
       </figure>
       <div className="wm-orbit-data">
         <table className="wm-orbit-table">
@@ -286,7 +285,6 @@ export function LandingOrbit() {
             ))}
           </tbody>
         </table>
-        <p className="wm-orbit-help">{copy.spreadHelp}</p>
         <div>
           <p className="wm-note-kicker">{copy.logTitle}</p>
           <ul className="wm-orbit-log">

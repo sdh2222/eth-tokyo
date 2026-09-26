@@ -254,18 +254,14 @@ export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named
   return (
     <div className="wm-swarm">
       <figure>
+        <p className="wm-overlay">{copy.openNote}</p>
         <canvas ref={openRef} aria-hidden="true" />
-        <figcaption>
-          {copy.open}
-          <span className="wm-fig-note">{copy.openNote}</span>
-        </figcaption>
+        <figcaption>{copy.open}</figcaption>
       </figure>
       <figure>
+        <p className="wm-overlay">{copy.namedNote}</p>
         <canvas ref={namedRef} aria-hidden="true" />
-        <figcaption>
-          {copy.named}
-          <span className="wm-fig-note">{copy.namedNote}</span>
-        </figcaption>
+        <figcaption>{copy.named}</figcaption>
       </figure>
     </div>
   );

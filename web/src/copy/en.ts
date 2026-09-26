@@ -157,15 +157,15 @@ export const LANDING = {
     notes: [
       {
         kicker: "Why all at once",
-        body: "A treasury sale runs through a multisig. Splitting it into slices means a proposal, signatures and a fresh price for every slice, so the whole amount usually goes out in one trade.",
+        body: "Every slice of a treasury sale needs a proposal, signatures and a fresh price. So it goes out in one trade.",
       },
       {
         kicker: "Why it costs",
-        body: "A pool charges slippage on size. A solver quotes a price that already holds what it can extract from the order. The treasury is large, and it is still the taker.",
+        body: "A pool charges slippage on size. A solver quotes a price with its cut already inside.",
       },
       {
-        kicker: "What watermark changes",
-        body: "The Safe signs one SwapVM program and one 1inch Aqua order. Takers then fill small amounts on the DAO's own price, and each fill pulls tokens from the Safe only at that moment.",
+        kicker: "What changes",
+        body: "The Safe signs once. Small fills follow on the DAO's own price, and tokens leave the Safe only at each fill.",
       },
     ],
   },
@@ -173,20 +173,17 @@ export const LANDING = {
     label: "Named takers",
     title: "Once the DAO quotes a price, who gets to take it?",
     open: "Anyone can take it",
-    openNote: "An open quote is a free option. When the market moves, the fastest bot takes the DAO's price before the DAO can change it.",
+    openNote: "An open quote is a free option. When the market moves, the fastest bot takes it first.",
     named: "Only named takers",
-    namedNote: "Each taker is an ENS name. At every trade the router checks that the name points to the taker's wallet, has not expired, and carries the DAO's limits. Anything else is refused.",
-    caption: "Every fill reads the taker's ENS name. No name, no fill.",
+    namedNote: "At every trade the router reads the taker's ENS name: right wallet, not expired, the DAO's limits on it. Anything else is refused.",
+    caption: "No name, no fill.",
   },
   orbit: {
     label: "A price per taker",
     title: "Trade fair, and the price gets better.",
-    caption: "Closer to the center is a better price. The dotted ring is the widest spread the DAO allows, 3 / 10 bp.",
     table: { taker: "Taker", now: "Spread now", change: "Last change" },
     tier: { tight: "1 / 4 bp", standard: "2 / 8 bp", limit: "3 / 10 bp · max" },
     short: { tight: "1 / 4", standard: "2 / 8", limit: "3 / 10" },
-    spreadHelp:
-      "Spread is how far above the market the DAO sells (first number) and how far below it buys (second), in basis points. Smaller is a better price for the taker.",
     logTitle: "What just happened",
     traded: "traded",
     why: ", and the price jumped its way right after",
@@ -194,16 +191,20 @@ export const LANDING = {
     stays: "Spread stays",
     steps: [
       {
-        title: "The DAO sets the limits",
-        body: "Once, the DAO writes its rules in plain English and the widest spread each taker can ever get.",
+        kicker: "01",
+        body: "The DAO writes its rules once, in plain English, and the widest spread each taker may ever get: the dotted ring, 3 / 10 bp.",
       },
       {
-        title: "An agent keeps score",
-        body: "After every trade it looks at how that taker traded: how big, how often, and whether the price jumped its way right after. Then it sets that taker's next spread, never past the limit.",
+        kicker: "02",
+        body: "After every trade an agent scores that taker (size, pace, whether the price jumped its way) and sets its next spread, never past the ring.",
       },
       {
-        title: "The price lives on the name",
-        body: "Each taker's spread is stored on its own ENS name. That is why it can change after every trade without the DAO signing again.",
+        kicker: "03",
+        body: "The spread lives on the taker's ENS name, so it changes trade by trade without a new DAO signature.",
+      },
+      {
+        kicker: "Spread",
+        body: "How far above the market the DAO sells, and how far below it buys, in basis points. Smaller is a better price for the taker.",
       },
     ],
   },

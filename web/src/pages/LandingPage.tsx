@@ -110,15 +110,14 @@ const SKY_WIDTHS = [
   [1600, "(max-width: 1600px)"],
 ] as const;
 
-// Small columns under a section, each with a rule, a mono kicker and a short paragraph.
-function Notes({ notes }: { notes: readonly { kicker: string; body: string }[] }) {
+// All of a section's small print in one dense block: a mono kicker, then the text, run in.
+function Dense({ items }: { items: readonly { kicker: string; body: string }[] }) {
   return (
-    <div className="wm-notes">
-      {notes.map((note) => (
-        <div key={note.kicker} className="wm-note">
-          <p className="wm-note-kicker">{note.kicker}</p>
-          <p className="wm-note-body">{note.body}</p>
-        </div>
+    <div className="wm-dense">
+      {items.map((item) => (
+        <p key={item.kicker}>
+          <span className="wm-dense-kicker">{item.kicker}</span> {item.body}
+        </p>
       ))}
     </div>
   );
@@ -209,8 +208,10 @@ export function LandingPage() {
         <div className="wm-compare" ref={compareRef} data-seen={compareSeen}>
           <CompareTable />
         </div>
-        <p className="wm-leak">{LANDING.compare.leak}</p>
-        <Notes notes={LANDING.compare.notes} />
+        <div className="wm-close-row">
+          <p className="wm-leak">{LANDING.compare.leak}</p>
+          <Dense items={LANDING.compare.notes} />
+        </div>
       </section>
 
       <div className="wm-band wm-band-water">
@@ -226,15 +227,7 @@ export function LandingPage() {
         <div className="wm-split-text">
           <p className="wm-label">{LANDING.orbit.label}</p>
           <h2 className="wm-h2">{LANDING.orbit.title}</h2>
-          <ol className="wm-steps">
-            {LANDING.orbit.steps.map((step, index) => (
-              <li key={step.title}>
-                <span className="wm-step-number">{String(index + 1).padStart(2, "0")}</span>
-                <p className="wm-step-title">{step.title}</p>
-                <p className="wm-step-body">{step.body}</p>
-              </li>
-            ))}
-          </ol>
+          <Dense items={LANDING.orbit.steps} />
         </div>
         <LandingOrbit />
       </section>

@@ -318,8 +318,8 @@ body:has(.wm-landing) {
 .wm-swarm {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  margin-top: 72px;
+  gap: 32px;
+  margin-top: 56px;
   padding-top: 16px;
   border-top: 1px solid var(--wm-ink);
 }
@@ -328,10 +328,29 @@ body:has(.wm-landing) {
   margin: 0;
 }
 
+.wm-swarm figure {
+  position: relative;
+}
+
 .wm-swarm canvas {
   display: block;
   width: 100%;
   aspect-ratio: 560 / 360;
+}
+
+/* The panel's small print sits inside its top corner, as on a TypeSafe window. */
+.wm-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Narrow enough to stay left of the ENS ring, which starts at 31% of the panel. */
+  max-width: 27%;
+  margin: 0;
+  font-family: "LisaTerminal Paper", "Courier New", monospace !important;
+  font-size: 15px;
+  line-height: 1.3;
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 .wm-swarm figcaption {
@@ -362,23 +381,13 @@ body:has(.wm-landing) {
   text-align: left;
 }
 
-.wm-fig-note {
-  display: block;
-  max-width: 30em;
-  margin-top: 12px;
-  font-size: 18px;
-  font-weight: 400;
-  letter-spacing: 0;
-  line-height: 1.45;
-  opacity: 0.8;
-}
 
 /* ---------- section 4: text left, orbit right ---------- */
 
 .wm-split {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: 64px;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: 56px;
   align-items: start;
 }
 
@@ -391,39 +400,14 @@ body:has(.wm-landing) {
   font-size: clamp(40px, 4vw, 56px);
 }
 
-.wm-steps {
-  margin: 48px 0 0;
-  padding: 0;
-  list-style: none;
+.wm-split .wm-dense {
+  margin-top: 40px;
 }
 
-.wm-steps li {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  column-gap: 16px;
-  padding: 20px 0;
-  border-top: 1px solid #e5e5e5;
-}
 
-.wm-step-number {
-  grid-row: span 2;
-  font-family: "LisaTerminal Paper", "Courier New", monospace;
-  font-size: 16px;
-  color: var(--wm-water-strong);
-}
 
-.wm-step-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 500;
-}
 
-.wm-step-body {
-  margin: 6px 0 0;
-  font-size: 17px;
-  line-height: 1.45;
-  opacity: 0.75;
-}
+
 
 .wm-orbit {
   display: flex;
@@ -441,12 +425,6 @@ body:has(.wm-landing) {
   aspect-ratio: 640 / 400;
 }
 
-.wm-orbit-figure figcaption {
-  margin-top: 12px;
-  font-size: 17px;
-  line-height: 1.45;
-  opacity: 0.75;
-}
 
 .wm-orbit-data {
   display: flex;
@@ -491,12 +469,6 @@ body:has(.wm-landing) {
   opacity: 0.7;
 }
 
-.wm-orbit-help {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.45;
-  opacity: 0.65;
-}
 
 .wm-orbit-log {
   margin: 8px 0 0;
@@ -533,45 +505,59 @@ body:has(.wm-landing) {
   color: var(--field-sky);
 }
 
-.wm-band-water .wm-swarm,
-.wm-band-water .wm-note {
+.wm-band-water .wm-swarm {
   border-color: rgb(255 255 255 / 0.6);
 }
 
-.wm-band-water .wm-note-body {
-  opacity: 0.85;
-}
 
-/* ---------- small print under a section ---------- */
-
-.wm-notes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
-  margin-top: 64px;
-}
-
-.wm-note {
-  padding-left: 16px;
-  border-left: 1px solid var(--wm-ink);
-}
+/* ---------- dense small print, one block per section ---------- */
 
 .wm-note-kicker {
-  margin: 0 0 24px;
+  margin: 0 0 8px;
   font-family: "LisaTerminal Paper", "Courier New", monospace !important;
   font-size: 16px;
 }
 
-.wm-note-body {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.45;
-  opacity: 0.8;
+.wm-dense {
+  max-width: 380px;
+  padding-left: 14px;
+  border-left: 1px solid currentColor;
 }
 
+.wm-dense p {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.38;
+}
+
+.wm-dense p:last-child {
+  margin-bottom: 0;
+}
+
+.wm-dense-kicker {
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 15px;
+  color: var(--wm-water-strong);
+}
+
+.wm-close-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 64px;
+  align-items: end;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--wm-ink);
+}
+
+.wm-close-row .wm-leak {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 
 @media (max-width: 900px) {
-  .wm-notes,
+  .wm-close-row,
   .wm-split {
     grid-template-columns: 1fr;
   }
