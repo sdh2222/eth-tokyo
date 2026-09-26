@@ -6,3 +6,7 @@ packages:
 # vitest) runs from its prebuilt platform package, so its install script is not run.
 allowBuilds:
   esbuild: false
+  # The Astryx postinstall scripts only print a nudge to run `astryx init`, which web/ has already run
+  # (web/AGENTS.md).
+  '@astryxdesign/cli': false
+  '@astryxdesign/core': false
