@@ -50,7 +50,7 @@ function Timeline({ kind }: { kind: "dump" | "fills" }) {
 // One comparison, row by row: how it sells, signatures, who prices it, and the result.
 function CompareTable() {
   const copy = LANDING.compare;
-  const { when, signatures, price, mark } = copy.rows;
+  const { when, signatures, price } = copy.rows;
   return (
     <div className="wm-table" role="table" aria-label={copy.label}>
       <div className="wm-row wm-row-head" role="row">
@@ -96,19 +96,6 @@ function CompareTable() {
         <p className="wm-value wm-value-ours" role="cell">
           {price.ours}
         </p>
-      </div>
-      <div className="wm-row" role="row">
-        <p className="wm-row-label" role="rowheader">
-          {mark.label}
-        </p>
-        <div role="cell">
-          <p className="wm-number">{mark.today}</p>
-          <p className="wm-number-note">{mark.todayNote}</p>
-        </div>
-        <div role="cell">
-          <p className="wm-number wm-value-ours">{mark.ours}</p>
-          <p className="wm-number-note">{mark.oursNote}</p>
-        </div>
       </div>
     </div>
   );
@@ -157,8 +144,29 @@ function SpreadStrip() {
   );
 }
 
+function Flip() {
+  const { before, after } = LANDING.flip;
+  return (
+    <div className="wm-flip">
+      <div>
+        <p className="wm-panel-label">{before.label}</p>
+        <p className="wm-flip-number">{before.number}</p>
+        <p className="wm-number-note">{before.note}</p>
+      </div>
+      <p className="wm-flip-arrow" aria-hidden="true">
+        →
+      </p>
+      <div>
+        <p className="wm-panel-label">{after.label}</p>
+        <p className="wm-flip-number wm-value-ours">{after.number}</p>
+        <p className="wm-number-note">{after.note}</p>
+      </div>
+    </div>
+  );
+}
+
 function QuoteStrip() {
-  const copy = LANDING.price;
+  const copy = LANDING.flip;
   return (
     <div className="wm-board">
       <p className="wm-panel-label">{copy.quote}</p>
@@ -269,12 +277,14 @@ export function LandingPage() {
         <div className="wm-compare" ref={compareRef} data-seen={compareSeen}>
           <CompareTable />
         </div>
+        <p className="wm-leak">{LANDING.compare.leak}</p>
       </section>
 
       <section className="wm-section">
-        <p className="wm-label">{LANDING.price.label}</p>
-        <h2 className="wm-h2">{LANDING.price.title}</h2>
+        <p className="wm-label">{LANDING.flip.label}</p>
+        <h2 className="wm-h2">{LANDING.flip.title}</h2>
         <div className="wm-seen" ref={priceRef} data-seen={priceSeen}>
+          <Flip />
           <QuoteStrip />
         </div>
       </section>

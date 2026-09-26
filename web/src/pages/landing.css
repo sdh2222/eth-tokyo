@@ -299,14 +299,6 @@ body:has(.wm-landing) {
   fill: var(--wm-dot);
 }
 
-.wm-number {
-  margin: 0;
-  font-size: clamp(56px, 5.6vw, 80px);
-  font-weight: 500;
-  line-height: 0.9;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
 
 .wm-number-note {
   margin: 12px 0 0;
@@ -314,7 +306,44 @@ body:has(.wm-landing) {
   opacity: 0.6;
 }
 
-/* ---------- who sets the price ---------- */
+/* ---------- the spread leaks, then flips ---------- */
+
+.wm-leak {
+  max-width: 20em;
+  margin: 48px 0 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--wm-ink);
+  font-size: clamp(32px, 3.4vw, 48px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.wm-flip {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 48px;
+  margin-top: 72px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wm-ink);
+}
+
+.wm-flip-number {
+  margin: 16px 0 0;
+  font-size: clamp(72px, 9vw, 136px);
+  font-weight: 500;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-flip-arrow {
+  margin: 40px 0 0;
+  font-size: clamp(48px, 5vw, 80px);
+  font-weight: 400;
+  line-height: 1;
+}
 
 .wm-board {
   display: flex;
@@ -403,8 +432,15 @@ body:has(.wm-landing) {
     grid-column: 1 / -1;
   }
 
-  .wm-quote-row {
+  .wm-quote-row,
+  .wm-flip {
     grid-template-columns: 1fr;
+  }
+
+  .wm-flip-arrow {
+    margin: 0;
+    transform: rotate(90deg);
+    justify-self: start;
   }
 
   .wm-quote:last-child {

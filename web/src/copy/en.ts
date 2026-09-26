@@ -146,29 +146,32 @@ export const LANDING = {
   compare: {
     label: "Today, and with watermark",
     title: "Why do treasuries DUMP everything at once? Why not DCA? TWAP?",
-    axis: "time",
     today: "Today",
     ours: "With watermark",
     rows: {
       when: { label: "How it sells", today: "All at once", ours: "Small fills, over time" },
       signatures: { label: "Signatures", today: "One per slice", ours: "One, to ship the desk" },
       price: { label: "Who sets the price", today: "The solver", ours: "The DAO" },
-      mark: {
-        label: "Per ETH sold, vs the mark",
-        today: "−2.00%",
-        ours: "+0.03%",
-        todayNote: "Worst case at a 2% slippage budget",
-        oursNote: "3 bp over the mark (example)",
-      },
     },
+    leak: "And whoever takes that dump, a solver or a pool, eats the DAO's spread.",
   },
-  price: {
-    label: "Maker, not taker",
-    title: "And it quotes both sides.",
-    quote: "The DAO's price (example)",
+  flip: {
+    label: "The flip",
+    title: "watermark flips it. Now the DAO EARNS from SELLING.",
+    before: {
+      label: "Today",
+      number: "−2.00%",
+      note: "Per ETH sold, lost to the solver. Worst case at a 2% slippage budget.",
+    },
+    after: {
+      label: "With watermark",
+      number: "+0.03%",
+      note: "Per ETH sold, earned by the DAO. 3 bp over the mark (example).",
+    },
+    quote: "How: the DAO's own price, both sides (example)",
     buy: "Buy ETH",
     sell: "Sell ETH",
     mark: "Mark 4,000.00",
-    close: "It sells above the mark and buys below it. That is how a market maker earns, and now the treasury is one.",
+    close: "It sells above the mark and buys below it. The spread that went to the solver now goes to the treasury.",
   },
 } as const;
