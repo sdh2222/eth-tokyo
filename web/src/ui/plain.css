@@ -1,0 +1,740 @@
+/* The plain page kit, in the Landing's visual language (claude/relaxed-gauss-w2ckxo): white
+   ground, everything 16 px except the page's one L1 figure, mono labels, 1 px rules, and sky
+   only in the dither cells and one "ours" figure. Astryx stays for the header, banners,
+   wallet popover and dialogs. Classes are `wk-` so they never meet the Landing's `wm-`.
+   Imported into the `app` layer. */
+
+.wk-page {
+  --wk-ink: #111111;
+  --wk-paper: #f3f3f3;
+  --wk-quiet: 0.6;
+  --wk-muted: rgba(17, 17, 17, 0.6);
+  --wk-rule: #e5e5e5;
+  /* The Landing's dither sky (web/scripts/landing-dither.mjs --color), its off-dot gray,
+     and the water blue a step deeper for text on white (4.9:1). */
+  --wk-dot: #6ec1ea;
+  --wk-off: #d9d9d9;
+  --wk-ours: #0077af;
+  --wk-success: #2f9e44;
+  --wk-warning: #f08c00;
+  --wk-danger: #e03131;
+  --wk-bid: #2b8a3e;
+  --wk-ask: #c92a2a;
+  --wk-mono: "LisaTerminal Paper", "Courier New", monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  color: var(--wk-ink);
+  font-family: "Die Grotesk C", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.wk-page h1,
+.wk-page h2,
+.wk-page h3,
+.wk-page p,
+.wk-page dl,
+.wk-page dd,
+.wk-page ul,
+.wk-page ol,
+.wk-page figure {
+  margin: 0;
+}
+
+/* Page head: a mono kicker, the 32/26 page title (type.md), one quiet line. */
+.wk-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.wk-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+}
+
+.wk-kicker {
+  font-family: var(--wk-mono);
+  color: var(--wk-muted);
+}
+
+.wk-title {
+  font-size: 32px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.wk-lede,
+.wk-muted {
+  color: var(--wk-muted);
+}
+
+/* A label that names a value: quiet, like the Landing's row labels. */
+.wk-label {
+  color: var(--wk-muted);
+}
+
+/* Section: the Landing's section label, mono in water blue, no rule. */
+.wk-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.wk-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.wk-section-title {
+  font-family: var(--wk-mono);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: var(--wk-ours);
+}
+
+/* Layout: 12 columns, 24 px gutters (UI-12). Below 900 px every span is full width. */
+.wk-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 48px 24px;
+  align-items: start;
+}
+
+.wk-span-3 { grid-column: span 3; }
+.wk-span-4 { grid-column: span 4; }
+.wk-span-5 { grid-column: span 5; }
+.wk-span-6 { grid-column: span 6; }
+.wk-span-7 { grid-column: span 7; }
+.wk-span-8 { grid-column: span 8; }
+.wk-span-9 { grid-column: span 9; }
+.wk-span-12 { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .wk-grid > * {
+    grid-column: 1 / -1;
+  }
+}
+
+.wk-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.wk-stack-4 { gap: 4px; }
+.wk-stack-8 { gap: 8px; }
+.wk-stack-24 { gap: 24px; }
+.wk-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.wk-row-8 { gap: 8px; }
+.wk-row-24 { gap: 24px; }
+.wk-between { justify-content: space-between; }
+.wk-row-end { align-items: flex-end; }
+.wk-row-end > .wk-link { padding-bottom: 12px; }
+.wk-num { font-variant-numeric: tabular-nums; }
+.wk-mono { font-family: var(--wk-mono); }
+.wk-ours { color: var(--wk-ours); }
+
+/* The page's one L1 figure (or one pair): the Landing price-board size. */
+.wk-hero {
+  font-size: clamp(48px, 5.6vw, 88px);
+  line-height: 0.9;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An L1 text block (Controls and Program: the program in plain English): 20/28. */
+.wk-lead {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+ol.wk-lead,
+ul.wk-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 1.2em;
+}
+
+/* An L2 figure: the Landing table-value size. */
+.wk-value,
+.wk-big {
+  font-size: clamp(28px, 2.8vw, 40px);
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A one-line status strip: items separated by a middle dot, all 16 px. */
+.wk-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px 24px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border-top: 1px solid var(--wk-ink);
+  border-bottom: 1px solid var(--wk-rule);
+}
+
+.wk-strip > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Stat: label over an L2 value, no rule, no card. Dashboard only. */
+.wk-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.wk-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wk-stat-label {
+  color: var(--wk-muted);
+}
+
+.wk-stat-value {
+  font-size: clamp(28px, 2.8vw, 40px);
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Terminal window (ST-03, CP-04), for proof blocks only (SC-14): recompute, raw bytes,
+   Show raw, the O1/O2 hash. */
+.wk-window {
+  border: 1px solid var(--wk-ink);
+  background: var(--wk-paper);
+  min-width: 0;
+}
+
+.wk-window-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--wk-ink);
+  color: #ffffff;
+  padding: 8px 12px;
+}
+
+.wk-window-bar a {
+  color: #ffffff;
+}
+
+.wk-window-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  font-family: var(--wk-mono);
+  font-size: 16px;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+
+.wk-window-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* The label keeps its width; a long hash or address on the right wraps instead. */
+.wk-window-line > :first-child {
+  flex-shrink: 0;
+}
+
+.wk-window-line > :last-child {
+  min-width: 0;
+  text-align: right;
+}
+
+/* Tables, the Landing's way: an ink rule over mono head labels, gray row rules, no bands. */
+.wk-table-wrap {
+  position: relative;
+  overflow-x: auto;
+}
+
+.wk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-table th {
+  text-align: left;
+  font-family: var(--wk-mono);
+  font-weight: 400;
+  color: var(--wk-muted);
+  padding: 12px;
+  border-top: 1px solid var(--wk-ink);
+  white-space: nowrap;
+}
+
+.wk-table td {
+  padding: 16px 12px;
+  border-top: 1px solid var(--wk-rule);
+  vertical-align: top;
+}
+
+.wk-table tbody tr:last-child td {
+  border-bottom: 1px solid var(--wk-rule);
+}
+
+.wk-table th:first-child,
+.wk-table td:first-child {
+  padding-left: 0;
+}
+
+.wk-table th:last-child,
+.wk-table td:last-child {
+  padding-right: 0;
+}
+
+.wk-table .wk-right {
+  text-align: right;
+}
+
+.wk-table tr[data-selected="true"] td {
+  border-top-color: var(--wk-ink);
+}
+
+/* Buttons: one filled ink button per screen (CP-01), a danger outline (Stop, Cut off), and
+   the secondary action as an underlined word (CP-02). Square, 12 x 16, 16/24 500. The
+   filled button turns sky on hover, as on the Landing. */
+.wk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--wk-ink);
+  border-radius: 0;
+  background: var(--wk-ink);
+  color: #ffffff;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 150ms ease-out, background-color 150ms ease-out, color 150ms ease-out;
+  text-decoration: none;
+}
+
+.wk-btn:hover {
+  background: var(--wk-dot);
+  color: var(--wk-ink);
+}
+
+.wk-btn:active {
+  transform: scale(0.97);
+}
+
+.wk-btn:disabled {
+  background: rgba(17, 17, 17, 0.28);
+  border-color: transparent;
+  color: #ffffff;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wk-page a.wk-btn {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.wk-page a.wk-btn:hover {
+  color: var(--wk-ink);
+}
+
+.wk-btn-danger,
+.wk-btn-danger:hover,
+.wk-page a.wk-btn-danger {
+  background: #ffffff;
+  color: var(--wk-danger);
+  border-color: var(--wk-danger);
+}
+
+.wk-link,
+.wk-page a.wk-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--wk-ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.wk-page a {
+  color: var(--wk-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wk-link:disabled {
+  color: var(--wk-muted);
+  cursor: not-allowed;
+}
+
+.wk-btn:focus-visible,
+.wk-link:focus-visible,
+.wk-chip:focus-visible,
+.wk-input:focus-visible,
+.wk-page a:focus-visible {
+  outline: 2px solid var(--wk-ink);
+  outline-offset: 2px;
+}
+
+/* Chips: white, 8 x 12, square; the chosen chip is ink with white type (CP-03). */
+.wk-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wk-chip {
+  border: 1px solid var(--wk-ink);
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--wk-ink);
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.wk-chip[aria-pressed="true"],
+.wk-chip[aria-checked="true"] {
+  background: var(--wk-ink);
+  color: #ffffff;
+}
+
+/* Status pill (CP-06): 12/16, 4 x 8, statuses only (Live, Expired, Cut off, Stale, Not
+   open), always a word, with an 8 px dot in its colour. */
+.wk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--wk-ink);
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.wk-pill::before,
+.wk-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--wk-off);
+}
+
+.wk-pill[data-tone="success"]::before,
+.wk-dot[data-tone="success"]::before { background: var(--wk-success); }
+.wk-pill[data-tone="warning"]::before,
+.wk-dot[data-tone="warning"]::before { background: var(--wk-warning); }
+.wk-pill[data-tone="danger"]::before,
+.wk-dot[data-tone="danger"]::before { background: var(--wk-danger); }
+.wk-pill[data-tone="accent"]::before,
+.wk-dot[data-tone="accent"]::before { background: var(--wk-dot); }
+
+/* A dot and a word, for anything that is not a status (checks, notes). */
+.wk-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Key and value rows: quiet label, ink value. */
+.wk-facts {
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) minmax(0, 1fr);
+  gap: 8px 24px;
+}
+
+.wk-facts dt {
+  color: var(--wk-muted);
+}
+
+.wk-facts dd {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Lists with gray row rules. */
+.wk-list {
+  list-style: none;
+  padding: 0;
+  border-top: 1px solid var(--wk-rule);
+}
+
+.wk-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--wk-rule);
+}
+
+/* Legacy bar (replaced by the cells in web/src/ui/cells.tsx). */
+.wk-bar {
+  position: relative;
+  height: 8px;
+  border: 1px solid var(--wk-ink);
+  background: #ffffff;
+}
+
+.wk-bar-fill {
+  height: 100%;
+  background: var(--wk-dot);
+}
+
+.wk-bar-mark {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--wk-ink);
+}
+
+/* Inputs (CP-05): 16 px, padding 12, square, 1 px ink border, paper fill. */
+.wk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wk-field > span:first-child {
+  color: var(--wk-muted);
+}
+
+.wk-input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--wk-ink);
+  border-radius: 0;
+  background: var(--wk-paper);
+  color: var(--wk-ink);
+  padding: 12px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+textarea.wk-input {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.wk-error {
+  color: var(--wk-danger);
+}
+
+/* Empty state: the dither picture, one sentence, one action (SC-13, UI-15). */
+.wk-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 0;
+  border-top: 1px solid var(--wk-rule);
+}
+
+.wk-empty-picture {
+  position: relative;
+  align-self: stretch;
+  max-width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+
+.wk-empty-picture img {
+  display: block;
+  margin-top: -300px;
+  width: auto;
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+.wk-note {
+  color: var(--wk-muted);
+}
+
+/* A notice inside a page (refusals on Trade, the verdict on Verify): 1 px ink, a dot and a
+   word carry the tone. */
+.wk-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border: 1px solid var(--wk-ink);
+  padding: 16px;
+  background: #ffffff;
+}
+
+.wk-raw summary {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wk-raw[open] summary {
+  margin-bottom: 12px;
+}
+
+.wk-bid { color: var(--wk-bid); }
+.wk-ask { color: var(--wk-ask); }
+
+/* The two headline prices of a quote, side by side. */
+.wk-quote {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+/* Vertical steps for the Open a desk wizard. */
+.wk-steps {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wk-steps button {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  border-left: 1px solid var(--wk-rule);
+  background: none;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--wk-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wk-steps button[aria-current="step"] {
+  border-left: 1px solid var(--wk-ink);
+  color: var(--wk-ink);
+}
+
+.wk-steps button[data-done="true"] {
+  color: var(--wk-ink);
+}
+
+/* Back and Continue stay in view at the bottom of the wizard (SC-18). */
+.wk-footer-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: #ffffff;
+  border-top: 1px solid var(--wk-ink);
+  padding: 16px 0;
+}
+
+/* Dither cells (web/src/ui/cells.tsx), from the Landing's Timeline and SpreadStrip: a sky
+   square is on, a 2 px gray dot is off, an ink square is the mark. They appear once, when
+   first seen; after that they change in place (UI-13). */
+.wk-cells {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.wk-cell-off {
+  fill: var(--wk-off);
+}
+
+.wk-cell-mark {
+  fill: var(--wk-ink);
+}
+
+.wk-cell-fence {
+  fill: none;
+  stroke: var(--wk-ink);
+  stroke-width: 1;
+}
+
+.wk-cell-on {
+  fill: var(--wk-dot);
+  opacity: 0;
+  transform: translateY(-6px);
+  transform-box: fill-box;
+  transition: opacity 180ms ease-out, transform 180ms ease-out;
+}
+
+.wk-cell-ink {
+  fill: var(--wk-ink);
+}
+
+[data-seen="true"] .wk-cell-on {
+  opacity: 1;
+  transform: none;
+}
+
+/* The spread strip sits centred, so its mid mark falls between the bid and the ask. */
+.wk-page .wk-spread {
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
+
+.wk-spread .wk-cells {
+  width: 100%;
+}
+
+.wk-cells-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--wk-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wk-btn,
+  .wk-cell-on {
+    transition: none;
+  }
+
+  .wk-cell-on {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Visually hidden, still read by screen readers. */
+.wk-sr {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

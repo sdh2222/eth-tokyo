@@ -1,171 +1,407 @@
-import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Stepper } from "../components/Stepper";
-import { ALREADY_OPEN, BACK, BANNER_OWNER, CONTINUE, DESK_LIVE, ENS_LIST, FEED_NOTE, GO_DASHBOARD, OPEN_STEPS, PAIR } from "../copy/en";
-import { applyShip } from "../desk/fixture";
-import { NOW } from "../desk/fixture/state";
+import sepoliaConfig from "@config";
+import { formatBpsShare, formatWadUsd } from "../desk/book";
 import { FIXTURE_OWNERS } from "../desk/fixture/state";
+import { useBook } from "../hooks/useBook";
 import { useCanAct } from "../hooks/useCanAct";
 import { useDeskState, useLiveStrategy } from "../hooks/useDesk";
-import { useOracleRound } from "../hooks/useOracle";
-import { formatUsd, formatUsdc, formatWeth } from "../lib/format";
-import { formatWhen } from "../lib/time";
-import { useAccount } from "wagmi";
-import { InventoryStep, inventoryOver } from "./open/InventoryStep";
-import { PolicyStep, policyInvalid } from "./open/PolicyStep";
-import { ReviewStep } from "./open/ReviewStep";
-import { INITIAL_WIZARD, type WizardState } from "./open/types";
+import { formatAddr, formatWeth } from "../lib/format";
+import { Callout, Empty, Facts, Page, PageHead, Pill, Section, Window } from "../ui/plain";
+import { SafeDialog } from "./open/SafeDialog";
 
-export function OpenPage() {
-  const [params] = useSearchParams();
-  const start = Number(params.get("step") ?? "1");
-  const [done, setDone] = useState(false);
-  const queryClient = useQueryClient();
-  const [wizard, setWizard] = useState<WizardState>({
-    ...INITIAL_WIZARD,
-    step: start >= 1 && start <= 6 ? (start as WizardState["step"]) : 1,
-  });
-  const { isOwner } = useCanAct();
-  const { address } = useAccount();
-  const live = useLiveStrategy();
-  const oracle = useOracleRound();
-  const state = useDeskState(live.data ?? null);
-  const desk = state.data;
-  const now = import.meta.env.VITE_DESK_MODE === "live" ? Math.floor(Date.now() / 1000) : NOW;
-  const liveMode = import.meta.env.VITE_DESK_MODE === "live";
-  const safeWeth = desk?.safeWallet.weth ?? (liveMode ? 0n : 900000000000000000000n);
-  const safeUsdc = desk?.safeWallet.usdc ?? (liveMode ? 0n : 400000000000n);
-  const over = inventoryOver(wizard, safeWeth, safeUsdc);
-  const stepOk =
-    wizard.step === 1 ? isOwner : wizard.step === 3 ? !policyInvalid(wizard) : wizard.step === 4 ? over === null : true;
+// Open a desk (IA: the six-step wizard). Plain page kit.
+// Screens SC-18: the stepper 3 columns, the step 9; on Policy the controls 6 and the preview 6.
+// Back and Continue stay pinned at the bottom of the page. ?step=N deep-links to a step (1-based).
 
-  if (done) {
-    return (
-      <div className="flex flex-col gap-3">
-        <p className="text-h2">{DESK_LIVE}</p>
-        <p className="num text-body">{live.data?.strategyHash ?? "—"}</p>
-        <p className="text-body">{live.data?.shippedAt.block.toString() ?? "—"}</p>
-        <a className="text-body" href={`https://sepolia.etherscan.io/tx/${live.data?.shippedAt.tx ?? ""}`}>
-          Explorer
-        </a>
-        <Link className="text-body" to="/desk">
-          {GO_DASHBOARD}
-        </Link>
-      </div>
-    );
-  }
+const STEPS = [
+  { label: "Safe", description: "Check the Safe that signs the program and holds the tokens." },
+  { label: "Market", description: "See the pair, oracle and fill window the program fixes." },
+  { label: "Inventory and target", description: "Choose how much of the Safe's WETH and USDC backs the desk." },
+  { label: "Counterparties", description: "See the ENS names that may trade with the desk." },
+  { label: "Agent policy", description: "Write the policy the agent reads when it moves the spread." },
+  { label: "Review", description: "Check the proposal before the Safe owners sign it." },
+];
 
-  if (live.data && !params.get("step")) {
-    return <p className="text-body">{ALREADY_OPEN}</p>;
-  }
+const TARGET_BPS = sepoliaConfig.desk.wStarBps;
+const WINDOW_BLOCKS = sepoliaConfig.desk.maxBlocks;
+const liveMode = import.meta.env.VITE_DESK_MODE === "live";
+// Fixture mode has no Safe balances until a desk is open; these match the fixture Safe.
+const FIXTURE_SAFE = { weth: 900, usdc: 400_000 };
 
+type NameRow = { id: string; name: string; addr: string; expiry: number; live: boolean };
+
+function startStep(param: string | null): number {
+  const n = Number(param ?? "1");
+  return Number.isInteger(n) && n >= 1 && n <= STEPS.length ? n - 1 : 0;
+}
+
+// An amount field's text: empty or invalid reads as 0, and amounts are never negative.
+function amount(text: string): number {
+  const n = Number(text);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+function formatDate(seconds: number): string {
+  return new Date(seconds * 1000).toLocaleDateString("en-US", { dateStyle: "medium" });
+}
+
+function FieldError({ message }: { message: string | undefined }) {
+  if (!message) return null;
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-      <div className="lg:col-span-3">
-        <Stepper
-          steps={OPEN_STEPS.map((label, index) => ({ id: String(index + 1), label }))}
-          current={String(wizard.step)}
-          onJump={(id) => setWizard({ ...wizard, step: Number(id) as WizardState["step"] })}
-        />
-      </div>
-      <div className="open-panel flex flex-col gap-5 rounded-card bg-surface p-5 lg:col-span-9">
-        <h2 className="text-h3">{`${wizard.step}. ${OPEN_STEPS[wizard.step - 1]}`}</h2>
-        {wizard.step === 1 ? (
-          <section className="flex flex-col gap-4">
-            <Field label="Owners">
-              {liveMode ? (
-                "—"
-              ) : (
-                <ul>
-                  {FIXTURE_OWNERS.map((owner, index) => (
-                    <li key={owner} className="num">
-                      {owner}
-                      {address && owner.toLowerCase() === address.toLowerCase() ? " you" : ""} · {index + 1} of 3
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Field>
-            <Field label="Signatures required">2 of 3</Field>
-            <Field label="ETH in the Safe">{desk ? formatWeth(desk.safeWallet.weth) : "—"}</Field>
-            <Field label="USDC in the Safe">{desk ? formatUsdc(desk.safeWallet.usdc) : "—"}</Field>
-            {isOwner ? null : <p className="text-body">{BANNER_OWNER}</p>}
-          </section>
-        ) : null}
-        {wizard.step === 3 ? <PolicyStep wizard={wizard} onChange={setWizard} /> : null}
-        {wizard.step === 4 ? (
-          <InventoryStep wizard={wizard} onChange={setWizard} safeWeth={safeWeth} safeUsdc={safeUsdc} />
-        ) : null}
-        {wizard.step === 5 ? (
-          <div className="flex flex-col gap-4">
-            <Field label="Named market makers">
-              {(desk?.mms ?? []).length === 0 ? (
-                "—"
-              ) : (
-                <ul>
-                  {desk?.mms.map((mm) => (
-                    <li key={mm.address}>{mm.name}</li>
-                  ))}
-                </ul>
-              )}
-            </Field>
-            <p className="text-body text-muted">{ENS_LIST}</p>
-          </div>
-        ) : null}
-        {wizard.step === 6 ? (
-          <ReviewStep
-            wizard={wizard}
-            onPropose={() => {
-              if (liveMode) return;
-              applyShip();
-              void queryClient.invalidateQueries({ queryKey: ["live"] });
-              setDone(true);
-            }}
-          />
-        ) : null}
-        {wizard.step === 2 ? (
-          <section className="flex flex-col gap-4">
-            <Field label="Pair">{PAIR}</Field>
-            <Field label="Oracle mid">
-              {oracle.data ? formatUsd(oracle.data.midWad) : desk ? formatUsd(desk.pWad) : "—"}
-            </Field>
-            <Field label="Updated">
-              {oracle.data ? formatWhen(oracle.data.updatedAt, now) : desk ? formatWhen(desk.oracleUpdatedAt, now) : "—"}
-              {oracle.data?.stale ? " · stale" : ""}
-            </Field>
-            <p className="text-body text-muted">{FEED_NOTE}</p>
-          </section>
-        ) : null}
-        <div className="flex gap-4">
-          <button
-            type="button"
-            className="text-body"
-            disabled={wizard.step === 1}
-            onClick={() => setWizard({ ...wizard, step: (wizard.step - 1) as WizardState["step"] })}
-          >
-            {BACK}
-          </button>
-          <button
-            type="button"
-            className="text-body"
-            disabled={!stepOk || wizard.step === 6}
-            onClick={() => setWizard({ ...wizard, step: (wizard.step + 1) as WizardState["step"] })}
-          >
-            {CONTINUE}
-          </button>
-        </div>
-      </div>
-    </div>
+    <span className="wk-row wk-row-8" role="alert">
+      <Pill tone="danger">Fix</Pill>
+      {message}
+    </span>
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+export function OpenPage() {
+  const [params] = useSearchParams();
+
+  const book = useBook();
+  const live = useLiveStrategy();
+  const desk = useDeskState(live.data ?? null);
+  const { isOwner } = useCanAct();
+
+  const [step, setStep] = useState(() => startStep(params.get("step")));
+  const [attempted, setAttempted] = useState<ReadonlySet<number>>(() => new Set());
+  const [wethText, setWethText] = useState(String(FIXTURE_SAFE.weth));
+  const [usdcText, setUsdcText] = useState(String(FIXTURE_SAFE.usdc));
+  const [policyDraft, setPolicyDraft] = useState<string | null>(null);
+  const [isSafeOpen, setIsSafeOpen] = useState(false);
+
+  const weth = amount(wethText);
+  const usdc = amount(usdcText);
+  const b = book.data;
+  const policy = policyDraft ?? b?.policy ?? "";
+  const safeWeth = desk.data
+    ? Number(desk.data.safeWallet.weth / 10n ** 14n) / 10_000
+    : liveMode
+      ? null
+      : FIXTURE_SAFE.weth;
+  const safeUsdc = desk.data
+    ? Number(desk.data.safeWallet.usdc / 10n ** 4n) / 100
+    : liveMode
+      ? null
+      : FIXTURE_SAFE.usdc;
+  const mid = b ? Number(b.oracle.answer) / 1e8 : null;
+  const ethShare = mid !== null && weth * mid + usdc > 0 ? (weth * mid) / (weth * mid + usdc) : null;
+  const deskIsOpen = Boolean(live.data);
+
+  // Validation is one derivation from the field values: Continue, the stepper's error mark
+  // and the field errors all read it.
+  const errorsByStep = useMemo<Array<Record<string, string>>>(() => {
+    const inventory: Record<string, string> = {};
+    if (safeWeth !== null && weth > safeWeth)
+      inventory.weth = `The Safe holds ${safeWeth.toLocaleString("en-US")} WETH.`;
+    if (safeUsdc !== null && usdc > safeUsdc)
+      inventory.usdc = `The Safe holds ${safeUsdc.toLocaleString("en-US")} USDC.`;
+    if (weth <= 0 && usdc <= 0) inventory.weth = "Put WETH or USDC behind the desk.";
+    return [{}, {}, inventory, {}, {}, {}];
+  }, [safeUsdc, safeWeth, usdc, weth]);
+
+  const shownErrors = (index: number): Record<string, string> =>
+    attempted.has(index) ? (errorsByStep[index] ?? {}) : {};
+  const currentErrors = shownErrors(step);
+  const isLastStep = step === STEPS.length - 1;
+  const current = STEPS[step] ?? { label: "", description: "" };
+
+  const markAttempted = (index: number) => setAttempted((prev) => new Set(prev).add(index));
+
+  const goNext = () => {
+    markAttempted(step);
+    if (isLastStep) {
+      const broken = errorsByStep.findIndex((errors) => Object.keys(errors).length > 0);
+      if (broken >= 0) {
+        markAttempted(broken);
+        setStep(broken);
+        return;
+      }
+      setIsSafeOpen(true);
+      return;
+    }
+    if (Object.keys(errorsByStep[step] ?? {}).length === 0) setStep((s) => s + 1);
+  };
+
+  const goTo = (index: number) => {
+    if (index > step) markAttempted(step);
+    setStep(index);
+  };
+
+  const names: NameRow[] = (b?.names ?? []).map((name) => ({
+    id: name.name,
+    name: name.name,
+    addr: name.addr,
+    expiry: Number(name.expiry),
+    live: name.live,
+  }));
+  const termsText = b?.terms
+    ? `Sell ${b.terms.sellBps} bp · buy ${b.terms.buyBps} bp · cap ${formatWeth(b.terms.cap)} per fill`
+    : "No shared terms on the client names";
+
   return (
-    <div className="flex flex-col gap-1">
-      <p className="text-small text-muted">{label}</p>
-      <div className="num text-body">{children}</div>
-    </div>
+    <Page>
+      <PageHead title="Open a desk" lede="Six steps, then one proposal the Safe owners sign." />
+
+      {deskIsOpen && !params.get("step") ? (
+        <Callout
+          tone="accent"
+          action={
+            <Link className="wk-link" to="/controls">
+              Go to Controls
+            </Link>
+          }
+        >
+          <strong>A desk is already open</strong>
+          <span>Proposing here docks it and ships the new program in one Safe transaction.</span>
+        </Callout>
+      ) : null}
+
+      <div className="wk-grid">
+        <nav className="wk-span-3" aria-label="Open a desk progress">
+          <ol className="wk-steps">
+            {STEPS.map((s, i) => {
+              const hasError = Object.keys(shownErrors(i)).length > 0;
+              return (
+                <li key={s.label}>
+                  <button
+                    type="button"
+                    aria-current={i === step ? "step" : undefined}
+                    data-done={i < step ? "true" : undefined}
+                    onClick={() => goTo(i)}
+                  >
+                    <span className="wk-num">{i + 1}</span>
+                    <span>{s.label}</span>
+                    {hasError ? <Pill tone="danger">Fix</Pill> : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+
+        <div className="wk-span-9 wk-stack wk-stack-24">
+          <Section title={`${step + 1}. ${current.label}`}>
+            <p className="wk-muted">{current.description}</p>
+
+            {step === 0 && (
+              <>
+                <Facts
+                  items={[
+                    ["Desk name", b?.name ?? "—"],
+                    ["Threshold", "2 of 3 owners sign"],
+                    ["Your wallet", isOwner ? "A Safe owner" : "Not a Safe owner: you can review, an owner proposes"],
+                  ]}
+                />
+                <Window title="Safe" meta="Sepolia">
+                  <div>{`SAFE\u00a0\u00a0\u00a0 ${sepoliaConfig.safe}`}</div>
+                  {FIXTURE_OWNERS.map((owner, i) => (
+                    <div key={owner}>{`OWNER ${i + 1} ${owner}`}</div>
+                  ))}
+                </Window>
+              </>
+            )}
+
+            {step === 1 && (
+              <>
+                <Facts
+                  items={[
+                    ["Pair", "WETH / USDC"],
+                    [
+                      "Oracle",
+                      <a
+                        key="oracle"
+                        href={`${sepoliaConfig.explorer}/address/${sepoliaConfig.oracle}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {formatAddr(sepoliaConfig.oracle)}
+                      </a>,
+                    ],
+                    ["Oracle mid", b ? `$${formatWadUsd(b.oracle.answer * 10n ** 10n)}` : "—"],
+                    ["Fill window", `10 minutes after each oracle update (${WINDOW_BLOCKS} blocks)`],
+                  ]}
+                />
+                <p className="wk-note">The program fixes these. Changing them means reopening the desk.</p>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <div className="wk-grid">
+                  <label className="wk-field wk-span-6">
+                    <span>WETH</span>
+                    <input
+                      className="wk-input"
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={wethText}
+                      onChange={(e) => setWethText(e.target.value)}
+                      aria-invalid={currentErrors.weth ? true : undefined}
+                    />
+                    {safeWeth !== null && !currentErrors.weth ? (
+                      <span className="wk-muted">{`The Safe holds ${safeWeth.toLocaleString("en-US")} WETH.`}</span>
+                    ) : null}
+                    <FieldError message={currentErrors.weth} />
+                  </label>
+                  <label className="wk-field wk-span-6">
+                    <span>USDC</span>
+                    <input
+                      className="wk-input"
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={usdcText}
+                      onChange={(e) => setUsdcText(e.target.value)}
+                      aria-invalid={currentErrors.usdc ? true : undefined}
+                    />
+                    {safeUsdc !== null && !currentErrors.usdc ? (
+                      <span className="wk-muted">{`The Safe holds ${safeUsdc.toLocaleString("en-US")} USDC.`}</span>
+                    ) : null}
+                    <FieldError message={currentErrors.usdc} />
+                  </label>
+                  <label className="wk-field wk-span-6">
+                    <span>ETH target</span>
+                    <input className="wk-input" value={`${TARGET_BPS / 100}%`} readOnly />
+                    <span className="wk-muted">
+                      The desk stops selling ETH at or below this share. The program fixes it.
+                    </span>
+                  </label>
+                </div>
+                {ethShare !== null ? (
+                  <div className="wk-stack wk-stack-4">
+                    <span className="wk-label">ETH share at the oracle mid</span>
+                    <span className="wk-big">
+                      <span className="wk-mark">{formatBpsShare(Math.round(ethShare * 10_000))}</span>
+                    </span>
+                    <span className="wk-muted">{`The target is ${formatBpsShare(TARGET_BPS)}. Tokens stay in the Safe until a fill.`}</span>
+                  </div>
+                ) : (
+                  <p className="wk-note">Tokens stay in the Safe until a fill.</p>
+                )}
+              </>
+            )}
+
+            {step === 3 && (
+              <>
+                {names.length === 0 ? (
+                  <Empty title={`No client names yet. Counterparties trade under ${sepoliaConfig.ens.suffix}.`} />
+                ) : (
+                  <div className="wk-table-wrap">
+                    <table className="wk-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Address</th>
+                          <th>Expires</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {names.map((row) => (
+                          <tr key={row.id}>
+                            <td>{row.name}</td>
+                            <td className="wk-num">{formatAddr(row.addr)}</td>
+                            <td>{formatDate(row.expiry)}</td>
+                            <td>
+                              <Pill tone={row.live ? "success" : "danger"}>{row.live ? "Can trade" : "Can't trade"}</Pill>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <p className="wk-note">Adding or removing a name takes one Safe signature later. The desk stays open.</p>
+              </>
+            )}
+
+            {step === 4 && (
+              <div className="wk-grid">
+                <label className="wk-field wk-span-6">
+                  <span>Policy</span>
+                  <textarea
+                    className="wk-input"
+                    rows={5}
+                    value={policy}
+                    onChange={(e) => setPolicyDraft(e.target.value)}
+                  />
+                  <span className="wk-muted">
+                    The Safe writes this to desk.policy on the desk name. The agent reads it; the router does not.
+                  </span>
+                </label>
+                <div className="wk-span-6 wk-stack">
+                  <span className="wk-label">Terms fence</span>
+                  <Facts
+                    items={[
+                      ["Sell width", b?.terms ? `${b.terms.sellBps} bp` : "—"],
+                      ["Buy width", b?.terms ? `${b.terms.buyBps} bp` : "—"],
+                      ["Cap per fill", b?.terms ? formatWeth(b.terms.cap) : "—"],
+                      ["Agent", b?.agent.name ?? "—"],
+                    ]}
+                  />
+                  <p className="wk-note">
+                    The agent moves the spread inside this fence. The terms change with one Safe signature.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {step === 5 && (
+              <>
+                <Facts
+                  items={[
+                    ["Safe", formatAddr(sepoliaConfig.safe)],
+                    ["Desk name", b?.name ?? "—"],
+                    ["Pair", "WETH / USDC"],
+                    ["Oracle", formatAddr(sepoliaConfig.oracle)],
+                    ["Fill window", "10 minutes after each update"],
+                    ["ETH target", formatBpsShare(TARGET_BPS)],
+                    ["WETH", `${weth.toLocaleString("en-US")} WETH`],
+                    ["USDC", `${usdc.toLocaleString("en-US")} USDC`],
+                    ["Counterparties", `${names.length} ENS names`],
+                    ["Terms", termsText],
+                    ["Agent", b?.agent.name ?? "—"],
+                    ["Deadline", `${sepoliaConfig.desk.strategyTtlDays} days after shipping`],
+                  ]}
+                />
+                <p className="wk-note">
+                  {deskIsOpen
+                    ? "One Safe transaction docks the live desk and ships this program to Aqua. Tokens stay in the Safe until a fill."
+                    : "One Safe transaction ships this program to Aqua. Tokens stay in the Safe until a fill."}
+                </p>
+              </>
+            )}
+          </Section>
+
+          <div className="wk-row wk-between wk-footer-bar">
+            <button
+              type="button"
+              className="wk-link"
+              disabled={step === 0}
+              onClick={() => setStep((s) => Math.max(0, s - 1))}
+            >
+              Back
+            </button>
+            <button type="button" className="wk-btn" onClick={goNext}>
+              {isLastStep ? "Propose to Safe" : "Continue"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <SafeDialog
+        isOpen={isSafeOpen}
+        onOpenChange={setIsSafeOpen}
+        title="Propose to Safe"
+        description={
+          deskIsOpen
+            ? "This proposal docks the live desk and ships the new program to Aqua in one Safe transaction. Tokens stay in the Safe until a fill."
+            : "This proposal ships the desk program to Aqua. Tokens stay in the Safe until a fill."
+        }
+      />
+    </Page>
   );
 }

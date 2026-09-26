@@ -9,6 +9,7 @@ import {
 } from "@desk/browser";
 import { ERRORS } from "../../copy/errors";
 import type { DeskPort } from "../port";
+import { recomputeFill } from "../verify";
 import type { Address, DeskConfig, DeskError, DeskState, FillRecord, Hex, StrategyInfo } from "../types";
 
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
@@ -243,8 +244,8 @@ export function createLivePort(): DeskPort {
       );
       return rows.map((row) => toFill(row, ctx.cfg.tokens.weth, times.get(row.blockNumber) ?? 0));
     },
-    verifyFill() {
-      return { matches: false, steps: [] };
+    verifyFill(fill) {
+      return recomputeFill(fill);
     },
     decodeDeskError(error) {
       return decodeDeskError(error);

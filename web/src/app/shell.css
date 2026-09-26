@@ -1,8 +1,9 @@
-/* The approved header, banners and role list (design/desk /dev/shell, "Side list"),
+/* The approved header and banners (design/desk /dev/shell/row, "Second row"),
    kept as approved: this file is the one exception to "Astryx examples as-is, our look
    only through theme tokens". Imported into the `app` layer, after astryx-theme. */
 
 .mul-shell {
+  display: flow-root;
   min-height: 100vh;
   background: #ffffff;
   color: #111111;
@@ -41,79 +42,6 @@
   color: #111111;
 }
 
-.watermark-toc {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 28px;
-  width: 180px;
-  flex: 0 0 auto;
-  overflow: hidden;
-  padding: 28px 24px 28px 28px;
-  transition: width 200ms ease-out, padding 200ms ease-out;
-}
-
-.mul-frame {
-  display: flex;
-  align-items: stretch;
-  min-height: 100vh;
-}
-
-.mul-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.mul-shell[data-roles="closed"] .watermark-toc {
-  width: 0;
-  padding: 0;
-  pointer-events: none;
-}
-
-.watermark-toc-toggle {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  width: auto;
-  height: auto;
-  padding: 0;
-  color: #111111;
-  font-size: 24px;
-  line-height: 1;
-}
-
-.watermark-toc-item {
-  position: relative;
-  display: block;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 0 0 0 16px;
-  margin-top: 18px;
-  font: inherit;
-  font-size: 20px;
-  line-height: 28px;
-  color: #111111;
-  text-align: left;
-  transition: transform 150ms ease-out, color 150ms ease-out;
-}
-
-.watermark-toc-item[aria-checked="true"] {
-  color: #0080bc;
-}
-
-.watermark-toc-item[aria-checked="true"]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 2px;
-  bottom: 2px;
-  width: 2px;
-  background: #0080bc;
-}
-
 .watermark-heading {
   display: inline-flex;
   align-items: center;
@@ -130,6 +58,13 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+}
+
+.watermark-role-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 12px 8px;
 }
 
 .watermark-wallet-popover {
@@ -233,10 +168,6 @@
   box-shadow: none;
   color: #111111;
   transform: none;
-}
-
-.watermark-toc-item:active {
-  transform: scale(0.94);
 }
 
 .mul-shell .watermark-mark,
@@ -468,8 +399,9 @@
   outline-offset: 2px;
 }
 
-/* The approved banner actions were square white buttons with an ink rule. That look came
+/* The approved role buttons and banner actions were square white buttons with an ink rule. That look came
    from the old global button rule, which now sits below Astryx, so it is written here. */
+.watermark-role-row .astryx-button,
 .mul-banners .astryx-button {
   border: 1px solid #111111;
   border-radius: 0;
@@ -487,4 +419,21 @@
   width: min(1280px, 100%);
   margin: 0 auto;
   padding: 32px;
+}
+
+/* Breadcrumbs on child pages (Fills / a fill, Controls / Program): plain underlined words. */
+.wm-crumbs {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.wm-crumbs a {
+  color: #111111;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The approved current tab is set heavier (500, the heaviest cut). */
+.mul-pages a[data-selected="selected"] {
+  font-weight: 500;
 }

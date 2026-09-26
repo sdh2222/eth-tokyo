@@ -1,32 +1,21 @@
-import { useState } from "react";
+import { Fragment, useState, type FormEvent } from "react";
 import sepoliaConfig from "@config";
 import { useImperativeAlertDialog } from "@astryxdesign/core/AlertDialog";
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { DialogHeader, useImperativeDialog } from "@astryxdesign/core/Dialog";
-import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from "@astryxdesign/core/Layout";
-import { Link } from "@astryxdesign/core/Link";
-import { List, ListItem } from "@astryxdesign/core/List";
-import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
-import { StatusDot } from "@astryxdesign/core/StatusDot";
-import { Table, proportional, useTableRowExpansion } from "@astryxdesign/core/Table";
-import type { TableColumn } from "@astryxdesign/core/Table";
-import { Heading, Text } from "@astryxdesign/core/Text";
-import { Timestamp } from "@astryxdesign/core/Timestamp";
+import { formatUnits } from "viem";
 import type { DeskBook } from "../desk/book";
 import { CLIENT_SUFFIX } from "../ens/names";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr, formatWeth } from "../lib/format";
+import { Empty, Facts, Page, PageHead, Pill, Section, Stat, Window } from "../ui/plain";
+import { SafeDialog } from "./open/SafeDialog";
 
-// Counterparties (IA: "Who can trade with my desk, and on what terms?").
-// Built from the Astryx TableInCard + TableRowExpansionTable examples, with MetadataList,
-// AlertDialog and Dialog examples in the expanded row.
+// Counterparties (IA: "Who can trade with my desk, and on what terms?"). Plain page kit.
+// Screens SC-20: one 12-column table. SC-10: the edit fields expand in the row, and saving
+// opens the Safe signing overlay (O1). Cut off shows one confirm sentence first (SC-05).
 
-const SAFE_URL = `https://app.safe.global/home?safe=sep:${sepoliaConfig.safe}`;
 const SAFE_WALLET = "Safe{Wallet}";
+const COLUMNS = 3;
 
 type NameStatus = "Live" | "Expired" | "Can't trade";
 
@@ -37,24 +26,24 @@ type NameRow = {
   expiry: number;
   status: NameStatus;
   terms: string;
-  width: string;
   reason: string;
 };
+
+type Draft = { sell: string; buy: string; cap: string };
+type Proposal = { isOpen: boolean; title: string; description: string };
 
 function termsText(terms: DeskBook["terms"]): string {
   if (!terms) return "No agreed terms";
   return `sell ${terms.sellBps} bp · buy ${terms.buyBps} bp · cap ${formatWeth(terms.cap)}`;
 }
 
-function widthText(book: DeskBook): string {
-  if (book.spread?.live) return `sell ${book.spread.sellBps} bp · buy ${book.spread.buyBps} bp`;
-  if (book.terms) return `sell ${book.terms.sellBps} bp · buy ${book.terms.buyBps} bp`;
-  return "No quote";
+function nowNote(book: DeskBook, side: "sellBps" | "buyBps"): string {
+  if (book.spread?.live) return `Now ${book.spread[side]} bp · agent spread`;
+  return "Now the terms width";
 }
 
 function toRows(book: DeskBook, now: number): NameRow[] {
   const terms = termsText(book.terms);
-  const width = widthText(book);
   return book.names.map((entry) => {
     const expiry = Number(entry.expiry);
     const expired = expiry > 0 && expiry <= now;
@@ -63,71 +52,165 @@ function toRows(book: DeskBook, now: number): NameRow[] {
     if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
     else if (status === "Can't trade" && !book.terms) reason = "The client names do not store the same valid desk.terms.";
     else if (status === "Can't trade") reason = "Its address or resolver does not pass the gate.";
-    return { id: entry.name, name: entry.name, addr: entry.addr, expiry, status, terms, width, reason };
+    return { id: entry.name, name: entry.name, addr: entry.addr, expiry, status, terms, reason };
   });
 }
 
-const columns: TableColumn<NameRow>[] = [
-  { key: "name", header: "Name", width: proportional(3) },
-  {
-    key: "status",
-    header: "Status",
-    width: proportional(2),
-    renderCell: (row) => (
-      <HStack gap={2} vAlign="center">
-        <StatusDot variant={row.status === "Live" ? "success" : "error"} label={row.status} />
-        <Text type="body">{row.status}</Text>
-      </HStack>
-    ),
-  },
-  { key: "terms", header: "Terms", width: proportional(3) },
-  { key: "width", header: "Width now", width: proportional(2) },
-  { key: "addr", header: "Address", width: proportional(2), renderCell: (row) => formatAddr(row.addr) },
-];
+function draftFrom(terms: DeskBook["terms"]): Draft {
+  if (!terms) return { sell: "", buy: "", cap: "" };
+  return { sell: String(terms.sellBps), buy: String(terms.buyBps), cap: formatUnits(terms.cap, 18) };
+}
 
-function SafeProposal({ title, change, onClose }: { title: string; change: string; onClose: () => void }) {
+function isDraftValid(draft: Draft): boolean {
+  const whole = /^\d+$/;
+  const amount = /^\d+(\.\d{1,18})?$/;
+  return whole.test(draft.sell.trim()) && whole.test(draft.buy.trim()) && amount.test(draft.cap.trim());
+}
+
+// A break chance before each dot, so a long ENS name wraps at its labels on a phone.
+function NameText({ name }: { name: string }) {
   return (
-    <Layout
-      header={<DialogHeader title={title} subtitle="Proposed to the Safe · 2 of 3 owners sign" onOpenChange={() => onClose()} />}
-      content={
-        <LayoutContent>
-          <VStack gap={4}>
-            <Text type="body">{change}</Text>
-            <Text type="body">
-              {`Two of the three Safe owners sign it in ${SAFE_WALLET}. Nothing is sent from this page, and the desk stays open while they sign.`}
-            </Text>
-            <Link href={SAFE_URL} isExternalLink isStandalone>
-              {`Open the Safe in ${SAFE_WALLET}`}
-            </Link>
-          </VStack>
-        </LayoutContent>
-      }
-      footer={
-        <LayoutFooter>
-          <HStack gap={2} hAlign="end">
-            <Button label="Close" variant="secondary" onClick={onClose} />
-          </HStack>
-        </LayoutFooter>
-      }
-    />
+    <>
+      {name.split(".").map((part, index) => (
+        <Fragment key={index}>
+          {index > 0 ? <wbr /> : null}
+          {index > 0 ? `.${part}` : part}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+function Expiry({ seconds }: { seconds: number }) {
+  if (seconds <= 0) return <>No expiry set</>;
+  const date = new Date(seconds * 1000);
+  return (
+    <time dateTime={date.toISOString()}>
+      {date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+    </time>
+  );
+}
+
+function TermsEditor({
+  row,
+  draft,
+  onDraft,
+  onSave,
+  onCancel,
+  onCutOff,
+}: {
+  row: NameRow;
+  draft: Draft;
+  onDraft: (draft: Draft) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onCutOff: () => void;
+}) {
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isDraftValid(draft)) onSave();
+  }
+
+  return (
+    <div className="wk-grid">
+      <div className="wk-span-5 wk-stack">
+        <Facts
+          items={[
+            ["Can trade", row.reason],
+            ["Address", <span className="wk-num">{formatAddr(row.addr)}</span>],
+            ["Terms now", row.terms],
+          ]}
+        />
+        <details className="wk-raw">
+          <summary>Show raw</summary>
+          <Window title="ENS records" meta={row.name}>
+            <div>{`addr ${row.addr}`}</div>
+            <div>{`expiry ${row.expiry > 0 ? String(row.expiry) : "none"}`}</div>
+          </Window>
+        </details>
+      </div>
+
+      <form className="wk-span-7 wk-stack wk-stack-24" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
+        <div className="wk-grid">
+          <label className="wk-field wk-span-4">
+            <span>Sell width (bp)</span>
+            <input
+              className="wk-input"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              value={draft.sell}
+              onChange={(event) => onDraft({ ...draft, sell: event.target.value })}
+            />
+          </label>
+          <label className="wk-field wk-span-4">
+            <span>Buy width (bp)</span>
+            <input
+              className="wk-input"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              value={draft.buy}
+              onChange={(event) => onDraft({ ...draft, buy: event.target.value })}
+            />
+          </label>
+          <label className="wk-field wk-span-4">
+            <span>Cap per fill (WETH)</span>
+            <input
+              className="wk-input"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              value={draft.cap}
+              onChange={(event) => onDraft({ ...draft, cap: event.target.value })}
+            />
+          </label>
+        </div>
+        <p className="wk-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</p>
+        <div className="wk-row wk-between">
+          <div className="wk-row wk-row-24">
+            <button type="submit" className="wk-btn" disabled={!isDraftValid(draft)}>
+              Save terms
+            </button>
+            <button type="button" className="wk-link" onClick={onCancel}>
+              Cancel
+            </button>
+          </div>
+          <button type="button" className="wk-btn wk-btn-danger" onClick={onCutOff}>
+            Cut off
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
 export function CounterpartiesPage() {
   const book = useBook();
   const now = useClock();
-  const dialog = useImperativeDialog();
   const alert = useImperativeAlertDialog();
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Draft>({ sell: "", buy: "", cap: "" });
+  const [proposal, setProposal] = useState<Proposal>({ isOpen: false, title: "", description: "" });
 
-  function editTerms(row: NameRow) {
-    dialog.show(
-      <SafeProposal
-        title="Edit terms"
-        change={`New sell and buy widths and a new cap for ${row.name} are written to its desk.terms record.`}
-        onClose={() => dialog.hide()}
-      />,
-    );
+  function toggle(row: NameRow) {
+    if (openId === row.id) {
+      setOpenId(null);
+      return;
+    }
+    setDraft(draftFrom(book.data?.terms ?? null));
+    setOpenId(row.id);
+  }
+
+  function saveTerms(row: NameRow) {
+    setProposal({
+      isOpen: true,
+      title: "Edit terms",
+      description: `New terms for ${row.name}: sell ${draft.sell.trim()} bp · buy ${draft.buy.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
+    });
   }
 
   function cutOff(row: NameRow) {
@@ -138,101 +221,140 @@ export function CounterpartiesPage() {
       actionLabel: `Cut off ${label}`,
       onAction: () => {
         alert.hide();
-        dialog.show(
-          <SafeProposal
-            title="Cut off"
-            change={`The Safe transaction clears desk.terms on ${row.name}.`}
-            onClose={() => dialog.hide()}
-          />,
-        );
+        setProposal({ isOpen: true, title: "Cut off", description: `The Safe transaction clears desk.terms on ${row.name}.` });
       },
     });
   }
 
-  const expansion = useTableRowExpansion<NameRow>({
-    expandedKeys,
-    onToggle: (key) =>
-      setExpandedKeys((prev) => {
-        const next = new Set(prev);
-        if (next.has(key)) {
-          next.delete(key);
-        } else {
-          next.add(key);
-        }
-        return next;
-      }),
-    getRowKey: (item) => item.id,
-    renderExpanded: (item) => (
-      <VStack gap={4}>
-        <MetadataList>
-          <MetadataListItem label="Address">{item.addr}</MetadataListItem>
-          <MetadataListItem label="Expires">
-            {item.expiry > 0 ? <Timestamp value={item.expiry} format="date" type="body" color="primary" /> : "No expiry set"}
-          </MetadataListItem>
-          <MetadataListItem label="Terms">{item.terms}</MetadataListItem>
-          <MetadataListItem label="Can trade">{item.reason}</MetadataListItem>
-        </MetadataList>
-        <HStack gap={2}>
-          <Button label="Edit terms" variant="secondary" onClick={() => editTerms(item)} />
-          <Button label="Cut off" variant="destructive" onClick={() => cutOff(item)} />
-        </HStack>
-      </VStack>
-    ),
-  });
-
-  if (book.isLoading) return <Text type="body">Reading the client names…</Text>;
+  if (book.isLoading) {
+    return (
+      <Page>
+        <PageHead title="Counterparties" lede="Reading the client names…" />
+      </Page>
+    );
+  }
   if (!book.data) {
-    return <EmptyState title="The client names could not be read" description="Check the Sepolia RPC in web/.env and reload." />;
+    return (
+      <Page>
+        <PageHead title="Counterparties" />
+        <Empty title="The client names could not be read. Check the Sepolia RPC in web/.env and reload." />
+      </Page>
+    );
   }
 
-  const rows = toRows(book.data, now);
+  const b = book.data;
+  const rows = toRows(b, now);
+  const liveCount = rows.filter((row) => row.status === "Live").length;
 
   return (
-    <VStack gap={6}>
-      <VStack gap={2}>
-        <Heading level={1}>Counterparties</Heading>
-        <Text type="body" color="secondary">
-          {`Names under ${CLIENT_SUFFIX} that can fill against the desk.`}
-        </Text>
-      </VStack>
+    <Page>
+      <PageHead kicker={b.name} title="Counterparties" lede={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
 
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>Client book</Heading>
-          <Table<NameRow>
-            data={rows}
-            columns={columns}
-            idKey="id"
-            density="compact"
-            dividers="rows"
-            hasHover
-            plugins={{ expansion }}
-            emptyState={
-              <EmptyState
-                isCompact
-                title="No counterparties yet"
-                description={`The Safe adds a name under ${CLIENT_SUFFIX} with an address, terms and an expiry.`}
-              />
-            }
-          />
-          <Text type="supporting" color="secondary">
-            Adding a counterparty is an ENS change made by the Safe.
-          </Text>
-        </VStack>
-      </Card>
+      <div className="wk-stats">
+        <Stat label="Can trade" value={`${liveCount} of ${rows.length}`} note="Names that pass the gate now." />
+        {b.terms ? (
+          <>
+            <Stat label="Sell width limit" value={`${b.terms.sellBps} bp`} note={nowNote(b, "sellBps")} />
+            <Stat label="Buy width limit" value={`${b.terms.buyBps} bp`} note={nowNote(b, "buyBps")} />
+            <Stat label="Cap per fill" value={formatWeth(b.terms.cap)} />
+          </>
+        ) : (
+          <Stat label="Terms" value="None" note="The client names disagree or are missing." />
+        )}
+      </div>
 
-      <Card>
-        <Collapsible trigger="How the gate checks a name" defaultIsOpen={false}>
-          <List listStyle="disc">
-            <ListItem label="The name's address must match the wallet that signs the fill." />
-            <ListItem label="The name must not be expired." />
-            <ListItem label={`The name's resolver must be the desk's resolver, ${formatAddr(sepoliaConfig.ens.resolver)}.`} />
-          </List>
-        </Collapsible>
-      </Card>
+      <div className="wk-grid">
+        <Section title="Client book" className="wk-span-12">
+          {rows.length === 0 ? (
+            <Empty title={`No counterparties yet. The Safe adds a name under ${CLIENT_SUFFIX} with an address, terms and an expiry.`} />
+          ) : (
+            <div className="wk-table-wrap">
+              <table className="wk-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th className="wk-right" aria-label="Edit" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => {
+                    const isOpen = openId === row.id;
+                    const panelId = `terms-${row.id.replace(/\./g, "-")}`;
+                    return (
+                      <Fragment key={row.id}>
+                        <tr data-selected={isOpen ? "true" : undefined}>
+                          <td>
+                            <div className="wk-stack wk-stack-4">
+                              <span className="wk-label">
+                                <NameText name={row.name} />
+                              </span>
+                              <span className="wk-muted wk-num">
+                                {row.expiry > 0 ? "Expires " : null}
+                                <Expiry seconds={row.expiry} />
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <Pill tone={row.status === "Live" ? "success" : "danger"}>{row.status}</Pill>
+                          </td>
+                          <td className="wk-right">
+                            <button
+                              type="button"
+                              className="wk-link"
+                              aria-expanded={isOpen}
+                              aria-controls={isOpen ? panelId : undefined}
+                              onClick={() => toggle(row)}
+                            >
+                              {isOpen ? "Close" : "Edit"}
+                            </button>
+                          </td>
+                        </tr>
+                        {isOpen ? (
+                          <tr id={panelId}>
+                            <td colSpan={COLUMNS}>
+                              <TermsEditor
+                                row={row}
+                                draft={draft}
+                                onDraft={setDraft}
+                                onSave={() => saveTerms(row)}
+                                onCancel={() => setOpenId(null)}
+                                onCutOff={() => cutOff(row)}
+                              />
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="wk-muted">Adding a counterparty is an ENS change made by the Safe.</p>
+          <details className="wk-raw">
+            <summary>How the gate checks a name</summary>
+            <ul className="wk-list">
+              <li>The name&apos;s address must match the wallet that signs the fill.</li>
+              <li>The name must not be expired.</li>
+              <li>
+                <span>
+                  {"The name's resolver must be the desk's resolver, "}
+                  <span className="wk-num">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
+                </span>
+              </li>
+            </ul>
+          </details>
+        </Section>
+      </div>
 
-      {dialog.element}
+      <SafeDialog
+        isOpen={proposal.isOpen}
+        onOpenChange={(isOpen) => setProposal((prev) => ({ ...prev, isOpen }))}
+        title={proposal.title}
+        description={proposal.description}
+      />
       {alert.element}
-    </VStack>
+    </Page>
   );
 }
