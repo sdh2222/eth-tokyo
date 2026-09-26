@@ -16,11 +16,8 @@ library DeskArgs {
         uint8 oracleDecimals;
         uint8 baseDecimals;
         uint8 quoteDecimals;
-        uint32 maxStaleness;
+        uint16 maxBlocks;
         uint16 wStarBps;
-        uint16 kappaBps;
-        uint16 sMinBps;
-        uint16 sMaxBps;
     }
 
     function buildPriceArgs(PriceArgs memory a) internal pure returns (bytes memory) {
@@ -33,16 +30,13 @@ library DeskArgs {
             a.oracleDecimals,
             a.baseDecimals,
             a.quoteDecimals,
-            a.maxStaleness,
-            a.wStarBps,
-            a.kappaBps,
-            a.sMinBps,
-            a.sMaxBps
+            a.maxBlocks,
+            a.wStarBps
         );
     }
 
     function parsePriceArgs(bytes calldata args) internal pure returns (PriceArgs memory a) {
-        if (args.length != 95) {
+        if (args.length != 87) {
             revert DeskPrice.DeskPriceInvalidArgs();
         }
         a.resolver = address(bytes20(args[0:20]));
@@ -52,11 +46,8 @@ library DeskArgs {
         a.oracleDecimals = uint8(args[80]);
         a.baseDecimals = uint8(args[81]);
         a.quoteDecimals = uint8(args[82]);
-        a.maxStaleness = uint32(bytes4(args[83:87]));
-        a.wStarBps = uint16(bytes2(args[87:89]));
-        a.kappaBps = uint16(bytes2(args[89:91]));
-        a.sMinBps = uint16(bytes2(args[91:93]));
-        a.sMaxBps = uint16(bytes2(args[93:95]));
+        a.maxBlocks = uint16(bytes2(args[83:85]));
+        a.wStarBps = uint16(bytes2(args[85:87]));
         _check(a);
     }
 
@@ -117,8 +108,7 @@ library DeskArgs {
         if (
             a.resolver == address(0) || a.oracle == address(0) || a.base == address(0) || a.quote == address(0)
                 || a.base == a.quote || a.oracleDecimals > 18 || a.baseDecimals > 18 || a.quoteDecimals > 18
-                || a.maxStaleness == 0 || a.wStarBps > 10_000 || a.kappaBps >= 10_000 || a.sMinBps > a.sMaxBps
-                || a.sMaxBps >= 10_000
+                || a.maxBlocks == 0 || a.wStarBps > 10_000
         ) {
             revert DeskPrice.DeskPriceInvalidArgs();
         }

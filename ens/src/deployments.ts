@@ -1,11 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dirname } from 'node:path'
 import type { Address, Hex } from 'viem'
-import { DESK_LABEL } from './config.js'
-
-// One record per desk name, so a rename never overwrites an earlier deployment.
-const FILE = join(dirname(fileURLToPath(import.meta.url)), '..', 'deployments', `sepolia.${DESK_LABEL}.json`)
+import { DEPLOYMENT_FILE as FILE } from './config.js'
 
 export type Deployment = {
   treasury?: Address

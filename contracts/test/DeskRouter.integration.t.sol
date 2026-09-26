@@ -69,13 +69,13 @@ contract DeskRouterIntegrationTest is Test {
         resolver.setAddr(a, mmA);
         resolver.setAddr(b, mmB);
         resolver.setAddr(d, address(mmD));
-        resolver.setData(a, "desk.terms", abi.encode(uint8(1), uint16(10), uint128(100_000e6)));
-        resolver.setData(b, "desk.terms", abi.encode(uint8(1), uint16(25), uint128(50_000e6)));
-        resolver.setData(d, "desk.terms", abi.encode(uint8(1), uint16(10), uint128(100_000e6)));
+        resolver.setData(a, "desk.terms", abi.encode(uint8(1), uint16(3), uint16(10), uint128(50e18)));
+        resolver.setData(b, "desk.terms", abi.encode(uint8(1), uint16(10), uint16(25), uint128(25e18)));
+        resolver.setData(d, "desk.terms", abi.encode(uint8(1), uint16(3), uint16(10), uint128(50e18)));
     }
 
     function test_TI1_shipAndFillBothWays() public {
-        ISwapVM.Order memory order = _ship(1, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory order = _ship(1, 900e18, 400_000e6, type(uint256).max);
         uint256 usdcIn = 1_000e6;
         _fundTaker(mmA, usdcIn, 0);
 
@@ -107,7 +107,7 @@ contract DeskRouterIntegrationTest is Test {
     }
 
     function test_TI2_quoteMatchesSwapAndEmitsNothing() public {
-        ISwapVM.Order memory order = _ship(1, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory order = _ship(1, 900e18, 400_000e6, type(uint256).max);
         bytes memory data = _taker(mmA, true, "");
         vm.recordLogs();
         vm.prank(mmA);
@@ -121,14 +121,14 @@ contract DeskRouterIntegrationTest is Test {
     }
 
     function test_TI3_quoteFromStrangerReverts() public {
-        ISwapVM.Order memory order = _ship(1, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory order = _ship(1, 900e18, 400_000e6, type(uint256).max);
         vm.prank(stranger);
         vm.expectRevert(abi.encodeWithSelector(EnsGate.EnsGateTakerMismatch.selector, mmA, stranger));
         router.quote(order, address(usdc), address(weth), 1_000e6, _taker(mmA, true, ""));
     }
 
     function test_TI4_dockThenReshipNeedsANewSalt() public {
-        ISwapVM.Order memory order = _ship(1, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory order = _ship(1, 900e18, 400_000e6, type(uint256).max);
         bytes32 strategyHash = router.hash(order);
         address[] memory tokens = new address[](2);
         tokens[0] = address(weth);
@@ -140,28 +140,28 @@ contract DeskRouterIntegrationTest is Test {
 
         vm.prank(maker);
         vm.expectRevert(abi.encodeWithSelector(IAqua.StrategiesMustBeImmutable.selector, address(router), strategyHash));
-        aqua.ship(address(router), abi.encode(order), tokens, _amounts(700e18, 1_200_000e6));
+        aqua.ship(address(router), abi.encode(order), tokens, _amounts(900e18, 400_000e6));
 
-        ISwapVM.Order memory next = _ship(2, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory next = _ship(2, 900e18, 400_000e6, type(uint256).max);
         assertTrue(router.hash(next) != strategyHash);
     }
 
     function test_TI5_contractWalletFills() public {
-        ISwapVM.Order memory order = _ship(1, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory order = _ship(1, 900e18, 400_000e6, type(uint256).max);
         usdc.mint(address(mmD), 1_000e6);
         mmD.fill(router, usdc, order, address(usdc), address(weth), 1_000e6, _taker(address(mmD), true, ""));
         assertGt(weth.balanceOf(address(mmD)), 0);
     }
 
     function test_TI6_otherNameReverts() public {
-        ISwapVM.Order memory order = _ship(1, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory order = _ship(1, 900e18, 400_000e6, type(uint256).max);
         vm.prank(mmB);
         vm.expectRevert(abi.encodeWithSelector(EnsGate.EnsGateTakerMismatch.selector, mmA, mmB));
         router.quote(order, address(usdc), address(weth), 1_000e6, _taker(mmA, true, ""));
     }
 
     function test_TI7_minOutIsEnforced() public {
-        ISwapVM.Order memory order = _ship(1, 700e18, 1_200_000e6, type(uint256).max);
+        ISwapVM.Order memory order = _ship(1, 900e18, 400_000e6, type(uint256).max);
         bytes memory data = _taker(mmA, true, abi.encode(type(uint256).max));
         vm.expectRevert();
         router.quote(order, address(usdc), address(weth), 1_000e6, data);
@@ -186,15 +186,12 @@ contract DeskRouterIntegrationTest is Test {
                 oracleDecimals: 8,
                 baseDecimals: 18,
                 quoteDecimals: 6,
-                maxStaleness: 3600,
-                wStarBps: 7000,
-                kappaBps: 200,
-                sMinBps: 5,
-                sMaxBps: 200
+                maxBlocks: 3,
+                wStarBps: 7000
             })
         );
         bytes memory program = DeskArgs.buildProgram(1_790_000_000, 1, gate, price);
-        assertEq(program.length, 214);
+        assertEq(program.length, 206);
         ISwapVM.Order memory order = _order(program);
         emit log_named_bytes32("strategyHash", router.hash(order));
     }
@@ -305,11 +302,8 @@ contract DeskRouterIntegrationTest is Test {
                 oracleDecimals: 8,
                 baseDecimals: 18,
                 quoteDecimals: 6,
-                maxStaleness: 3600,
-                wStarBps: 7000,
-                kappaBps: 200,
-                sMinBps: 5,
-                sMaxBps: 200
+                maxBlocks: 3,
+                wStarBps: 7000
             })
         );
     }
@@ -374,8 +368,8 @@ interface IDeskFill {
         uint256 amountIn,
         uint256 amountOut,
         uint256 midWad,
-        uint16 spreadBps,
-        uint8 spreadSource,
+        uint16 sSellBps,
+        uint16 sBuyBps,
         uint256 wBeforeWad
     );
 }

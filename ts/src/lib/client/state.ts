@@ -65,6 +65,42 @@ const oracleAbi = [
   },
 ] as const;
 
+export async function readSafeBook(ctx: DeskCtx): Promise<{
+  weth: bigint;
+  usdc: bigint;
+  answer: bigint;
+  updatedAt: bigint;
+}> {
+  const safe = ctx.cfg.safe as Address;
+  const calls = await ctx.client.multicall({
+    contracts: [
+      {
+        address: ctx.cfg.tokens.weth as Address,
+        abi: balanceAbi,
+        functionName: "balanceOf",
+        args: [safe],
+      },
+      {
+        address: ctx.cfg.tokens.usdc as Address,
+        abi: balanceAbi,
+        functionName: "balanceOf",
+        args: [safe],
+      },
+      {
+        address: ctx.cfg.oracle as Address,
+        abi: oracleAbi,
+        functionName: "latestRoundData",
+      },
+    ],
+  });
+  const weth = calls[0].status === "success" ? calls[0].result : 0n;
+  const usdc = calls[1].status === "success" ? calls[1].result : 0n;
+  const round =
+    calls[2].status === "success" ? calls[2].result : [0n, 0n, 0n, 0n, 0n];
+  const answer = round[1] < 0n ? 0n : round[1];
+  return { weth, usdc, answer, updatedAt: round[3] };
+}
+
 export async function readDeskState(
   ctx: DeskCtx,
   s: StrategyInfo,
@@ -115,10 +151,11 @@ export async function readDeskState(
   const updatedAt = round[3];
   const now = BigInt(Math.floor(Date.now() / 1000));
   const mirror = priceMirror({
-    baseBal: 1n,
-    quoteBal: 1n,
+    baseBal: walletWeth,
+    quoteBal: walletUsdc,
     answer,
-    s: ctx.cfg.desk.sMinBps,
+    sSellBps: ctx.cfg.desk.sSellBps,
+    sBuyBps: ctx.cfg.desk.sBuyBps,
     cfg: ctx.cfg,
     side: "buy",
     exactIn: true,
@@ -130,19 +167,19 @@ export async function readDeskState(
     expiry: 0n,
     expired: mm.address === "",
     resolverOk: mm.address !== "",
-    sPolicy: ctx.cfg.desk.sMinBps,
+    sPolicy: ctx.cfg.desk.sSellBps,
     askWad: mirror.askWad,
     bidWad: mirror.bidWad,
     status: mm.address === "" ? "no-addr" : "ok",
   }));
   return {
     live: s.live,
-    balances: { weth: 0n, usdc: 0n },
+    balances: { weth: walletWeth, usdc: walletUsdc },
     safeWallet: { weth: walletWeth, usdc: walletUsdc },
     allowances: { weth: allowWeth, usdc: allowUsdc },
     pWad: answer * 10n ** BigInt(18 - ctx.cfg.desk.oracleDecimals),
     oracleUpdatedAt: updatedAt,
-    oracleStale: now - updatedAt > BigInt(ctx.cfg.desk.maxStaleness),
+    oracleStale: now - updatedAt > BigInt(ctx.cfg.desk.maxBlocks) * 12n,
     wWad: mirror.wWad,
     targetWad: BigInt(ctx.cfg.desk.wStarBps) * 10n ** 14n,
     rWad: mirror.rWad,

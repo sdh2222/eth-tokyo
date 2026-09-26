@@ -4,6 +4,7 @@ import { priceMirror } from "../price.js";
 import { buildTakerData } from "../taker.js";
 import type { DeskCtx, DeskError, StrategyInfo } from "./ctx.js";
 import { decodeDeskError } from "./errors.js";
+import { readSafeBook } from "./state.js";
 
 const quoteAbi = [
   {
@@ -31,8 +32,8 @@ export type QuoteResult =
       amountIn: bigint;
       amountOut: bigint;
       priceWad: bigint;
-      spreadBps: number;
-      spreadSource: 0 | 1 | 2;
+      sSellBps: number;
+      sBuyBps: number;
       mirror: ReturnType<typeof priceMirror>;
       mirrorMatches: boolean;
     }
@@ -72,11 +73,13 @@ export async function quoteFor(
         buildTakerData({ name: q.mm.name, exactIn }),
       ],
     });
+    const book = await readSafeBook(ctx);
     const mirror = priceMirror({
-      baseBal: 700n * 10n ** 18n,
-      quoteBal: 1_200_000n * 10n ** 6n,
-      answer: 4000n * 10n ** 8n,
-      s: ctx.cfg.desk.sMinBps,
+      baseBal: book.weth,
+      quoteBal: book.usdc,
+      answer: book.answer,
+      sSellBps: ctx.cfg.desk.sSellBps,
+      sBuyBps: ctx.cfg.desk.sBuyBps,
       cfg: ctx.cfg,
       side: q.side,
       exactIn,
@@ -87,8 +90,8 @@ export async function quoteFor(
       amountIn: simulated.result[0],
       amountOut: simulated.result[1],
       priceWad: mirror.rWad,
-      spreadBps: mirror.sFinal,
-      spreadSource: mirror.spreadSource,
+      sSellBps: mirror.sSellBps,
+      sBuyBps: mirror.sBuyBps,
       mirror,
       mirrorMatches:
         mirror.amountIn === simulated.result[0] &&

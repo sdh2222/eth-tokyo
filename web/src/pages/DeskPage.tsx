@@ -5,14 +5,14 @@ import { ShareBar } from "../components/ShareBar";
 import { Skeleton } from "../components/Skeleton";
 import { StatusBadge, type StatusKind } from "../components/StatusBadge";
 import { CLOSES_IN, UPDATED } from "../copy/en";
-import { emptyConfig, NOW } from "../desk/fixture/state";
+import { NOW } from "../desk/fixture/state";
 import { useRole } from "../app/role";
 import { useCanAct } from "../hooks/useCanAct";
 import { useDeskState, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { useOracleRound } from "../hooks/useOracle";
 import { ERRORS } from "../copy/errors";
 import { useNavigate } from "react-router-dom";
-import { formatHash, formatShare, formatSkewBps, formatUsd, formatUsdc, formatWeth } from "../lib/format";
+import { formatHash, formatShare, formatUsd, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
 
 const WAD = 10n ** 18n;
@@ -142,7 +142,7 @@ export function DeskPage() {
 
   const targetPct = desk ? (desk.targetWad * 100n) / WAD : 0n;
   const shareCaption = desk
-    ? `${formatShare(desk.wWad)} ETH · target ${targetPct}% · skew ${formatSkewBps(emptyConfig().desk.kappaBps, desk.wWad, desk.targetWad)}`
+    ? `${formatShare(desk.wWad)} ETH · target ${targetPct}%`
     : "";
 
   return (

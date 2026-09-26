@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { openDb } from "./db.js";
+import { quoteRequest } from "./quote.js";
 import { readAgent, readCounterparties, readDesk, readFill, readFills, readProgram } from "./read.js";
 
 const db = openDb(process.env.DESK_DB ?? "data/desk.sqlite");
@@ -30,15 +31,27 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/v1/agent") return send(res, 200, readAgent(db));
   if (req.method === "GET" && url.pathname === "/v1/program") return send(res, 200, readProgram(db));
   if (req.method === "POST" && url.pathname === "/v1/quote") {
-    return send(res, 501, {
-      ok: false,
-      error: {
-        code: "QUOTE_NOT_ON_CHAIN",
-        title: "Quote is read from the contract",
-        hint: "The indexer does not store quotes.",
-        severity: "config",
-      },
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      let body = {};
+      try {
+        const raw = Buffer.concat(chunks).toString("utf8");
+        body = raw ? JSON.parse(raw) : {};
+      } catch {
+        return send(res, 400, {
+          ok: false,
+          error: {
+            code: "BAD_QUOTE",
+            title: "Quote is read from the contract",
+            hint: "Send a JSON object.",
+            severity: "user",
+          },
+        });
+      }
+      quoteRequest(body).then((result) => send(res, result.status, result.body));
     });
+    return;
   }
   send(res, 404, { title: "Not found" });
 });

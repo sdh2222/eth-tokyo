@@ -52,11 +52,12 @@ export function useOracleRound() {
       const updatedAt = Number(round[3]);
       const now = Math.floor(Date.now() / 1000);
       const scale = 18 - cfg.desk.oracleDecimals;
+      const limit = cfg.desk.maxStaleness ?? (cfg.desk.maxBlocks ?? 3) * 12;
       return {
         answer,
         midWad: answer * 10n ** BigInt(scale),
         updatedAt,
-        stale: now - updatedAt > cfg.desk.maxStaleness,
+        stale: now - updatedAt > limit,
       };
     },
   });

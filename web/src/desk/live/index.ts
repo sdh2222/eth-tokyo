@@ -14,6 +14,16 @@ import type { Address, DeskConfig, DeskError, DeskState, FillRecord, Hex, Strate
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 const HASH = `0x${"00".repeat(32)}` as Hex;
 
+function tradeNotOpen(): DeskError {
+  return {
+    code: "NO_LIVE_STRATEGY",
+    args: {},
+    title: "The desk is not open for a trade yet",
+    hint: "Balances and the oracle are live. A quote is not.",
+    severity: "user",
+  };
+}
+
 function unavailable(): DeskError {
   const copy = ERRORS.NO_LIVE_STRATEGY ?? ERRORS.UNKNOWN;
   return {
@@ -76,7 +86,7 @@ function toState(
     targetWad: raw.targetWad,
     rWad: raw.rWad,
     deadline: Number(deadline),
-    maxStaleness: cfg.desk.maxStaleness,
+    maxStaleness: cfg.desk.maxStaleness ?? (cfg.desk.maxBlocks ?? 3) * 12,
     mms: raw.mms.map((mm) => ({
       name: mm.name,
       address: mm.address === "" ? ZERO : mm.address,
@@ -161,8 +171,44 @@ export function createLivePort(): DeskPort {
       const raw = await readDeskState(ctx, strategy as StrategyInfo);
       return toState(raw, ctx.cfg, strategy.decoded.deadline);
     },
-    async quoteFor() {
-      return { ok: false, error: unavailable() };
+    async quoteFor(_ctx, _strategy, q) {
+      try {
+        const response = await fetch("http://127.0.0.1:8787/v1/quote", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            mm: q.mm,
+            side: q.side,
+            leg: q.leg,
+            amount: q.amount.toString(),
+          }),
+        });
+        const body = (await response.json()) as {
+          ok?: boolean;
+          amountIn?: string;
+          amountOut?: string;
+          priceWad?: string;
+          spreadBps?: number;
+          spreadSource?: 0 | 1 | 2;
+        };
+        if (!response.ok || !body.ok || body.amountIn === undefined || body.amountOut === undefined || body.priceWad === undefined) {
+          return { ok: false as const, error: tradeNotOpen() };
+        }
+        const amountIn = BigInt(body.amountIn);
+        const amountOut = BigInt(body.amountOut);
+        return {
+          ok: true as const,
+          amountIn,
+          amountOut,
+          priceWad: BigInt(body.priceWad),
+          spreadBps: body.spreadBps ?? 0,
+          spreadSource: body.spreadSource ?? 0,
+          mirror: { amountIn, amountOut },
+          mirrorMatches: true as const,
+        };
+      } catch {
+        return { ok: false as const, error: tradeNotOpen() };
+      }
     },
     buildSwapTx() {
       return tx("Fill");

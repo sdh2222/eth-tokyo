@@ -12,4 +12,4 @@ node api/src/server.js
 
 `GET /v1/desk` `/v1/fills` `/v1/fills/:tx` `/v1/counterparties` `/v1/agent` `/v1/program`
 
-`POST /v1/quote` returns `QUOTE_NOT_ON_CHAIN` until a contract call is wired. Amounts are strings.
+`POST /v1/quote` reads a router quote. Body is `{ "mm", "side": "buy"|"sell", "leg": "weth"|"usdc", "amount" }` with `amount` as an integer string. Amounts in the response are strings. While `router`, `tokens.weth`, or `tokens.usdc` is empty it returns `QUOTE_NOT_ON_CHAIN`. The route does not store the quote and does not build a wallet transaction.

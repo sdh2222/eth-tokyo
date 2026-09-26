@@ -70,7 +70,7 @@ const rows: Record<string, Omit<DeskError, "code" | "args">> = {
   },
   DeskPriceOracleStale: {
     title: "The price feed is too old",
-    hint: "Trading pauses when the price is older than the limit. It resumes on the next update.",
+    hint: "Trading is open only for a few blocks after an oracle update.",
     severity: "user",
   },
   DeskPriceInvalidRecords: {
@@ -93,9 +93,14 @@ const rows: Record<string, Omit<DeskError, "code" | "args">> = {
     hint: "This size is too big relative to the desk. Try a smaller amount.",
     severity: "user",
   },
+  DeskPriceTargetReached: {
+    title: "The desk has reached its ETH target",
+    hint: "A sale of ETH stops at the target share. A purchase of ETH still fills.",
+    severity: "user",
+  },
   DeskPriceCapExceeded: {
     title: "Over your cap per fill",
-    hint: "Your cap is {cap} USDC per fill. Split the trade.",
+    hint: "Your cap is {cap} WETH per fill. Split the trade.",
     severity: "user",
   },
   DeskPriceInsufficientInventory: {
@@ -216,6 +221,14 @@ const abi = [
   },
   {
     type: "error",
+    name: "DeskPriceTargetReached",
+    inputs: [
+      { name: "wWad", type: "uint256" },
+      { name: "wStarWad", type: "uint256" },
+    ],
+  },
+  {
+    type: "error",
     name: "DeskPriceInsufficientInventory",
     inputs: [
       { name: "amountOut", type: "uint256" },
@@ -254,6 +267,7 @@ const abi = [
           "DeskPriceCapExceeded",
           "DeskPriceInsufficientInventory",
           "DeskPriceSizeTooLarge",
+          "DeskPriceTargetReached",
         ].includes(name),
     )
     .map((name) => ({ type: "error" as const, name, inputs: [] })),

@@ -1,10 +1,19 @@
 import { config } from 'dotenv'
 config({ quiet: true })
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem'
+import { existsSync, readFileSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createPublicClient, createTestClient, createWalletClient, getAddress, http, type Account, type Address, type Hex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
 
 export const RPC_URL = process.env.RPC_URL ?? 'https://ethereum-sepolia-rpc.publicnode.com'
+
+/** Host only, so a key embedded in an RPC URL's path or query is never printed. */
+export const rpcHost = (url = RPC_URL) => new URL(url).host
+
+/** True for an RPC on this machine (an anvil fork). Scripts that send use it to refuse a real chain by default. */
+export const isLocalRpc = (url = RPC_URL) => ['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname)
 
 // 확인: docs.ens.domains/learn/deployments 목록 + Blockscout verified source + `cast code` (2026-09-25)
 export const ADDR = {
@@ -24,11 +33,51 @@ export const DESK_NAME = `${DESK_LABEL}.eth`
 export const CLIENTS_NAME = `clients.${DESK_NAME}`
 export const AGENTS_NAME = `agents.${DESK_NAME}`
 
+// One record per desk name, so a rename never overwrites an earlier deployment. Public addresses only.
+export const DEPLOYMENT_FILE = join(dirname(fileURLToPath(import.meta.url)), '..', 'deployments', `sepolia.${DESK_LABEL}.json`)
+
 export const publicClient = createPublicClient({ chain: sepolia, transport: http(RPC_URL) })
 
-export function account(envKey: string) {
+/**
+ * FORK_IMPERSONATE=1: fork runs with no testnet key (team security SEC-05, coding agents do not receive keys).
+ * wallet('TREASURY_PK') and wallet('AGENT_PK') then send as the addresses recorded in deployments/, which anvil
+ * impersonates. Local RPC only: on any other RPC every script stops here, before it reads a key or the network.
+ */
+export const FORK_IMPERSONATE = process.env.FORK_IMPERSONATE === '1'
+if (FORK_IMPERSONATE && !isLocalRpc()) {
+  console.error(`refusing FORK_IMPERSONATE=1: RPC_URL (${rpcHost()}) is not a local RPC. Nothing was done.`)
+  process.exit(1)
+}
+
+const IMPERSONATED: Record<string, (d: { treasury?: string; agent?: { address?: string } }) => string | undefined> = {
+  TREASURY_PK: (d) => d.treasury,
+  AGENT_PK: (d) => d.agent?.address,
+}
+
+function recordedAddress(envKey: string): Address | undefined {
+  const d = existsSync(DEPLOYMENT_FILE) ? JSON.parse(readFileSync(DEPLOYMENT_FILE, 'utf8')) : {}
+  const address = IMPERSONATED[envKey]?.(d)
+  return address ? getAddress(address) : undefined
+}
+
+if (FORK_IMPERSONATE) {
+  const anvil = createTestClient({ mode: 'anvil', chain: sepolia, transport: http(RPC_URL) })
+  for (const envKey of Object.keys(IMPERSONATED)) {
+    const address = recordedAddress(envKey)
+    if (address) await anvil.impersonateAccount({ address })
+  }
+}
+
+/** The account behind a key in .env, or with FORK_IMPERSONATE=1 the recorded address as a JSON-RPC account. */
+export function account(envKey: string): Account {
+  if (FORK_IMPERSONATE) {
+    if (!IMPERSONATED[envKey]) throw new Error(`FORK_IMPERSONATE=1 covers ${Object.keys(IMPERSONATED).join(' and ')}, not ${envKey}`)
+    const address = recordedAddress(envKey)
+    if (!address) throw new Error(`FORK_IMPERSONATE=1: deployments/${basename(DEPLOYMENT_FILE)} records no address for ${envKey}`)
+    return { address, type: 'json-rpc' }
+  }
   const pk = process.env[envKey] as Hex | undefined
-  if (!pk) throw new Error(`${envKey} is missing in .env — run \`npm run keys\` first`)
+  if (!pk) throw new Error(`${envKey} is missing in .env — run \`npm run keys\`, or on a fork set FORK_IMPERSONATE=1`)
   return privateKeyToAccount(pk)
 }
 

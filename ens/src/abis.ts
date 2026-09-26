@@ -19,6 +19,7 @@ export const ethRegistrarAbi = parseAbi([
 export const registryAbi = parseAbi([
   'function initialize((address account, uint256 roleBitmap)[] grants)',
   'function register(string label, address owner, address registry, address resolver, uint256 roleBitmap, uint64 expiry) returns (uint256)',
+  'function unregister(uint256 anyId)',
   'function findExpiry(string label) view returns (uint64)',
   'function getExpiry(uint256 anyId) view returns (uint64)',
   'function getOwner(uint256 anyId) view returns (address)',
@@ -27,10 +28,32 @@ export const registryAbi = parseAbi([
   'function setSubregistry(uint256 anyId, address registry)',
   'function setResolver(uint256 anyId, address resolver)',
   'function roles(uint256 anyId, address account) view returns (uint256)',
+  'function getTokenId(uint256 anyId) view returns (uint256)',
+  'function isEmancipated() view returns (bool)',
+  'function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data)',
+  'function unsafeTransfer(address to, uint256 tokenId, bytes data)',
   'error EACUnauthorizedAccountRoles(uint256 resource, uint256 roleBitmap, address account)',
   'error EACCannotGrantRoles(uint256 resource, uint256 roleBitmap, address account)',
   'error LabelAlreadyRegistered(string label)',
+  'error LabelAlreadyReserved(string label)',
+  'error LabelExpired(uint256 tokenId)',
   'error CannotSetPastExpiry(uint64 expiry)',
+  'error TransferDisallowed(uint256 tokenId, address from)',
+  'error TransferUnsafeUntilRegistryIsEmancipated()',
+  'error TransferUnsafeWithMultipleAssignees(uint256 tokenId, address from)',
+  'error ERC1155InvalidReceiver(address receiver)',
+  'error ERC1155MissingApprovalForAll(address operator, address owner)',
+])
+
+// EnhancedAccessControl root-role calls. The resolver and every PermissionedRegistry share them;
+// on a registry, roles(0, account) reads the root resource too.
+export const rootRolesAbi = parseAbi([
+  'function roles(uint256 resource, address account) view returns (uint256)',
+  'function grantRootRoles(uint256 roleBitmap, address account) returns (bool)',
+  'function revokeRootRoles(uint256 roleBitmap, address account) returns (bool)',
+  'error EACUnauthorizedAccountRoles(uint256 resource, uint256 roleBitmap, address account)',
+  'error EACCannotGrantRoles(uint256 resource, uint256 roleBitmap, address account)',
+  'error EACCannotRevokeRoles(uint256 resource, uint256 roleBitmap, address account)',
 ])
 
 export const resolverAbi = parseAbi([

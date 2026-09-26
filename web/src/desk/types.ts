@@ -20,11 +20,14 @@ export type DeskConfig = {
     oracleDecimals: number;
     baseDecimals: number;
     quoteDecimals: number;
-    maxStaleness: number;
+    maxStaleness?: number;
+    maxBlocks?: number;
     wStarBps: number;
-    kappaBps: number;
-    sMinBps: number;
-    sMaxBps: number;
+    kappaBps?: number;
+    sMinBps?: number;
+    sMaxBps?: number;
+    sSellBps?: number;
+    sBuyBps?: number;
     strategyTtlDays: number;
     shipWeth: string;
     shipUsdc: string;

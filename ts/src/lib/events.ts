@@ -15,8 +15,8 @@ export const deskFillAbi = [
       { name: "amountIn", type: "uint256", indexed: false },
       { name: "amountOut", type: "uint256", indexed: false },
       { name: "midWad", type: "uint256", indexed: false },
-      { name: "spreadBps", type: "uint16", indexed: false },
-      { name: "spreadSource", type: "uint8", indexed: false },
+      { name: "sSellBps", type: "uint16", indexed: false },
+      { name: "sBuyBps", type: "uint16", indexed: false },
       { name: "wBeforeWad", type: "uint256", indexed: false },
     ],
   },
@@ -32,8 +32,8 @@ export type DeskFillEvent = {
   amountIn: bigint;
   amountOut: bigint;
   midWad: bigint;
-  spreadBps: number;
-  spreadSource: 0 | 1 | 2;
+  sSellBps: number;
+  sBuyBps: number;
   wBeforeWad: bigint;
 };
 
@@ -47,9 +47,6 @@ export function decodeDeskFill(log: {
     topics: log.topics as [Hex, ...Hex[]],
   });
   const a = decoded.args;
-  const source = a.spreadSource;
-  if (source !== 0 && source !== 1 && source !== 2)
-    throw new Error("bad spread source");
   return {
     orderHash: a.orderHash,
     nameHash: a.nameHash,
@@ -60,8 +57,8 @@ export function decodeDeskFill(log: {
     amountIn: a.amountIn,
     amountOut: a.amountOut,
     midWad: a.midWad,
-    spreadBps: a.spreadBps,
-    spreadSource: source,
+    sSellBps: a.sSellBps,
+    sBuyBps: a.sBuyBps,
     wBeforeWad: a.wBeforeWad,
   };
 }

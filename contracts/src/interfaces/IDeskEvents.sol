@@ -14,9 +14,9 @@ interface IDeskEvents {
         address tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 midWad, // pWad
-        uint16 spreadBps, // final s (after clamp and size floor)
-        uint8 spreadSource, // 0 = tier from desk.terms, 1 = agent desk.spread, 2 = size floor
-        uint256 wBeforeWad // wWad
+        uint256 midWad, // oracle price, 18 decimals
+        uint16 sSellBps,
+        uint16 sBuyBps,
+        uint256 wBeforeWad // wWad before the fill
     );
 }

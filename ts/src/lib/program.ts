@@ -55,11 +55,8 @@ export function buildProgram(
       oracleDecimals: cfg.desk.oracleDecimals,
       baseDecimals: cfg.desk.baseDecimals,
       quoteDecimals: cfg.desk.quoteDecimals,
-      maxStaleness: cfg.desk.maxStaleness,
+      maxBlocks: cfg.desk.maxBlocks,
       wStarBps: cfg.desk.wStarBps,
-      kappaBps: cfg.desk.kappaBps,
-      sMinBps: cfg.desk.sMinBps,
-      sMaxBps: cfg.desk.sMaxBps,
     }),
   );
   return builder.build();
