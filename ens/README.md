@@ -15,19 +15,21 @@
 | clients registry C (`clients.dao-treasury-a.eth`의 하위) | `0x8f6c1e8DE9BDAe6Be0f028e7Ce596F9e530a984e` |
 | agents registry | `0x5A6b0C2DAb9A29FA2cc949Dbc8a38f222609b5CF` |
 | mm-a / mm-b | tier 10 / 25 bps, cap 100,000 USDC, 만료 2026-10-25 |
-| mm-c | mm-a와 같은 조건, 만료 15분 (데모 3번용 — 데모 직전 `npm run clients`로 재설정) |
-| risk.agents.dao-treasury-a.eth | 에이전트 `0x7ab77A08283705816454C1d2916CBE607e875Ca3` |
+| mm-c | mm-a와 같은 조건, 만료 15분 (데모 3번용 — 인계 뒤에는 데모 직전 Safe 트랜잭션으로 재등록) |
+| risk.agents.dao-treasury-a.eth | 에이전트 `0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899` (Aqua 레인 지갑, 주소만 받음, 2026-09-26). `desk.spread`·`desk.stats` 권한만 있다 |
 
 데모용 트랜잭션:
 
 - `dao-treasury-a.eth` 등록 — [0x1844…1d2b](https://sepolia.etherscan.io/tx/0x18445307c7ce6b56e558448dcd7ab830d74fe848f9134fc36573d4a367b01d2b)
-- 에이전트가 `desk.spread`를 씀 (허용) — [0x3497…a6b](https://sepolia.etherscan.io/tx/0x3497b52c9ad5938ecff01f1024959f36fbaf21e09d2e1a04de0b1831c88bb1a6)
-- 에이전트가 `desk.terms`를 쓰려다 revert (거부) — [0x0b8c…835](https://sepolia.etherscan.io/tx/0x0b8cd052895b653ef4da15455a22177a89deb92fe1f98b84cabfb6f5fb390835)
+- (이전 에이전트 `0x7ab7…5Ca3`, 09-25) 에이전트가 `desk.spread`를 씀 (허용) — [0x3497…a6b](https://sepolia.etherscan.io/tx/0x3497b52c9ad5938ecff01f1024959f36fbaf21e09d2e1a04de0b1831c88bb1a6)
+- (이전 에이전트 `0x7ab7…5Ca3`, 09-25) 에이전트가 `desk.terms`를 쓰려다 revert (거부) — [0x0b8c…835](https://sepolia.etherscan.io/tx/0x0b8cd052895b653ef4da15455a22177a89deb92fe1f98b84cabfb6f5fb390835)
 
-남은 일:
+Safe 인계 (2026-09-26 완료):
 
-- **Safe 인계 실행.** 지금은 테스트넷 EOA(`TREASURY_PK`)가 이름과 resolver·레지스트리 루트 권한을 갖고 있다. 넘기는 스크립트는 준비됐고 포크에서 검증했다(아래 [Safe 인계](#safe-인계)). 실제 Sepolia 실행은 실제 Safe(T6a)가 생긴 뒤다.
-- `config/sepolia.json`이 생기면(T0) `npm run export`가 `ens`, `mms`를 병합한다.
+- treasury Safe `0x213C5832c77F8e27b544881325f9E68C0434027a` (v1.4.1, 2-of-3; owner 1·2 = Aqua 레인, owner 3 = ENS 레인)가 resolver R·레지스트리 D·C·agents의 root 권한을 모두 갖고, `dao-treasury-a.eth`와 살아 있는 하위 이름(`clients`·`agents`·`mm-a`·`mm-b`·`risk`)을 모두 소유한다. 설정용 EOA의 권한은 0이다. 실행 기록은 PR #19, 코드는 `ens/safe-handoff`(#17)·`ens/subname-owner`(#19).
+- 그래서 `02`–`04` 스크립트는 이제 EOA로는 동작하지 않는다. mm-c 재등록, addr·terms 변경은 Safe 트랜잭션이고, ENS(owner 3) 서명에 Aqua 소유자 한 명의 서명이 더 필요하다.
+- mm-c는 만료 상태다. 데모 3번 직전에 Safe가 다시 등록한다.
+- `config/sepolia.json`의 `ens`·`mms`·`safe`는 PR #5에 있다.
 
 ```
 dao-treasury-a.eth            트레저리 소유, 트레저리 resolver
@@ -48,7 +50,8 @@ npx tsx scripts/00-probe.ts   # 인코딩을 배포된 컨트랙트의 pure 함�
 npm run register   # <DESK_LABEL>.eth 등록 (commit → 60초 → register). 중단돼도 재실행하면 이어서 진행
 npm run setup      # resolver + 서브레지스트리 3개 배포, <DESK_LABEL>.eth 연결
 npm run clients    # mm-a/b/c 발급 + addr, desk.terms
-npm run agent      # 에이전트 위임 + 경계 확인 (--send-revert: 거부되는 쓰기를 실제로 채굴해 해시 확보)
+npm run agent      # 에이전트 위임 + 경계 확인. AGENT_ADDRESS가 있으면 그 주소에 위임(키 불필요, 경계는 시뮬레이션)
+                   # 기록된 에이전트를 바꿀 때는 -- --switch (이전 에이전트 권한 회수). --send-revert는 AGENT_PK일 때만
 npm run verify     # 수용 기준 자동 검사 (Safe 인계 후에는 -- --safe <Safe>)
 npm run export     # config/sepolia.json 형식으로 ens, mms 내보내기
 npm run handoff -- --safe <Safe>   # Safe 인계 드라이런. --execute로 전송 (아래 "Safe 인계")

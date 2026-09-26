@@ -3,6 +3,9 @@
 !.env.example
 node_modules/
 dist/
+contracts/out/
+contracts/cache/
+ts/dist/
 .DS_Store
 *.pem
 *.key

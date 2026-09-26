@@ -1,0 +1,20 @@
+{
+  // src/lib is browser code (the web app imports it): no Node types here.
+  // src/scripts, src/bot and src/dev get Node types from tsconfig.node.json.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
+    "types": [],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/lib"]
+}
