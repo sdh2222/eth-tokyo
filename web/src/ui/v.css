@@ -368,13 +368,14 @@
   color: var(--v-text);
 }
 
-/* Links: the accent, underline on hover. */
+/* Links: watermark water blue, underline on hover, so anything that navigates reads as
+   clickable. */
 .v-page a:not(.v-btn),
 .v-link {
   border: 0;
   background: none;
   padding: 0;
-  color: var(--v-text);
+  color: var(--v-accent);
   font: inherit;
   text-decoration: none;
   cursor: pointer;
