@@ -7,7 +7,9 @@
 //            becomes one looping animated PNG)
 //
 // Options: --width=1600 (CSS px) --dot=2 (CSS px per dot) --method=atkinson|bayer|stipple|blue
-//          --color=#6ec1ea --gamma=1 --contrast=1 --floor=0 --fps=8 --invert (dots for light instead of dark)
+//          --color=#6ec1ea --gamma=1 --contrast=1 --floor=0 --fade=0 --fps=8
+//          --invert (dots for light instead of dark)
+//          --fade=0.25 thins the dots out over the bottom quarter, so the picture ends softly.
 //
 // For frames, use a fixed threshold (blue, bayer or stipple). Atkinson carries error from dot
 // to dot, so a small change anywhere reshuffles the dots everywhere and the picture boils.
@@ -39,6 +41,7 @@ const CONTRAST = Number(args.contrast ?? 1);
 const FPS = Number(args.fps ?? 8);
 const INVERT = args.invert === "true";
 const FLOOR = Number(args.floor ?? 0);
+const FADE = Number(args.fade ?? 0);
 
 function hexToRgb(hex) {
   const n = Number.parseInt(hex.replace("#", ""), 16);
@@ -130,6 +133,10 @@ function toCoverage({ width, height, lum }, cols, rows) {
       v = INVERT ? v : 1 - v;
       v = Math.min(1, Math.max(0, (v - 0.5) * CONTRAST + 0.5));
       v = v ** GAMMA;
+      if (FADE > 0) {
+        const t = Math.min(1, (rows - 1 - y) / (FADE * rows));
+        v *= t * t * (3 - 2 * t);
+      }
       out[y * cols + x] = v < FLOOR ? 0 : v;
     }
   }

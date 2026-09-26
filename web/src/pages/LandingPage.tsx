@@ -69,6 +69,13 @@ function ComparePanel({ side, kind }: { side: "today" | "ours"; kind: "dump" | "
   );
 }
 
+// The hero clouds are baked at three widths (landing-dither.mjs), so the dots stay whole
+// and each screen loads the one that is at least as wide as it is. 1920 is the fallback.
+const SKY_WIDTHS = [
+  [1280, "(max-width: 1280px)"],
+  [1600, "(max-width: 1600px)"],
+] as const;
+
 // The DAO's quote around an example mark. Each square is one basis point.
 const SPREAD_CELLS = 16;
 const QUOTE = { buy: "3,996.00", buyBps: 10, sell: "4,001.20", sellBps: 3 };
@@ -181,12 +188,27 @@ export function LandingPage() {
 
       <section className="wm-hero">
         <div className="wm-sky" aria-hidden="true">
-          <img src="/landing/hero-dither-still.png" alt="" />
           <picture>
-            <source srcSet="/landing/hero-dither-still.png" media="(prefers-reduced-motion: reduce)" />
+            {SKY_WIDTHS.map(([width, media]) => (
+              <source key={width} media={media} srcSet={`/landing/clouds-${width}-still.png`} />
+            ))}
+            <img src="/landing/clouds-1920-still.png" alt="" />
+          </picture>
+          <picture>
+            {SKY_WIDTHS.map(([width, media]) => (
+              <source
+                key={`still-${width}`}
+                media={`(prefers-reduced-motion: reduce) and ${media}`}
+                srcSet={`/landing/clouds-${width}-still.png`}
+              />
+            ))}
+            <source media="(prefers-reduced-motion: reduce)" srcSet="/landing/clouds-1920-still.png" />
+            {SKY_WIDTHS.map(([width, media]) => (
+              <source key={width} media={media} srcSet={`/landing/clouds-${width}.png`} />
+            ))}
             <img
               className="wm-sky-moving"
-              src="/landing/hero-dither.png"
+              src="/landing/clouds-1920.png"
               alt=""
               data-loaded={skyLoaded}
               onLoad={() => setSkyLoaded(true)}
