@@ -10,11 +10,11 @@
   "mms": [
     {
       "name": "mm-a.clients.dao-treasury-a.eth",
-      "address": "0x186AF6aF170cb8805c021EFa176c060214F6aD5d"
+      "address": "0x36e2658f69b83f97C4c965Cc8B6eE7486bdF9630"
     },
     {
       "name": "mm-b.clients.dao-treasury-a.eth",
-      "address": "0x5d5A4c611955334d6B5a0F46e1d2AebF2d2B0bF1"
+      "address": "0x32737088c3116eF4A4f030991f26E9f958D80D71"
     },
     {
       "name": "mm-c.clients.dao-treasury-a.eth",

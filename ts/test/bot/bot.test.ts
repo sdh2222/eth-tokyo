@@ -1,7 +1,7 @@
 import { encodeErrorResult } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { keyName, legRule } from "../../src/bot/commands.js";
+import { keyName, legRule, legTokens } from "../../src/bot/commands.js";
 import { formatRefusal, formatUsdc, formatWeth } from "../../src/bot/format.js";
 import { decodeDeskError } from "../../src/lib/client/index.js";
 
@@ -14,6 +14,14 @@ describe("mm bot", () => {
     );
     expect(keyName("mm-a")).toBe("MM_A_PK");
     expect(keyName("mm-b")).toBe("MM_B_PK");
+    expect(legTokens("weth", false)).toEqual({
+      tokenIn: "usdc",
+      tokenOut: "weth",
+    });
+    expect(legTokens("weth", true)).toEqual({
+      tokenIn: "weth",
+      tokenOut: "usdc",
+    });
   });
 
   it("prints a taker mismatch from the desk client", () => {

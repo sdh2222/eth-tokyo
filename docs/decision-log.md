@@ -5,9 +5,9 @@
 ## Held
 
 - The Safe is the maker. It holds the ETH and the USDC and ships the order. Tokens stay in the Safe until a fill.
-- `mm-a` and `mm-b` are named takers. The letters MM mean an allowed counterparty. They do not post the inventory.
-- A client name is `mm-a.clients.dao-treasury-a.eth`. The clients registry holds that label, its expiry, and which resolver to ask. The resolver stores records on the full name. `desk.terms` is written by the Safe. An agent may write `desk.spread`. The rule for that write is not settled.
-- Opcode 34 checks that the address on the name is the taker. That behavior is merged (PR #6).
+- `mm-a` and `mm-b` are named counterparties. The letters MM mean an allowed counterparty. They do not post the inventory. Aqua records that counterparty as `taker`.
+- A client name is `mm-a.clients.dao-treasury-a.eth`. The clients registry holds that label, its expiry, and which resolver to ask. The resolver stores records on the full name. `desk.terms` is written by the Safe. The Safe appoints one agent for the desk, holds that key, and that agent may write `desk.spread`. This repo publishes the read. The note is `docs/agent-design.md`.
+- Opcode 34 checks that the address on the name is the counterparty on the Aqua query. That behavior is merged (PR #6).
 - The book is ETH marked at the oracle mid, plus USDC. A sale near that mid removes ETH value and adds about the same number of USDC, so the book stays about the same size. On 900 ETH and 400,000 USDC at a mid of 4,000, 70% is about 700 ETH left, which is about 200 ETH sold.
 - The 70% line is recomputed from the balances on every fill. There is no stored counter of 200 ETH.
 - The demo oracle is `MockOracle`. It starts at 4,000 with 8 decimals. It stays at 4,000 until the deployer calls `setAnswer`. `setUpdatedAt` refreshes the timestamp only.
@@ -16,7 +16,7 @@
   - `ask = mid * (1 + s_sell)`, `bid = mid * (1 - s_buy)`, with `s_sell` tighter than `s_buy`.
   - A fill is allowed only for a few blocks after `updatedAt`. The check replaces "stale after 3600 seconds." The strategy stays shipped. Nothing docks and re-ships on each update.
   - When `w <= w*`, a sell reverts. The example target is 0.70.
-- The agent can still move the spread. PR #18's inventory-deviation formula is not the decided rule. Which logic, and which agent system, is a discussion. A keeper that opens the quote or docks on each update stays out of this version.
+- The agent can still move the spread. PR #18's inventory-deviation formula is not the decided rule. The Safe's agent writes the spread. This repo does not run that agent. A keeper that opens the quote or docks on each update stays out of this version.
 
 ## Illustrations, not fixed
 
@@ -45,11 +45,11 @@ Henry, 2026-09-26, after the review. The contract pass locks the open integers: 
 
 5. **Per-fill cap unit.** The code compares the fill with a USDC cap (tests use 100,000 USDC). The handoff's example is 50 ETH. Pick the unit and store it in `desk.terms` before changing the check.
 
-6. **Agent, as a discussion, not a deletion.** Keep an agent that can move the spread. Do not merge PR #18's formula as the rule. Decide the spread logic and which agent system runs it. The agent still must not change address, cap, expiry, or the oracle, and it does not dock or re-ship the order.
+6. **Agent, as a discussion, not a deletion.** Keep an agent that can move the spread. Do not merge PR #18's formula as the rule. Decide the spread logic and which agent system runs it. The agent still must not change address, cap, expiry, or the oracle, and it does not dock or re-ship the order. Settled the same day: the Safe appoints that agent and holds the key, and this repo publishes the read. The note is `docs/agent-design.md`.
 
 7. **Demo oracle script.** Add a deployer script that calls `MockOracle.setAnswer` on a realistic path, so `updatedAt` refreshes and the few-block window opens during the demo. The price must move. Leaving the answer at 4,000 all afternoon leaves the quote closed under item 1. The path itself is not chosen yet.
 
-8. **Fix `docs/design-constraints.md`.** Replace the skewed-mid formula with the oracle mid and the two widths. Call `mm-a` a taker. Describe the merged gate: `addr` is compared to the taker on the Aqua query, and expiry is checked on the client label. Replace the line that treats PR #18's bounded inventory spread as already decided.
+8. **Fix `docs/design-constraints.md`.** Replace the skewed-mid formula with the oracle mid and the two widths. Call `mm-a` an allowed counterparty. Describe the merged gate: `addr` is compared to the counterparty on the Aqua query (`ctx.query.taker`), and expiry is checked on the client label. Replace the line that treats PR #18's bounded inventory spread as already decided.
 
 ## Review against the pull requests
 
