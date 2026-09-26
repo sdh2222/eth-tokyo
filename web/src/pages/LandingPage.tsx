@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LANDING } from "../copy/en";
+import { LandingAgent } from "./LandingAgent";
 import { LandingSwarm } from "./LandingSwarm";
 import "./landing.css";
 
@@ -221,6 +222,14 @@ export function LandingPage() {
         <Notes notes={LANDING.gate.notes} />
       </section>
       </div>
+
+      <section className="wm-section">
+        <p className="wm-label">{LANDING.agent.label}</p>
+        <h2 className="wm-h2">{LANDING.agent.title}</h2>
+        <LandingAgent />
+        <p className="wm-caption">{LANDING.agent.line}</p>
+        <Notes notes={LANDING.agent.notes} />
+      </section>
     </div>
   );
 }

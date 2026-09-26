@@ -190,4 +190,28 @@ export const LANDING = {
       },
     ],
   },
+  agent: {
+    label: "Moving prices",
+    title: "Markets move. Does the DAO have to sign every time?",
+    program: "Spread in the program",
+    programNote: "Every move is a Safe signature. Between them, the quote goes stale.",
+    name: "Spread on the ENS name",
+    nameNote: "The agent moves the spread. The Safe signed once.",
+    legend: { market: "Market", quote: "The DAO's quote", signature: "Safe signature", write: "Agent write" },
+    line: "The agent moves one number. The Safe keeps everything else.",
+    notes: [
+      {
+        kicker: "One record for the agent",
+        body: "The Safe appoints one agent under the desk's name, at risk.agents. It may write desk.spread and desk.stats, and nothing else. A spread that is missing or past its deadline falls back to the Safe's terms.",
+      },
+      {
+        kicker: "The rest stays with the Safe",
+        body: "Addresses, caps, expiries, desk.terms and desk.policy change only by a Safe transaction. The agent cannot touch them, and it cannot re-ship the order.",
+      },
+      {
+        kicker: "Why ENSv2",
+        body: "A subregistry per desk, an expiry on every name, and resolver roles that hand one record to one address. A name without expiry, or a list inside the program, cannot do all three.",
+      },
+    ],
+  },
 } as const;

@@ -348,6 +348,66 @@ body:has(.wm-landing) {
   letter-spacing: -0.02em;
 }
 
+/* ---------- the agent moves the spread ---------- */
+
+.wm-fig-note {
+  display: block;
+  max-width: 26em;
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.wm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: "LisaTerminal Paper", "Courier New", monospace;
+  font-size: 16px;
+}
+
+.wm-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wm-key {
+  display: inline-block;
+}
+
+.wm-key-line {
+  width: 24px;
+  height: 3px;
+  background: var(--wm-ink);
+}
+
+.wm-key-band {
+  width: 24px;
+  height: 14px;
+  background: radial-gradient(circle, var(--wm-dot) 1px, transparent 1.2px) 0 0 / 3px 3px;
+  border-top: 2px solid var(--wm-dot);
+  border-bottom: 2px solid var(--wm-dot);
+}
+
+.wm-key-sign {
+  width: 10px;
+  height: 10px;
+  background: var(--wm-ink);
+}
+
+.wm-key-write {
+  width: 4px;
+  height: 6px;
+  background: var(--wm-dot);
+}
+
 /* ---------- section fields ---------- */
 
 /* One section stands on the water field, as a break from the white. */
