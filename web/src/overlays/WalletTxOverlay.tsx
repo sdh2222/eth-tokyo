@@ -7,17 +7,20 @@ import { APPROVE_COPY, FILL_COPY, VERIFY_FILL } from "../copy/en";
 import type { Hex, PlannedTx } from "../desk/types";
 import { useToast } from "../components/Toast";
 import { Link } from "react-router-dom";
-import { Page, Status, type Tone } from "../ui/v";
+import { Dl, Page, Status, type Tone } from "../ui/v";
 
 type Phase = "review" | "wallet" | "pending" | "result";
 
 export function WalletTxOverlay({
   kind,
   tx,
+  summary,
   onClose,
 }: {
   kind: "approve" | "fill";
   tx: PlannedTx;
+  /** What the fill does, repeated from the Trade page so the dialog says what is signed. */
+  summary?: readonly (readonly [string, string])[];
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("review");
@@ -72,6 +75,7 @@ export function WalletTxOverlay({
         <DialogHeader title={title} subtitle="Signed from your own wallet" onOpenChange={() => onClose()} />
         <div className="v-stack">
           <p>{kind === "approve" ? APPROVE_COPY : FILL_COPY}</p>
+          {kind === "fill" && summary ? <Dl items={summary} /> : null}
           <div className="v-code">
             <div>{`TO ${tx.to}`}</div>
             {hash && explorer ? (
