@@ -103,7 +103,7 @@ function TermsEditor({
   }
 
   return (
-    <div className="v-card-body v-stack v-stack-24">
+    <div className="v-stack v-stack-24">
       <div className="v-stack">
         <Dl
           items={[
@@ -159,7 +159,7 @@ function TermsEditor({
             />
           </label>
         </div>
-        <p className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</p>
+        <div className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</div>
         <div className="v-row v-between">
           <div className="v-row v-row-8">
             <button type="submit" className="v-btn" disabled={!isDraftValid(draft)}>
@@ -313,7 +313,7 @@ export function CounterpartiesPage() {
                       </tr>
                       {isOpen ? (
                         <tr id={panelId}>
-                          <td colSpan={COLUMNS}>
+                          <td className="v-expand" colSpan={COLUMNS}>
                             <TermsEditor
                               row={row}
                               draft={draft}
@@ -335,16 +335,19 @@ export function CounterpartiesPage() {
       </Card>
 
       <Card title="How the gate checks a name">
-        <div className="v-stack v-stack-8">
-          <Status>The name&apos;s address must match the wallet that signs the fill.</Status>
-          <Status>The name must not be expired.</Status>
-          <Status>
-            <span>
-              {"The name's resolver must be the desk's resolver, "}
-              <span className="v-mono">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
-            </span>
-          </Status>
-        </div>
+        <Dl
+          items={[
+            [<Status>Address</Status>, "Must match the wallet that signs the fill."],
+            [<Status>Expiry</Status>, "The name must not be expired."],
+            [
+              <Status>Resolver</Status>,
+              <>
+                {"Must be the desk's resolver, "}
+                <span className="v-mono">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
+              </>,
+            ],
+          ]}
+        />
       </Card>
 
       <SafeDialog

@@ -120,7 +120,7 @@ export function AgentPage() {
           }
           footer={<span>Plain English the Safe writes to desk.policy. The agent follows it.</span>}
         >
-          <p>{b.policy || "The Safe has not written a policy yet."}</p>
+          <div>{b.policy || "The Safe has not written a policy yet."}</div>
         </Card>
       </div>
 

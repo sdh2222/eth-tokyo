@@ -55,6 +55,13 @@
 .v-page figure {
   margin: 0;
   font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.v-page .v-card-title {
+  font-size: 16px;
+  line-height: 24px;
 }
 
 /* Page header: 24/32 title, 14 px gray description, actions on the right. */
@@ -424,6 +431,7 @@
 
 .v-status::before {
   content: "";
+  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 999px;
@@ -587,4 +595,16 @@ textarea.v-input {
 .v-card-head .v-input {
   width: auto;
   height: 32px;
+}
+
+/* An expanded table row (an editor under a row): wraps text, gray ground, card padding. */
+.v-table td.v-expand {
+  height: auto;
+  padding: 24px;
+  background: var(--v-bg-2);
+  white-space: normal;
+}
+
+.v-table tbody tr:hover td.v-expand {
+  background: var(--v-bg-2);
 }
