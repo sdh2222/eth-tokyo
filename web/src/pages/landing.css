@@ -348,6 +348,53 @@ body:has(.wm-landing) {
   letter-spacing: -0.02em;
 }
 
+/* ---------- section fields ---------- */
+
+/* Each section after the hero stands on its own full-bleed field. */
+.wm-band-sky {
+  background: var(--field-sky);
+}
+
+.wm-band-sky .wm-row {
+  border-top-color: rgb(17 17 17 / 0.15);
+}
+
+.wm-band-sky .wm-row-head {
+  border-top-color: var(--wm-ink);
+}
+
+.wm-band-sky .wm-cell-off {
+  fill: rgb(17 17 17 / 0.22);
+}
+
+.wm-band-sky .wm-timeline-fills .wm-cell-on {
+  fill: var(--wm-water-strong);
+}
+
+.wm-band-water {
+  --wm-on-water: #ffffff;
+  background: var(--wm-water-strong);
+  color: var(--wm-on-water);
+}
+
+/* The Astryx reset colours p and h2 itself, so text in this band takes the band's colour. */
+.wm-band-water :is(h2, p, figcaption) {
+  color: inherit;
+}
+
+.wm-band-water .wm-label {
+  color: var(--field-sky);
+}
+
+.wm-band-water .wm-swarm,
+.wm-band-water .wm-note {
+  border-color: rgb(255 255 255 / 0.6);
+}
+
+.wm-band-water .wm-note-body {
+  opacity: 0.85;
+}
+
 /* ---------- small print under a section ---------- */
 
 .wm-notes {

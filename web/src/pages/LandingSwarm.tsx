@@ -18,8 +18,13 @@ const GAP = 3;
 const GRID = 6;
 const RING = 104;
 const HALF = (GRID * (CELL + GAP) - GAP) / 2;
-const SKY = [0x6e, 0xc1, 0xea] as const;
-const INK = [0x11, 0x11, 0x11] as const;
+// The two dot colours: one for the price, the ring and named takers, one for takers with no name.
+type Colors = { named: string; unnamed: string };
+
+function packed(hex: string) {
+  const n = Number.parseInt(hex.replace("#", ""), 16);
+  return ((255 << 24) | ((n & 255) << 16) | (((n >> 8) & 255) << 8) | ((n >> 16) & 255)) >>> 0;
+}
 
 type Taker = { x: number; y: number; vx: number; vy: number; named: boolean; bounced: boolean };
 type Flash = { x: number; y: number; life: number };
@@ -223,11 +228,11 @@ function stillTone(panel: Panel, x: number, y: number): [number, number] {
   return [sky, ink];
 }
 
-function paint(panel: Panel, image: ImageData) {
+function paint(panel: Panel, image: ImageData, colors: Colors) {
   const noise = blueNoise();
   const pixels = new Uint32Array(image.data.buffer);
-  const sky = (255 << 24) | (SKY[2] << 16) | (SKY[1] << 8) | SKY[0];
-  const ink = (255 << 24) | (INK[2] << 16) | (INK[1] << 8) | INK[0];
+  const sky = packed(colors.named);
+  const ink = packed(colors.unnamed);
   for (let y = 0; y < GH; y += 1) {
     for (let x = 0; x < GW; x += 1) {
       const i = y * GW + x;
@@ -240,7 +245,7 @@ function paint(panel: Panel, image: ImageData) {
   }
 }
 
-export function LandingSwarm() {
+export function LandingSwarm({ named = "#6ec1ea", unnamed = "#111111" }: { named?: string; unnamed?: string }) {
   const copy = LANDING.gate;
   const openRef = useRef<HTMLCanvasElement>(null);
   const namedRef = useRef<HTMLCanvasElement>(null);
@@ -272,7 +277,7 @@ export function LandingSwarm() {
           canvas.width = width;
           canvas.height = height;
         }
-        paint(panels[i]!, image);
+        paint(panels[i]!, image, { named, unnamed });
         bufferCtx.putImageData(image, 0, 0);
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
@@ -324,7 +329,7 @@ export function LandingSwarm() {
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [named, unnamed]);
 
   return (
     <div className="wm-swarm">

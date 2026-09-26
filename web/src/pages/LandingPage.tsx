@@ -202,6 +202,7 @@ export function LandingPage() {
         </div>
       </section>
 
+      <div className="wm-band wm-band-sky">
       <section id="how" className="wm-section">
         <p className="wm-label">{LANDING.compare.label}</p>
         <h2 className="wm-h2">{LANDING.compare.title}</h2>
@@ -211,14 +212,17 @@ export function LandingPage() {
         <p className="wm-leak">{LANDING.compare.leak}</p>
         <Notes notes={LANDING.compare.notes} />
       </section>
+      </div>
 
+      <div className="wm-band wm-band-water">
       <section className="wm-section">
         <p className="wm-label">{LANDING.gate.label}</p>
         <h2 className="wm-h2">{LANDING.gate.title}</h2>
-        <LandingSwarm />
+        <LandingSwarm named="#ffffff" unnamed="#111111" />
         <p className="wm-caption">{LANDING.gate.caption}</p>
         <Notes notes={LANDING.gate.notes} />
       </section>
+      </div>
     </div>
   );
 }
