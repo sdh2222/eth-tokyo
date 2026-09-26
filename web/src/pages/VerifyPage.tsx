@@ -2,23 +2,20 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import sepoliaConfig from "@config";
 import { formatWadUsd } from "../desk/book";
+import { buysEth } from "../desk/fills";
 import { emptyConfig } from "../desk/fixture/state";
 import type { DeskConfig, FillRecord } from "../desk/types";
 import { useClock } from "../hooks/useClock";
 import { useDeskPort, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr, formatHash, formatShare, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Callout, Facts, Page, PageHead, Section, Window, type Tone } from "../ui/plain";
+import { Badge, Card, Dl, Empty, Header, Page, Status, type Tone } from "../ui/v";
 
-// Verify a fill (IA: "Was this fill priced by the rule?"). Plain page kit.
-// Screens SC-22: the verdict is 12 columns, and the formula terminal is 12 columns under it.
+// Verify a fill (IA: "Was this fill priced by the rule?"). Vercel-style: the verdict card,
+// the recompute as a table, the trade as a key and value list, then the raw event.
 
 const cfg = sepoliaConfig as DeskConfig;
 const WETH = cfg.tokens.weth.toLowerCase();
-
-function buysEth(fill: FillRecord): boolean {
-  return fill.tokenOut.toLowerCase() === WETH;
-}
 
 function amountText(fill: FillRecord, leg: "in" | "out"): string {
   const token = leg === "in" ? fill.tokenIn : fill.tokenOut;
@@ -59,26 +56,26 @@ export function VerifyPage() {
   const steps = check?.steps ?? [];
 
   let verdict: { tone: Tone; title: string; hint: string } = {
-    tone: "neutral",
+    tone: "gray",
     title: "Fill not found",
     hint: "No fill with this hash on the desk yet. Check the hash, or come back after the next block.",
   };
   if (fills.isLoading) {
-    verdict = { tone: "neutral", title: "Reading the fills", hint: "Looking up this fill on the desk." };
+    verdict = { tone: "gray", title: "Reading the fills", hint: "Looking up this fill on the desk." };
   } else if (check && check.steps.length === 0) {
     verdict = {
-      tone: "neutral",
+      tone: "gray",
       title: "Recompute is not available for this fill",
       hint: "The desk did not return the recompute steps, so this page can't compare them.",
     };
   } else if (check?.matches) {
     verdict = {
-      tone: "success",
+      tone: "green",
       title: "Matches on-chain",
       hint: "Recomputed from the inputs the fill emitted: oracle mid, spread and ETH share.",
     };
   } else if (check) {
-    verdict = { tone: "danger", title: "Does not match", hint: "The recomputed amounts differ from what the fill emitted." };
+    verdict = { tone: "red", title: "Does not match", hint: "The recomputed amounts differ from what the fill emitted." };
   }
 
   function copyLink() {
@@ -87,93 +84,95 @@ export function VerifyPage() {
 
   return (
     <Page>
-      <PageHead
-        kicker="Verify"
-        title={`Fill ${formatHash(tx)}`}
-        lede={
-          fill
-            ? `${fill.name} · ${buysEth(fill) ? "Bought ETH" : "Sold ETH"} · ${formatWhen(fill.blockTime, now)}`
-            : "Was this fill priced by the rule?"
-        }
+      <Header
+        title="Verify fill"
+        description={<span className="v-mono">{formatHash(tx)}</span>}
         actions={
-          <button type="button" className="wk-link" onClick={copyLink} aria-live="polite">
+          <button type="button" className="v-btn v-btn-secondary" onClick={copyLink} aria-live="polite">
             {copied ? "Link copied" : "Copy link"}
           </button>
         }
       />
 
-      <div className="wk-grid">
-        <Section title="Verdict" className="wk-span-12">
-          <Callout tone={verdict.tone}>
-            <span className="wk-big">{verdict.title}</span>
-            <span>{verdict.hint}</span>
-          </Callout>
-        </Section>
+      {check ? (
+        <Card>
+          <div className="v-stack v-stack-8">
+            <h2 className="v-figure">
+              <Status tone={verdict.tone}>{verdict.title}</Status>
+            </h2>
+            <p className="v-muted">{verdict.hint}</p>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <Empty title={verdict.title} description={verdict.hint} />
+        </Card>
+      )}
 
-        {fill && steps.length > 0 ? (
-          <Section title="Recompute" className="wk-span-12">
-            <p className="wk-muted">Every fill emits its inputs, so anyone can recompute the price and amounts.</p>
-            <Window title="Recompute" meta={`${steps.length} steps`}>
-              {steps.map((step, index) => (
-                <div key={`${index}:${step.label}`} className="wk-window-line">
-                  <span>{`${index + 1}. ${step.label}`}</span>
-                  <span>{`${step.formula} = ${step.value}`}</span>
-                </div>
-              ))}
-            </Window>
-          </Section>
-        ) : null}
-
-        {fill ? (
-          <Section title="The trade" className="wk-span-12">
-            <div className="wk-quote">
-              <div className="wk-stack wk-stack-4">
-                <span className="wk-label">Oracle mid</span>
-                <span className="wk-big">
-                  <span className="wk-mark">{`$${formatWadUsd(fill.midWad)}`}</span>
-                </span>
-              </div>
-              <div className="wk-stack wk-stack-4">
-                <span className="wk-label">Spread</span>
-                <span className="wk-big">{`${fill.spreadBps} bp`}</span>
-              </div>
-            </div>
-            <Facts
-              items={[
-                ["Counterparty", fill.name],
-                [
-                  "Wallet",
-                  <a key="wallet" href={`${cfg.explorer}/address/${fill.taker}`} target="_blank" rel="noreferrer">
-                    {formatAddr(fill.taker)}
-                  </a>,
-                ],
-                ["Side", buysEth(fill) ? "Bought ETH" : "Sold ETH"],
-                ["Paid", amountText(fill, "in")],
-                ["Received", amountText(fill, "out")],
-                ["ETH share before", formatShare(fill.wBeforeWad)],
-                ["Block", fill.blockNumber.toString()],
-                [
-                  "Transaction",
-                  <a key="tx" href={`${cfg.explorer}/tx/${fill.tx}`} target="_blank" rel="noreferrer">
-                    {formatHash(fill.tx)}
-                  </a>,
-                ],
-              ]}
-            />
-            <details className="wk-raw">
-              <summary>Raw event</summary>
-              <Window title="Fill event">
-                {rawEvent(fill).map(([key, value]) => (
-                  <div key={key} className="wk-window-line">
-                    <span>{key}</span>
-                    <span>{value}</span>
-                  </div>
+      {fill && steps.length > 0 ? (
+        <Card title="Recompute" flush>
+          <div className="v-table-wrap">
+            <table className="v-table">
+              <thead>
+                <tr>
+                  <th>Step</th>
+                  <th>Formula</th>
+                  <th className="v-right">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {steps.map((step, index) => (
+                  <tr key={`${index}:${step.label}`}>
+                    <td>{`${index + 1}. ${step.label}`}</td>
+                    <td className="v-muted">{step.formula}</td>
+                    <td className="v-right v-mono">{step.value}</td>
+                  </tr>
                 ))}
-              </Window>
-            </details>
-          </Section>
-        ) : null}
-      </div>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
+
+      {fill ? (
+        <Card title="Trade">
+          <Dl
+            items={[
+              ["Counterparty", fill.name],
+              [
+                "Wallet",
+                <a key="wallet" className="v-mono" href={`${cfg.explorer}/address/${fill.taker}`} target="_blank" rel="noreferrer">
+                  {formatAddr(fill.taker)}
+                </a>,
+              ],
+              ["Side", <Badge key="side" tone={buysEth(fill) ? "red" : "green"}>{buysEth(fill) ? "Bought ETH" : "Sold ETH"}</Badge>],
+              ["Paid", amountText(fill, "in")],
+              ["Received", amountText(fill, "out")],
+              ["Oracle mid", `$${formatWadUsd(fill.midWad)}`],
+              ["Spread", `${fill.spreadBps} bp`],
+              ["ETH share before", formatShare(fill.wBeforeWad)],
+              ["Block", `${fill.blockNumber.toString()} · ${formatWhen(fill.blockTime, now)}`],
+              [
+                "Transaction",
+                <a key="tx" className="v-mono" href={`${cfg.explorer}/tx/${fill.tx}`} target="_blank" rel="noreferrer">
+                  {formatHash(fill.tx)}
+                </a>,
+              ],
+            ]}
+          />
+        </Card>
+      ) : null}
+
+      {fill ? (
+        <details className="v-details">
+          <summary>Raw event</summary>
+          <div className="v-code">
+            {rawEvent(fill).map(([key, value]) => (
+              <div key={key}>{`${key}: ${value}`}</div>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </Page>
   );
 }

@@ -7,17 +7,20 @@ import { CLIENT_SUFFIX } from "../ens/names";
 import { useBook } from "../hooks/useBook";
 import { useClock } from "../hooks/useClock";
 import { formatAddr, formatWeth } from "../lib/format";
-import { Empty, Facts, Page, PageHead, Pill, Section, Stat, Window } from "../ui/plain";
+import { Badge, Card, Dl, Empty, Header, Metric, Metrics, Page, Status, type Tone } from "../ui/v";
 import { SafeDialog } from "./open/SafeDialog";
 
-// Counterparties (IA: "Who can trade with my desk, and on what terms?"). Plain page kit.
-// Screens SC-20: one 12-column table. SC-10: the edit fields expand in the row, and saving
-// opens the Safe signing overlay (O1). Cut off shows one confirm sentence first (SC-05).
+// Counterparties (IA: "Who can trade with my desk, and on what terms?"). Vercel-style: the
+// terms in one metrics card, then the client names in a flush table card. Edit expands the
+// row (SC-10) and saving opens the Safe signing overlay (O1). Cut off shows one confirm
+// sentence first (SC-05).
 
 const SAFE_WALLET = "Safe{Wallet}";
-const COLUMNS = 3;
+const COLUMNS = 6;
 
-type NameStatus = "Live" | "Expired" | "Can't trade";
+type NameStatus = "Live" | "Expired" | "Cut off";
+
+const STATUS_TONE: Record<NameStatus, Tone> = { Live: "green", Expired: "red", "Cut off": "gray" };
 
 type NameRow = {
   id: string;
@@ -37,9 +40,11 @@ function termsText(terms: DeskBook["terms"]): string {
   return `sell ${terms.sellBps} bp · buy ${terms.buyBps} bp · cap ${formatWeth(terms.cap)}`;
 }
 
-function nowNote(book: DeskBook, side: "sellBps" | "buyBps"): string {
-  if (book.spread?.live) return `Now ${book.spread[side]} bp · agent spread`;
-  return "Now the terms width";
+// The widths a live name pays now: the agent spread while it is live, otherwise the terms.
+function widthNow(book: DeskBook): { widths: string; source: string } | null {
+  if (book.spread?.live) return { widths: `sell ${book.spread.sellBps} · buy ${book.spread.buyBps} bp`, source: "agent spread" };
+  if (book.terms) return { widths: `sell ${book.terms.sellBps} · buy ${book.terms.buyBps} bp`, source: "terms" };
+  return null;
 }
 
 function toRows(book: DeskBook, now: number): NameRow[] {
@@ -47,11 +52,11 @@ function toRows(book: DeskBook, now: number): NameRow[] {
   return book.names.map((entry) => {
     const expiry = Number(entry.expiry);
     const expired = expiry > 0 && expiry <= now;
-    const status: NameStatus = expired ? "Expired" : entry.live ? "Live" : "Can't trade";
+    const status: NameStatus = expired ? "Expired" : entry.live ? "Live" : "Cut off";
     let reason = "Its address is the wallet, it has terms, and it has not expired.";
     if (status === "Expired") reason = "The name has expired. The Safe renews it before it can trade again.";
-    else if (status === "Can't trade" && !book.terms) reason = "The client names do not store the same valid desk.terms.";
-    else if (status === "Can't trade") reason = "Its address or resolver does not pass the gate.";
+    else if (status === "Cut off" && !book.terms) reason = "The client names do not store the same valid desk.terms.";
+    else if (status === "Cut off") reason = "Its address or resolver does not pass the gate.";
     return { id: entry.name, name: entry.name, addr: entry.addr, expiry, status, terms, reason };
   });
 }
@@ -65,20 +70,6 @@ function isDraftValid(draft: Draft): boolean {
   const whole = /^\d+$/;
   const amount = /^\d+(\.\d{1,18})?$/;
   return whole.test(draft.sell.trim()) && whole.test(draft.buy.trim()) && amount.test(draft.cap.trim());
-}
-
-// A break chance before each dot, so a long ENS name wraps at its labels on a phone.
-function NameText({ name }: { name: string }) {
-  return (
-    <>
-      {name.split(".").map((part, index) => (
-        <Fragment key={index}>
-          {index > 0 ? <wbr /> : null}
-          {index > 0 ? `.${part}` : part}
-        </Fragment>
-      ))}
-    </>
-  );
 }
 
 function Expiry({ seconds }: { seconds: number }) {
@@ -112,30 +103,29 @@ function TermsEditor({
   }
 
   return (
-    <div className="wk-grid">
-      <div className="wk-span-5 wk-stack">
-        <Facts
+    <div className="v-card-body v-stack v-stack-24">
+      <div className="v-stack">
+        <Dl
           items={[
             ["Can trade", row.reason],
-            ["Address", <span className="wk-num">{formatAddr(row.addr)}</span>],
             ["Terms now", row.terms],
           ]}
         />
-        <details className="wk-raw">
+        <details className="v-details">
           <summary>Show raw</summary>
-          <Window title="ENS records" meta={row.name}>
+          <div className="v-code">
             <div>{`addr ${row.addr}`}</div>
             <div>{`expiry ${row.expiry > 0 ? String(row.expiry) : "none"}`}</div>
-          </Window>
+          </div>
         </details>
       </div>
 
-      <form className="wk-span-7 wk-stack wk-stack-24" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
-        <div className="wk-grid">
-          <label className="wk-field wk-span-4">
+      <form className="v-stack" onSubmit={submit} aria-label={`Terms for ${row.name}`}>
+        <div className="v-row">
+          <label className="v-field">
             <span>Sell width (bp)</span>
             <input
-              className="wk-input"
+              className="v-input"
               type="number"
               inputMode="numeric"
               min={0}
@@ -144,10 +134,10 @@ function TermsEditor({
               onChange={(event) => onDraft({ ...draft, sell: event.target.value })}
             />
           </label>
-          <label className="wk-field wk-span-4">
+          <label className="v-field">
             <span>Buy width (bp)</span>
             <input
-              className="wk-input"
+              className="v-input"
               type="number"
               inputMode="numeric"
               min={0}
@@ -156,10 +146,10 @@ function TermsEditor({
               onChange={(event) => onDraft({ ...draft, buy: event.target.value })}
             />
           </label>
-          <label className="wk-field wk-span-4">
+          <label className="v-field">
             <span>Cap per fill (WETH)</span>
             <input
-              className="wk-input"
+              className="v-input"
               type="number"
               inputMode="decimal"
               min={0}
@@ -169,17 +159,17 @@ function TermsEditor({
             />
           </label>
         </div>
-        <p className="wk-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</p>
-        <div className="wk-row wk-between">
-          <div className="wk-row wk-row-24">
-            <button type="submit" className="wk-btn" disabled={!isDraftValid(draft)}>
+        <p className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</p>
+        <div className="v-row v-between">
+          <div className="v-row v-row-8">
+            <button type="submit" className="v-btn" disabled={!isDraftValid(draft)}>
               Save terms
             </button>
-            <button type="button" className="wk-link" onClick={onCancel}>
+            <button type="button" className="v-btn v-btn-tertiary" onClick={onCancel}>
               Cancel
             </button>
           </div>
-          <button type="button" className="wk-btn wk-btn-danger" onClick={onCutOff}>
+          <button type="button" className="v-btn v-btn-error" onClick={onCutOff}>
             Cut off
           </button>
         </div>
@@ -226,18 +216,15 @@ export function CounterpartiesPage() {
     });
   }
 
-  if (book.isLoading) {
-    return (
-      <Page>
-        <PageHead title="Counterparties" lede="Reading the client names…" />
-      </Page>
-    );
-  }
   if (!book.data) {
     return (
       <Page>
-        <PageHead title="Counterparties" />
-        <Empty title="The client names could not be read. Check the Sepolia RPC in web/.env and reload." />
+        <Header
+          title="Counterparties"
+          description={
+            book.isLoading ? "Reading the client names…" : "The client names could not be read. Check the Sepolia RPC in web/.env and reload."
+          }
+        />
       </Page>
     );
   }
@@ -245,108 +232,120 @@ export function CounterpartiesPage() {
   const b = book.data;
   const rows = toRows(b, now);
   const liveCount = rows.filter((row) => row.status === "Live").length;
+  const width = widthNow(b);
 
   return (
     <Page>
-      <PageHead kicker={b.name} title="Counterparties" lede={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
+      <Header title="Counterparties" description={`Names under ${CLIENT_SUFFIX} that can fill against the desk.`} />
 
-      <div className="wk-stats">
-        <Stat label="Can trade" value={`${liveCount} of ${rows.length}`} note="Names that pass the gate now." />
-        {b.terms ? (
-          <>
-            <Stat label="Sell width limit" value={`${b.terms.sellBps} bp`} note={nowNote(b, "sellBps")} />
-            <Stat label="Buy width limit" value={`${b.terms.buyBps} bp`} note={nowNote(b, "buyBps")} />
-            <Stat label="Cap per fill" value={formatWeth(b.terms.cap)} />
-          </>
-        ) : (
-          <Stat label="Terms" value="None" note="The client names disagree or are missing." />
-        )}
-      </div>
-
-      <div className="wk-grid">
-        <Section title="Client book" className="wk-span-12">
-          {rows.length === 0 ? (
-            <Empty title={`No counterparties yet. The Safe adds a name under ${CLIENT_SUFFIX} with an address, terms and an expiry.`} />
+      <Card flush>
+        <Metrics>
+          <Metric label="Can trade" value={`${liveCount} of ${rows.length}`} hint="Names that pass the gate now." />
+          {b.terms ? (
+            <>
+              <Metric label="Sell width limit" value={`${b.terms.sellBps} bp`} />
+              <Metric label="Buy width limit" value={`${b.terms.buyBps} bp`} />
+              <Metric label="Cap per fill" value={formatWeth(b.terms.cap)} />
+            </>
           ) : (
-            <div className="wk-table-wrap">
-              <table className="wk-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th className="wk-right" aria-label="Edit" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const isOpen = openId === row.id;
-                    const panelId = `terms-${row.id.replace(/\./g, "-")}`;
-                    return (
-                      <Fragment key={row.id}>
-                        <tr data-selected={isOpen ? "true" : undefined}>
-                          <td>
-                            <div className="wk-stack wk-stack-4">
-                              <span className="wk-label">
-                                <NameText name={row.name} />
-                              </span>
-                              <span className="wk-muted wk-num">
-                                {row.expiry > 0 ? "Expires " : null}
-                                <Expiry seconds={row.expiry} />
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <Pill tone={row.status === "Live" ? "success" : "danger"}>{row.status}</Pill>
-                          </td>
-                          <td className="wk-right">
-                            <button
-                              type="button"
-                              className="wk-link"
-                              aria-expanded={isOpen}
-                              aria-controls={isOpen ? panelId : undefined}
-                              onClick={() => toggle(row)}
-                            >
-                              {isOpen ? "Close" : "Edit"}
-                            </button>
+            <Metric label="Terms" value="None" hint="The client names disagree or are missing." />
+          )}
+        </Metrics>
+      </Card>
+
+      <Card title="Client names" flush footer={<span>Adding a counterparty is an ENS change made by the Safe.</span>}>
+        {rows.length === 0 ? (
+          <Empty title="No counterparties yet" description={`The Safe adds a name under ${CLIENT_SUFFIX} with an address, terms and an expiry.`} />
+        ) : (
+          <div className="v-table-wrap">
+            <table className="v-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Expires</th>
+                  <th>Width now</th>
+                  <th>Address</th>
+                  <th className="v-right">
+                    <span className="v-sr">Edit</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const isOpen = openId === row.id;
+                  const panelId = `terms-${row.id.replace(/\./g, "-")}`;
+                  return (
+                    <Fragment key={row.id}>
+                      <tr>
+                        <td>{row.name}</td>
+                        <td>
+                          <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
+                        </td>
+                        <td>
+                          <Expiry seconds={row.expiry} />
+                        </td>
+                        <td>
+                          {row.status === "Live" && width ? (
+                            <>
+                              {width.widths}
+                              <span className="v-muted">{` · ${width.source}`}</span>
+                            </>
+                          ) : (
+                            <span className="v-muted">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="v-mono">{formatAddr(row.addr)}</span>
+                        </td>
+                        <td className="v-right">
+                          <button
+                            type="button"
+                            className="v-btn v-btn-secondary"
+                            aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
+                            aria-expanded={isOpen}
+                            aria-controls={isOpen ? panelId : undefined}
+                            onClick={() => toggle(row)}
+                          >
+                            {isOpen ? "Close" : "Edit"}
+                          </button>
+                        </td>
+                      </tr>
+                      {isOpen ? (
+                        <tr id={panelId}>
+                          <td colSpan={COLUMNS}>
+                            <TermsEditor
+                              row={row}
+                              draft={draft}
+                              onDraft={setDraft}
+                              onSave={() => saveTerms(row)}
+                              onCancel={() => setOpenId(null)}
+                              onCutOff={() => cutOff(row)}
+                            />
                           </td>
                         </tr>
-                        {isOpen ? (
-                          <tr id={panelId}>
-                            <td colSpan={COLUMNS}>
-                              <TermsEditor
-                                row={row}
-                                draft={draft}
-                                onDraft={setDraft}
-                                onSave={() => saveTerms(row)}
-                                onCancel={() => setOpenId(null)}
-                                onCutOff={() => cutOff(row)}
-                              />
-                            </td>
-                          </tr>
-                        ) : null}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <p className="wk-muted">Adding a counterparty is an ENS change made by the Safe.</p>
-          <details className="wk-raw">
-            <summary>How the gate checks a name</summary>
-            <ul className="wk-list">
-              <li>The name&apos;s address must match the wallet that signs the fill.</li>
-              <li>The name must not be expired.</li>
-              <li>
-                <span>
-                  {"The name's resolver must be the desk's resolver, "}
-                  <span className="wk-num">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
-                </span>
-              </li>
-            </ul>
-          </details>
-        </Section>
-      </div>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card title="How the gate checks a name">
+        <div className="v-stack v-stack-8">
+          <Status>The name&apos;s address must match the wallet that signs the fill.</Status>
+          <Status>The name must not be expired.</Status>
+          <Status>
+            <span>
+              {"The name's resolver must be the desk's resolver, "}
+              <span className="v-mono">{formatAddr(sepoliaConfig.ens.resolver)}</span>.
+            </span>
+          </Status>
+        </div>
+      </Card>
 
       <SafeDialog
         isOpen={proposal.isOpen}

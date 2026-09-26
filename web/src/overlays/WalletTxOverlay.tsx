@@ -7,7 +7,7 @@ import { APPROVE_COPY, FILL_COPY, VERIFY_FILL } from "../copy/en";
 import type { Hex, PlannedTx } from "../desk/types";
 import { useToast } from "../components/Toast";
 import { Link } from "react-router-dom";
-import { Page, Window } from "../ui/plain";
+import { Page, Status, type Tone } from "../ui/v";
 
 type Phase = "review" | "wallet" | "pending" | "result";
 
@@ -56,41 +56,49 @@ export function WalletTxOverlay({
   const title = kind === "approve" ? "Approve the router" : "Fill the quote";
   const explorer = hash ? `${sepoliaConfig.explorer}/tx/${hash}` : null;
 
-  // O2 (SC-04): the same 640 px Astryx Dialog shell as the Safe dialog, with a plain body.
+  const status: { tone: Tone; word: string; note: string | null } =
+    shown === "result"
+      ? { tone: "green", word: "Confirmed", note: null }
+      : shown === "pending"
+        ? { tone: "amber", word: "Pending", note: "Waiting for the transaction to land." }
+        : shown === "wallet"
+          ? { tone: "blue", word: "Sepolia", note: "Confirm in your wallet." }
+          : { tone: "gray", word: "Sepolia", note: null };
+
+  // O2 (SC-04): the same 640 px Astryx Dialog shell as the Safe dialog, with a v kit body.
   return (
     <Dialog isOpen onOpenChange={(open) => (open ? undefined : onClose())} width={640}>
       <Page>
         <DialogHeader title={title} subtitle="Signed from your own wallet" onOpenChange={() => onClose()} />
-        <div className="wk-stack">
+        <div className="v-stack">
           <p>{kind === "approve" ? APPROVE_COPY : FILL_COPY}</p>
-          <Window title="Transaction" meta={shown === "result" ? "Confirmed" : shown === "pending" ? "Pending" : "Sepolia"}>
-            <div className="wk-window-line">
-              <span>TO</span>
-              <span>{tx.to}</span>
-            </div>
+          <div className="v-code">
+            <div>{`TO ${tx.to}`}</div>
             {hash && explorer ? (
-              <div className="wk-window-line">
-                <span>TX</span>
+              <div>
+                {"TX "}
                 <a href={explorer} target="_blank" rel="noreferrer">
                   {hash}
                 </a>
               </div>
             ) : null}
-          </Window>
-          {shown === "wallet" ? <p className="wk-muted">Confirm in your wallet.</p> : null}
-          {shown === "pending" ? <p className="wk-muted">Waiting for the transaction to land.</p> : null}
+          </div>
+          <div className="v-row v-row-8">
+            <Status tone={status.tone}>{status.word}</Status>
+            {status.note ? <span className="v-muted">{status.note}</span> : null}
+          </div>
         </div>
-        <div className="wk-row wk-between">
-          <button type="button" className="wk-link" onClick={onClose}>
+        <div className="v-row v-between">
+          <button type="button" className="v-btn v-btn-secondary" onClick={onClose}>
             Close
           </button>
           {shown === "review" || shown === "wallet" ? (
-            <button type="button" className="wk-btn" onClick={submit} disabled={shown === "wallet"}>
+            <button type="button" className="v-btn" onClick={submit} disabled={shown === "wallet"}>
               {shown === "wallet" ? "Waiting for your wallet" : "Continue"}
             </button>
           ) : null}
           {shown === "result" && hash && kind === "fill" ? (
-            <Link className="wk-btn" to={`/fills/${hash}`} onClick={onClose}>
+            <Link className="v-btn" to={`/fills/${hash}`} onClick={onClose}>
               {VERIFY_FILL}
             </Link>
           ) : null}
