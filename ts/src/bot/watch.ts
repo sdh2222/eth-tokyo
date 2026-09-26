@@ -9,7 +9,9 @@ import { readFills } from "../lib/client/fills.js";
 import type { DeskCtx } from "../lib/client/ctx.js";
 import { loadEnv } from "../scripts/_common/env.js";
 import { loadDeskConfig } from "./fill.js";
-import { recordFill } from "./react.js";
+import { recordFill, reviewSigns } from "./react.js";
+import { syncFills } from "./sync.js";
+import { openDeskDb } from "./store.js";
 
 const KEPT = 100;
 
@@ -96,8 +98,11 @@ export async function runKeeper(rpc: string): Promise<never> {
     cursor = { router: cfg.router, block: head, done: [] };
     writeCursor(cursor);
   }
+  const db = openDeskDb();
+  const indexed = await syncFills(rpc, db);
+  db.close();
   console.log(
-    `keeper watching DeskFill on ${cfg.router} from block ${cursor.block}`,
+    `keeper watching DeskFill on ${cfg.router} from block ${cursor.block}, indexed ${indexed} fills`,
   );
   for (;;) {
     try {
@@ -109,6 +114,7 @@ export async function runKeeper(rpc: string): Promise<never> {
         cursor = noteFill(cursor, hash, fill.blockNumber);
         writeCursor(cursor);
       }
+      await reviewSigns(rpc);
       const head = await client.getBlockNumber();
       if (head > cursor.block) {
         cursor = { ...cursor, block: head };

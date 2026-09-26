@@ -17,6 +17,7 @@ import {
   type DeskBook,
   type DeskQuote,
 } from "./agent.js";
+import { findLiveStrategy } from "./client/strategies.js";
 import type { DeskConfig } from "./config.js";
 import { dnsEncode } from "./encode.js";
 
@@ -77,6 +78,24 @@ const profileAbi = [
   },
 ] as const;
 
+const rawBalancesAbi = [
+  {
+    type: "function",
+    name: "rawBalances",
+    stateMutability: "view",
+    inputs: [
+      { name: "maker", type: "address" },
+      { name: "app", type: "address" },
+      { name: "strategyHash", type: "bytes32" },
+      { name: "token", type: "address" },
+    ],
+    outputs: [
+      { name: "balance", type: "uint248" },
+      { name: "tokensCount", type: "uint8" },
+    ],
+  },
+] as const;
+
 const erc20Abi = [
   {
     type: "function",
@@ -133,7 +152,7 @@ export function parseLiveSpread(
   return spread;
 }
 
-/** Ask and bid on the oracle with no inventory scale. */
+/** Ask and bid on the oracle. Inventory does not move the mid. */
 export function unscaledQuote(
   pWad: bigint,
   sellBps: number,
@@ -229,6 +248,23 @@ export function bookToJson(book: DeskBook): Record<string, unknown> {
       addr: n.addr,
       expiry: n.expiry.toString(),
       live: n.live,
+      terms:
+        n.terms === null
+          ? null
+          : {
+              sellBps: n.terms.sellBps,
+              buyBps: n.terms.buyBps,
+              cap: n.terms.cap.toString(),
+            },
+      spread:
+        n.spread === null
+          ? null
+          : {
+              sellBps: n.spread.sellBps,
+              buyBps: n.spread.buyBps,
+              validUntil: n.spread.validUntil.toString(),
+              live: n.spread.live,
+            },
     })),
   };
 }
@@ -334,15 +370,15 @@ export async function readBook(
   const [deskRec, mmA, mmB, block, round, wethBal, usdcBal] = await Promise.all(
     [
       resolveRecords(client, resolver, deskName, {
-        data: ["desk.spread"],
+        data: [],
         text: ["desk.policy"],
       }),
       resolveRecords(client, resolver, cfg.mms[0].name, {
-        data: ["desk.terms"],
+        data: ["desk.terms", "desk.spread"],
         text: [],
       }),
       resolveRecords(client, resolver, cfg.mms[1].name, {
-        data: ["desk.terms"],
+        data: ["desk.terms", "desk.spread"],
         text: [],
       }),
       client.getBlock(),
@@ -372,18 +408,49 @@ export async function readBook(
   const fresh = updatedAt <= now && now - updatedAt <= MAX_AGE;
   const pWad =
     answer > 0n ? answer * 10n ** BigInt(18 - cfg.desk.oracleDecimals) : 0n;
+  const liveStrategy =
+    cfg.router === "" ? null : await findLiveStrategy({ client, cfg });
+  let baseBal = wethBal;
+  let quoteBal = usdcBal;
+  if (liveStrategy && cfg.router !== "") {
+    const [ethBook, usdBook] = await Promise.all([
+      client.readContract({
+        address: cfg.aqua,
+        abi: rawBalancesAbi,
+        functionName: "rawBalances",
+        args: [
+          cfg.safe,
+          cfg.router,
+          liveStrategy.strategyHash,
+          cfg.tokens.weth,
+        ],
+      }),
+      client.readContract({
+        address: cfg.aqua,
+        abi: rawBalancesAbi,
+        functionName: "rawBalances",
+        args: [
+          cfg.safe,
+          cfg.router,
+          liveStrategy.strategyHash,
+          cfg.tokens.usdc,
+        ],
+      }),
+    ]);
+    baseBal = ethBook[0];
+    quoteBal = usdBook[0];
+  }
   const baseScale = 10n ** BigInt(18 - cfg.desk.baseDecimals);
   const quoteScale = 10n ** BigInt(18 - cfg.desk.quoteDecimals);
-  const ethValue = (wethBal * baseScale * pWad) / WAD;
-  const usdValue = usdcBal * quoteScale;
+  const ethValue = (baseBal * baseScale * pWad) / WAD;
+  const usdValue = quoteBal * quoteScale;
   const book = ethValue + usdValue;
   const wWad = book === 0n ? 0n : (ethValue * WAD) / book;
   const terms = termsIfAgreed(
     decodeTerms(mmA.data[0]),
     decodeTerms(mmB.data[0]),
   );
-  const live = parseLiveSpread(deskRec.data[0], terms, now);
-  const quote = quoteFromRecords(pWad, terms, deskRec.data[0], now);
+  const quote = quoteFromRecords(pWad, terms, null, now);
   return {
     name: deskName,
     oracle: {
@@ -397,7 +464,7 @@ export async function readBook(
       wStarBps: cfg.desk.wStarBps,
     },
     terms,
-    spread: live === null ? null : { ...live, live: true },
+    spread: null,
     policy: deskRec.text[0] ?? "",
     quote,
     agent: {
@@ -407,12 +474,15 @@ export async function readBook(
     names: [mmA, mmB].map((rec, i) => {
       const mm = cfg.mms[i];
       const term = decodeTerms(rec.data[0]);
+      const liveSpread = parseLiveSpread(rec.data[1] ?? null, term, now);
       return {
         name: mm.name,
         addr: rec.addr,
         expiry: 0n,
         live:
           rec.addr.toLowerCase() === mm.address.toLowerCase() && term !== null,
+        terms: term,
+        spread: liveSpread === null ? null : { ...liveSpread, live: true },
       };
     }),
   };
