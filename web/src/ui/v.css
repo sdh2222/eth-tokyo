@@ -395,9 +395,8 @@
   box-shadow: 0 0 0 2px var(--v-bg), 0 0 0 4px rgba(23, 23, 23, 0.35);
 }
 
-/* Badge: 20 px pill, 12 px 500, subtle tone background. */
-/* Badge: a monochrome pill (Geist: "use colour only when it adds meaning"). A tone is a
-   6 px dot in front of the word, never a coloured fill. */
+/* Badge: a 20 px pill, 12 px 500. Gray is a bordered pill; a tone is a tinted fill with
+   the tone's text (Geist badge), used only for a state: live, can't trade, expiring. */
 .v-badge {
   display: inline-flex;
   align-items: center;
@@ -414,22 +413,10 @@
   white-space: nowrap;
 }
 
-.v-badge[data-tone="green"]::before,
-.v-badge[data-tone="amber"]::before,
-.v-badge[data-tone="red"]::before,
-.v-badge[data-tone="blue"]::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--v-text-3);
-}
-
-.v-badge[data-tone="green"]::before { background: #2f9e44; }
-.v-badge[data-tone="amber"]::before { background: #f08c00; }
-.v-badge[data-tone="red"]::before { background: #e03131; }
-.v-badge[data-tone="blue"]::before { background: var(--v-text); }
+.v-badge[data-tone="green"] { border-color: transparent; background: var(--v-green-bg); color: var(--v-green); }
+.v-badge[data-tone="amber"] { border-color: transparent; background: var(--v-amber-bg); color: var(--v-amber); }
+.v-badge[data-tone="red"] { border-color: transparent; background: var(--v-red-bg); color: var(--v-red); }
+.v-badge[data-tone="blue"] { border-color: transparent; background: var(--v-accent-bg); color: var(--v-accent); }
 
 /* Status dot: 8 px dot and a 14 px label (Geist "Status"). */
 .v-status {
@@ -517,7 +504,8 @@ textarea.v-input {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
-/* Note (Geist "Note"): a bordered strip with a tone. */
+/* Note (Geist "Note"): a bordered strip. A tone tints the ground and the border and puts a
+   dot of that tone before the text; the text stays ink. */
 .v-note {
   display: flex;
   align-items: center;
@@ -545,9 +533,14 @@ textarea.v-input {
   background: var(--v-text-3);
 }
 
+.v-note[data-tone="green"] { border-color: #b7e2c4; background: var(--v-green-bg); }
+.v-note[data-tone="amber"] { border-color: #ffd8a8; background: var(--v-amber-bg); }
+.v-note[data-tone="red"] { border-color: #f5c2c2; background: var(--v-red-bg); }
+.v-note[data-tone="blue"] { border-color: #bfe0f2; background: var(--v-accent-bg); }
 .v-note[data-tone="green"] > span:first-child::before { background: #2f9e44; }
 .v-note[data-tone="amber"] > span:first-child::before { background: #f08c00; }
 .v-note[data-tone="red"] > span:first-child::before { background: #e03131; }
+.v-note[data-tone="blue"] > span:first-child::before { background: var(--v-accent); }
 
 /* Empty state: the dither clouds, one line, one action, centred in a card. */
 .v-empty {
