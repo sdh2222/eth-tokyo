@@ -17,7 +17,7 @@ import type {
   StrategyInfo,
 } from "../types";
 import curveFile from "./preview-curve.json";
-import { CAP_MM_A, lookupQuote } from "./quotes";
+import { CAP_MM_A, FILL_CAP_WETH, lookupQuote } from "./quotes";
 
 export const NOW = 1790337600;
 
@@ -248,6 +248,8 @@ function quote(memory: Memory, q: QuoteInput): QuoteResult {
   if (mm === MM_A && q.side === "buy" && q.leg === "usdc" && q.amount > CAP_MM_A) {
     return { ok: false, error: deskError("DeskPriceCapExceeded") };
   }
+  const wethLeg = q.leg === "weth" ? q.amount : 0n;
+  if (wethLeg > FILL_CAP_WETH) return { ok: false, error: deskError("DeskPriceCapExceeded") };
   const hit = lookupQuote(q.mm, q.side, q.leg, q.amount);
   if (!hit) return { ok: false, error: deskError("FIXTURE_UNCOVERED") };
   return hit;
