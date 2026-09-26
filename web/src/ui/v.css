@@ -552,20 +552,20 @@ textarea.v-input {
   background: var(--v-text-3);
 }
 
+/* Tones stay light: in force is a light blue ground, a warning or a stop a white ground with
+   a border (dark blue for a stop). An icon, not a dot, leads the text (Note in v.tsx). */
 .v-note[data-tone="green"],
 .v-note[data-tone="blue"] { border-color: transparent; background: var(--v-light); }
-.v-note[data-tone="amber"] { border-color: var(--v-dark); background: var(--v-bg); }
-.v-note[data-tone="red"] { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
-.v-note[data-tone="green"] > span:first-child::before,
-.v-note[data-tone="blue"] > span:first-child::before { background: var(--v-blue); }
-.v-note[data-tone="amber"] > span:first-child::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--v-dark); }
-.v-note[data-tone="red"] > span:first-child::before { background: var(--v-white); }
+.v-note[data-tone="amber"] { border-color: var(--v-border-strong); background: var(--v-bg); }
+.v-note[data-tone="red"] { border-color: var(--v-dark); background: var(--v-bg); }
+.v-note[data-tone] > span:first-child::before { display: none; }
+.v-note-icon { flex: 0 0 auto; width: 16px; height: 16px; color: var(--v-dark); }
+.v-note[data-tone="green"] .v-note-icon,
+.v-note[data-tone="blue"] .v-note-icon { color: var(--v-blue); }
 
 /* Verify's verdict card: tinted green when the recompute matches, red when it does not. */
 .v-card.v-verdict-green { border-color: transparent; background: var(--v-light); }
-.v-card.v-verdict-red { border-color: transparent; background: var(--v-dark); color: var(--v-white); }
-.v-card.v-verdict-red .v-muted { color: var(--v-light); }
-.v-card.v-verdict-red .v-status::before { background: var(--v-white); }
+.v-card.v-verdict-red { border-color: var(--v-dark); background: var(--v-bg); }
 
 /* Empty state: the dither clouds, one line, one action, centred in a card. */
 .v-empty {

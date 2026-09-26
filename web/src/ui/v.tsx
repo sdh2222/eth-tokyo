@@ -80,10 +80,32 @@ export function Status({ tone = "gray", children }: { tone?: Tone; children: Rea
   );
 }
 
+// A warning or a stop leads with a triangle, anything in force with a check.
+function NoteIcon({ tone }: { tone: Tone }) {
+  const warn = tone === "amber" || tone === "red";
+  return (
+    <svg className="v-note-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      {warn ? (
+        <>
+          <path d="M8 1.75 15 14.25H1L8 1.75Z" strokeLinejoin="round" />
+          <path d="M8 6.5v3.5M8 11.75v.5" strokeLinecap="round" />
+        </>
+      ) : tone === "gray" ? (
+        <path d="M8 4.5v.5M8 7v4.5" strokeLinecap="round" />
+      ) : (
+        <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  );
+}
+
 export function Note({ tone, children, action }: { tone?: Tone; children: ReactNode; action?: ReactNode }) {
   return (
     <div className="v-note" data-tone={tone} role={tone === "red" ? "alert" : undefined}>
-      <span>{children}</span>
+      <span>
+        {tone ? <NoteIcon tone={tone} /> : null}
+        {children}
+      </span>
       {action}
     </div>
   );

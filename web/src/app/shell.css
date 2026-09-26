@@ -439,3 +439,52 @@
 .mul-pages a[data-selected="selected"] {
   font-weight: 500;
 }
+
+/* Header buttons (role buttons, Connect wallet): the bright sky #b7e4f8 filled when selected,
+   ENS blue with white text on hover, and a small spring when pressed. No dotted fill. */
+.mul-header .astryx-button,
+.mul-banners .astryx-button,
+.mul-shell .watermark-wallet {
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 360ms cubic-bezier(0.34, 1.8, 0.64, 1);
+}
+
+.mul-header .astryx-button[data-variant="primary"],
+.mul-header .astryx-button[data-variant="primary"]:active,
+.mul-banners .astryx-button[data-variant="primary"],
+.mul-shell .watermark-wallet:not(.watermark-wallet-on),
+.mul-shell .watermark-wallet:not(.watermark-wallet-on):active {
+  background: #b7e4f8;
+  background-image: none;
+  color: #011a25;
+}
+
+.mul-header .astryx-button:hover:not(.watermark-menu),
+.mul-banners .astryx-button[data-variant="primary"]:hover,
+.mul-shell .watermark-wallet:not(.watermark-wallet-on):hover {
+  background: #0080bc;
+  background-image: none;
+  color: #ffffff;
+}
+
+.mul-header .astryx-button:hover:not(.watermark-menu) *,
+.mul-banners .astryx-button[data-variant="primary"]:hover * {
+  color: #ffffff;
+}
+
+.mul-header .astryx-button:active:not(.watermark-menu),
+.mul-banners .astryx-button:active,
+.mul-shell .watermark-wallet:active {
+  transform: scale(0.9);
+  transition-duration: 150ms, 150ms, 90ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mul-header .astryx-button:active:not(.watermark-menu),
+  .mul-banners .astryx-button:active,
+  .mul-shell .watermark-wallet:active {
+    transform: none;
+  }
+}
