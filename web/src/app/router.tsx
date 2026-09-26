@@ -30,8 +30,9 @@ export function AppRouter() {
         <Route path="/program" element={<ProgramPage />} />
         <Route path="/agent" element={<AgentPage />} />
         {import.meta.env.DEV ? <Route path="/dev/kit" element={<Kit />} /> : null}
-        {import.meta.env.DEV ? <Route path="/dev/shell" element={<ShellPreview />} /> : null}
-        {import.meta.env.DEV ? <Route path="/dev/shell/row" element={<ShellRow />} /> : null}
+        {import.meta.env.DEV ? <Route path="/dev/shell" element={<ShellRow />} /> : null}
+        {import.meta.env.DEV ? <Route path="/dev/shell/row" element={<Navigate to="/dev/shell" replace />} /> : null}
+        {import.meta.env.DEV ? <Route path="/dev/shell/side" element={<ShellPreview />} /> : null}
         {import.meta.env.DEV ? <Route path="/dev/shell/astryx" element={<ShellAstryx />} /> : null}
         <Route path="*" element={<Navigate to="/desk" replace />} />
       </Routes>

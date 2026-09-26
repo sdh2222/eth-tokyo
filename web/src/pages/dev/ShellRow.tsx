@@ -4,7 +4,7 @@ import "@astryxdesign/theme-neutral/theme.css";
 import { Button } from "@astryxdesign/core/Button";
 import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
 import { NAV, ROLE_WORD, ROLES, PageNav, VersionLinks, WalletControl } from "./shell-parts";
-import { DismissibleNotices, ShellPages } from "./shell-pages";
+import { OPEN, OpenStepNav, ShellPages, type OpenFocus } from "./shell-pages";
 import type { Role } from "../../app/role";
 import "./shell-preview.css";
 
@@ -13,6 +13,8 @@ const DASHBOARD = "Dashboard";
 export function ShellRow() {
   const [role, setRole] = useState<Role>("treasury");
   const [page, setPage] = useState(DASHBOARD);
+  const [focus, setFocus] = useState<OpenFocus>(null);
+  const [ahead, setAhead] = useState(-1);
 
   return (
     <div className="mul-shell" data-astryx-theme="neutral">
@@ -45,14 +47,22 @@ export function ShellRow() {
               onClick={() => {
                 setRole(item);
                 setPage(NAV[item][0] ?? DASHBOARD);
+                setFocus(null);
               }}
             />
           ))}
         </div>
-        <PageNav role={role} page={page} onPick={setPage} />
+        <PageNav
+          role={role}
+          page={page}
+          onPick={(next) => {
+            setPage(next);
+            setFocus(null);
+          }}
+        />
+        {page === OPEN ? <OpenStepNav focus={focus} ahead={ahead} onPick={setFocus} /> : null}
       </header>
-      <DismissibleNotices />
-      <ShellPages role={role} page={page} />
+      <ShellPages role={role} page={page} focus={focus} onFocus={setFocus} onAhead={setAhead} />
     </div>
   );
 }

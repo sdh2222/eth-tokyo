@@ -21,47 +21,40 @@ import {
 } from "../../copy/en";
 import type { Role } from "../../app/role";
 
-export const MAKER_NAV = [
+export const TREASURY_NAV = [
   "Dashboard",
-  "Desks",
+  "Open a desk",
   "Counterparties",
-  "Control center",
-  "Agent",
+  "Risk agent",
   "Fills",
-  "Programs",
+  "Controls",
 ] as const;
 
-export const TAKER_NAV = ["Dashboard", "Trade", "Fills", "Records", "Compare", "API"] as const;
+export const COUNTERPARTY_NAV = ["Trade", "My fills"] as const;
 
-export const OBSERVER_NAV = ["Dashboard", "Fills", "Programs", "Counterparties", "Agent"] as const;
+export const PUBLIC_NAV = ["Fills", "Verify a fill", "Program", "Risk agent"] as const;
 
 export const NAV: Record<Role, readonly string[]> = {
-  treasury: MAKER_NAV,
-  mm: TAKER_NAV,
-  observer: OBSERVER_NAV,
+  treasury: TREASURY_NAV,
+  mm: COUNTERPARTY_NAV,
+  observer: PUBLIC_NAV,
 };
 
-export const ROLES: Role[] = ["treasury", "mm", "observer"];
+export const ROLES: Role[] = ["treasury", "mm"];
 
 export const ROLE_WORD: Record<Role, string> = {
-  treasury: "Maker",
-  mm: "Taker",
+  treasury: "Treasury",
+  mm: "Counterparty",
   observer: "Observer",
-};
-
-export const ROLE_LIST: Record<Role, string> = {
-  treasury: "Maker Dashboard",
-  mm: "Taker Dashboard",
-  observer: "Observer Dashboard",
 };
 
 export function VersionLinks({ current }: { current: "side" | "row" | "astryx" }) {
   return (
     <nav className="watermark-versions" aria-label="Header versions">
-      <Link to="/dev/shell" aria-current={current === "side" ? "page" : undefined}>
+      <Link to="/dev/shell/side" aria-current={current === "side" ? "page" : undefined}>
         Side list
       </Link>
-      <Link to="/dev/shell/row" aria-current={current === "row" ? "page" : undefined}>
+      <Link to="/dev/shell" aria-current={current === "row" ? "page" : undefined}>
         Second row
       </Link>
       <Link to="/dev/shell/astryx" aria-current={current === "astryx" ? "page" : undefined}>

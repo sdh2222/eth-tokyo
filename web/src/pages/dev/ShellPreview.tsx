@@ -6,14 +6,16 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { Kbd } from "@astryxdesign/core/Kbd";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
-import { ROLE_LIST, ROLE_WORD, ROLES, Notices, PageNav, VersionLinks, WalletControl } from "./shell-parts";
-import { ShellPages } from "./shell-pages";
+import { NAV, ROLE_WORD, ROLES, PageNav, VersionLinks, WalletControl } from "./shell-parts";
+import { OPEN, OpenStepNav, ShellPages, type OpenFocus } from "./shell-pages";
 import type { Role } from "../../app/role";
 import "./shell-preview.css";
 
 export function ShellPreview() {
   const [role, setRole] = useState<Role>("treasury");
-  const [page, setPage] = useState(ROLE_LIST.treasury);
+  const [page, setPage] = useState(NAV.treasury[0] ?? "Dashboard");
+  const [focus, setFocus] = useState<OpenFocus>(null);
+  const [ahead, setAhead] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(true);
 
   useEffect(() => {
@@ -44,7 +46,8 @@ export function ShellPreview() {
                 tabIndex={menuOpen ? 0 : -1}
                 onClick={() => {
                   setRole(item);
-                  setPage(ROLE_LIST[item]);
+                  setPage(NAV[item][0] ?? "Dashboard");
+                  setFocus(null);
                 }}
               >
                 {ROLE_WORD[item]}
@@ -81,10 +84,17 @@ export function ShellPreview() {
               }
               endContent={<WalletControl />}
             />
-            <PageNav role={role} page={page} dashboardLabel={ROLE_LIST[role]} onPick={setPage} />
+            <PageNav
+              role={role}
+              page={page}
+              onPick={(next) => {
+                setPage(next);
+                setFocus(null);
+              }}
+            />
+            {page === OPEN ? <OpenStepNav focus={focus} ahead={ahead} onPick={setFocus} /> : null}
           </header>
-          <Notices />
-          <ShellPages role={role} page={page} />
+          <ShellPages role={role} page={page} focus={focus} onFocus={setFocus} onAhead={setAhead} />
         </div>
       </div>
     </div>

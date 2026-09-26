@@ -14,6 +14,18 @@ This page covers shape, the component list, and the projector.
 Style, colour, type, spacing, component sizes, dither, ascii, libraries, and first paint are separate rule pages: [Style](style.md), [Color](color.md), [Type](type.md), [Spacing](spacing.md), [Components](components.md), [Dither](dither.md), [ASCII](ascii.md), [Libraries](libraries.md), [First paint](loading.md). Those pages win on their topic.
 It goes with [Treasury web app](../product/treasury-web-app.md), which holds the screens, flows and copy. Visual design is described in text only.
 
+## Decided 26 Sep 2026
+
+This block wins where an older row on this page disagrees with it.
+
+The product name is watermark. Water is Aqua. Marks are ENS. In the wordmark, water is sky (#b7e4f8) and mark is ink. Desk is the name of the job, not the product. The view switch is Treasury and Counterparty. The UI does not say maker or taker. Treasury's menu is Dashboard, Open a desk, Counterparties, Risk agent, Fills, Controls. Open a desk stays in that menu only while no desk is live. Program is reached from Controls, not from the menu. Counterparty's menu is Trade and My fills. Fills, Verify a fill, Program, and Risk agent can be read without choosing a role. The switch changes the menu only.
+
+Two layers. The picture is one ink on a field. It is a dither of a subject, as in the TypeSafe clouds and the Cognition blue form, or a grid of equal squares that changes pose, as in Aqua's whale. The dots follow the subject. They are not a texture under the words. If the picture moves, it moves as frames. A library does not draw it. The in-app picture comes first and sits on sky. The landing picture is last and is the more pictorial screen, with TypeSafe and Cognition as the references.
+
+The software sits on that picture. It should feel like a tool, as in Devin and the TypeSafe console. Buttons, inputs, menus, and dialogs are Astryx. Their behavior and shape stay. Sky, ink, paper, and chip white replace Astryx's gray. Astryx's preset themes are not the look. We do not redraw those controls. The only custom drawing is the icons and the pictures. A quote or a raw value sits on an Astryx surface with those colors.
+
+Type is Die Grotesk C, weights 400 and 500, for almost all text, including numbers. LisaTerminal Paper is 16 px and only when a passage is asked to feel special. The retail files are Die Grotesk C Regular and Die Grotesk C Medium, web licence, smallest tier, from https://klim.co.nz/buy/die-grotesk/. Installing them is the last action, after the in-app screens and the landing exist. Until then the test cut on this machine stays local and out of the repo. A separate motion library is for the landing only, and only if that screen needs a window or a section to enter. The in-app does not add one.
+
 ## 1. Theme and tokens
 
 | ID | Rule | Why | Applies to | Checked by | If broken |
@@ -26,7 +38,7 @@ It goes with [Treasury web app](../product/treasury-web-app.md), which holds the
 | ID | Rule | Why | Applies to | Checked by | If broken |
 | --- | --- | --- | --- | --- | --- |
 | UI-03 | UI font: **Die Grotesk C**, weights 400 and 500, fallback `system-ui, sans-serif`. | The locked page face. | All UI text, including a window title | Web QA pass (W9) | A second UI family appears |
-| UI-04 | Numbers outside a window are Die Grotesk C, `font-variant-numeric: tabular-nums`. Text inside a window is **LisaTerminal Paper** at 16 px. | Lisa is the small machine voice. Page figures stay on the UI face. | Prices, amounts, addresses, hashes, window body | Web QA pass (W9) | Lisa is used as a headline, or a third face appears |
+| UI-04 | Text is Die Grotesk C, including numbers, with `font-variant-numeric: tabular-nums`. **LisaTerminal Paper** at 16 px is only for a passage that should feel special. | Lisa is not the default. | All text | Web QA pass (W9) | Lisa is the default face, or Lisa is used as a headline |
 | UI-05 | Weights: 400 body, 500 labels, 600 headings and big numbers. No other weights. | A small, consistent type hierarchy. | All text | Web QA pass (W9) | Hierarchy reads inconsistently |
 
 Type scale (size / line height in px):
@@ -119,6 +131,8 @@ Status is never shown by colour alone (UI-08).
 <details>
 <summary>Change log</summary>
 
+- 2026-09-26: The wordmark uses sky for water and ink for mark.
+- 2026-09-26: The product name is watermark. Water is Aqua. Marks are ENS.
 - 2026-09-26: Colour moves to Color. The light theme is the pink and sky fields. Windows and buttons are square.
 
 </details>
