@@ -25,8 +25,8 @@ It goes with [Treasury web app](../product/treasury-web-app.md), which holds the
 
 | ID | Rule | Why | Applies to | Checked by | If broken |
 | --- | --- | --- | --- | --- | --- |
-| UI-03 | UI font: **Pretendard Variable** (Latin and Korean), fallback `system-ui, -apple-system, Segoe UI, sans-serif`. | One font covers Latin and Korean. | All UI text | Web QA pass (W9) | Mixed fonts on screen |
-| UI-04 | Numbers, addresses, hashes, code: **JetBrains Mono**, `font-variant-numeric: tabular-nums`. | Numbers line up in tables and change in place. | Prices, amounts, addresses, hashes, raw bytes | Web QA pass (W9) | Columns of numbers jitter and misalign |
+| UI-03 | UI font: **Die Grotesk C**, weights 400 and 500, fallback `system-ui, sans-serif`. | The locked page face. | All UI text, including a window title | Web QA pass (W9) | A second UI family appears |
+| UI-04 | Numbers outside a window are Die Grotesk C, `font-variant-numeric: tabular-nums`. Text inside a window is **LisaTerminal Paper** at 16 px. | Lisa is the small machine voice. Page figures stay on the UI face. | Prices, amounts, addresses, hashes, window body | Web QA pass (W9) | Lisa is used as a headline, or a third face appears |
 | UI-05 | Weights: 400 body, 500 labels, 600 headings and big numbers. No other weights. | A small, consistent type hierarchy. | All text | Web QA pass (W9) | Hierarchy reads inconsistently |
 
 Type scale (size / line height in px):
