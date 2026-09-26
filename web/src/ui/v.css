@@ -656,6 +656,11 @@ textarea.v-input {
 .v-page ol.v-ol { list-style: decimal; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .v-page ul.v-ul { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 [data-active="true"] { background: var(--v-accent-bg); }
+/* An open table row (the one being edited): a quiet ground and an ENS blue edge, so the
+   row's own light blue badges still read. */
+.v-table tr[data-active="true"] { background: none; }
+.v-table tr[data-active="true"] td { background: var(--v-bg-2); }
+.v-table tr[data-active="true"] td:first-child { box-shadow: inset 2px 0 0 var(--v-blue); }
 @media (max-width: 600px) {
   .v-dl { grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); gap: 8px 16px; }
 }

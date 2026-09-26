@@ -1,4 +1,4 @@
-import { Fragment, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useImperativeAlertDialog } from "@astryxdesign/core/AlertDialog";
 import { formatUnits } from "viem";
 import { nameQuote, shortName, type DeskBook, type NameQuote } from "../desk/book";
@@ -17,7 +17,6 @@ import { SafeDialog } from "./open/SafeDialog";
 // Cut off shows one confirm sentence first (SC-05).
 
 const SAFE_WALLET = "Safe{Wallet}";
-const COLUMNS = 6;
 
 type NameStatus = "Live" | "Expired" | "Cut off";
 
@@ -92,6 +91,7 @@ function Expiry({ seconds }: { seconds: number }) {
 
 function TermsEditor({
   row,
+  saved,
   draft,
   onDraft,
   onSave,
@@ -99,6 +99,7 @@ function TermsEditor({
   onCutOff,
 }: {
   row: NameRow;
+  saved: Draft;
   draft: Draft;
   onDraft: (draft: Draft) => void;
   onSave: () => void;
@@ -107,8 +108,10 @@ function TermsEditor({
 }) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isDraftValid(draft)) onSave();
+    if (isDraftValid(draft) && !unchanged) onSave();
   }
+
+  const unchanged = draft.sell === saved.sell && draft.buy === saved.buy && Number(draft.cap) === Number(saved.cap);
 
   return (
     <div className="v-stack v-stack-24">
@@ -158,7 +161,7 @@ function TermsEditor({
         <div className="v-muted">{`Saving proposes the new desk.terms to the Safe in ${SAFE_WALLET}.`}</div>
         <div className="v-row v-between">
           <div className="v-row v-row-8">
-            <button type="submit" className="v-btn" disabled={!isDraftValid(draft)}>
+            <button type="submit" className="v-btn" disabled={!isDraftValid(draft) || unchanged}>
               Save terms
             </button>
             <button type="button" className="v-btn v-btn-tertiary" onClick={onCancel}>
@@ -181,6 +184,16 @@ export function CounterpartiesPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ sell: "", buy: "", cap: "" });
   const [proposal, setProposal] = useState<Proposal>({ isOpen: false, title: "", description: "" });
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // The editor is a card under the table, so on a phone it can sit below the fold: bring it
+  // into view and put focus on its first control when a name opens.
+  useEffect(() => {
+    if (openId === null) return;
+    const editor = editorRef.current;
+    editor?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    editor?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  }, [openId]);
 
   function toggle(row: NameRow) {
     if (openId === row.id) {
@@ -195,7 +208,7 @@ export function CounterpartiesPage() {
     setProposal({
       isOpen: true,
       title: "Edit terms",
-      description: `New terms for ${row.name}: sell ${draft.sell.trim()} bp · buy ${draft.buy.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
+      description: `New terms for ${row.name}: bid −${draft.buy.trim()} bp · ask +${draft.sell.trim()} bp · cap ${draft.cap.trim()} WETH. The Safe writes them to its desk.terms record.`,
     });
   }
 
@@ -227,6 +240,7 @@ export function CounterpartiesPage() {
 
   const b = book.data;
   const rows = toRows(b, now);
+  const openRow = rows.find((row) => row.id === openId) ?? null;
 
   return (
     <Page>
@@ -253,57 +267,44 @@ export function CounterpartiesPage() {
               <tbody>
                 {rows.map((row) => {
                   const isOpen = openId === row.id;
-                  const panelId = `terms-${row.id.replace(/\./g, "-")}`;
                   const q = row.status === "Live" ? row.quote : null;
                   return (
-                    <Fragment key={row.id}>
-                      <tr>
-                        <td>{shortName(row.name)}</td>
-                        <td>
-                          <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
-                        </td>
-                        <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
-                        <td>
-                          {q ? (
-                            <>
-                              {widths(q.sellBps, q.buyBps)}
-                              {q.source === "terms" ? <span className="v-muted"> · terms</span> : null}
-                            </>
-                          ) : (
-                            <span className="v-muted">—</span>
-                          )}
-                        </td>
-                        <td className="v-muted">
-                          <Expiry seconds={row.expiry} />
-                        </td>
-                        <td className="v-right">
-                          <button
-                            type="button"
-                            className="v-btn v-btn-secondary"
-                            aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
-                            aria-expanded={isOpen}
-                            aria-controls={isOpen ? panelId : undefined}
-                            onClick={() => toggle(row)}
-                          >
-                            {isOpen ? "Close" : "Edit"}
-                          </button>
-                        </td>
-                      </tr>
-                      {isOpen ? (
-                        <tr id={panelId}>
-                          <td className="v-expand" colSpan={COLUMNS}>
-                            <TermsEditor
-                              row={row}
-                              draft={draft}
-                              onDraft={setDraft}
-                              onSave={() => saveTerms(row)}
-                              onCancel={() => setOpenId(null)}
-                              onCutOff={() => cutOff(row)}
-                            />
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
+                    <tr key={row.id} data-active={isOpen}>
+                      <td>
+                        <button type="button" className="v-link" aria-expanded={isOpen} aria-controls={isOpen ? "terms-editor" : undefined} onClick={() => toggle(row)}>
+                          {shortName(row.name)}
+                        </button>
+                      </td>
+                      <td>
+                        <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
+                      </td>
+                      <td>{row.terms ? `${widths(row.terms.sellBps, row.terms.buyBps)} · cap ${formatWeth(row.terms.cap)}` : "—"}</td>
+                      <td>
+                        {q ? (
+                          <>
+                            {widths(q.sellBps, q.buyBps)}
+                            {q.source === "terms" ? <span className="v-muted"> · terms</span> : null}
+                          </>
+                        ) : (
+                          <span className="v-muted">—</span>
+                        )}
+                      </td>
+                      <td className="v-muted">
+                        <Expiry seconds={row.expiry} />
+                      </td>
+                      <td className="v-right">
+                        <button
+                          type="button"
+                          className="v-btn v-btn-secondary"
+                          aria-label={`${isOpen ? "Close" : "Edit"} ${row.name}`}
+                          aria-expanded={isOpen}
+                          aria-controls={isOpen ? "terms-editor" : undefined}
+                          onClick={() => toggle(row)}
+                        >
+                          {isOpen ? "Close" : "Edit"}
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -311,6 +312,22 @@ export function CounterpartiesPage() {
           </div>
         )}
       </Card>
+
+      {openRow ? (
+        <div ref={editorRef} id="terms-editor">
+          <Card title={`Terms for ${shortName(openRow.name)}`}>
+            <TermsEditor
+              row={openRow}
+              saved={draftFrom(openRow.terms)}
+              draft={draft}
+              onDraft={setDraft}
+              onSave={() => saveTerms(openRow)}
+              onCancel={() => setOpenId(null)}
+              onCutOff={() => cutOff(openRow)}
+            />
+          </Card>
+        </div>
+      ) : null}
 
       <SafeDialog
         isOpen={proposal.isOpen}
