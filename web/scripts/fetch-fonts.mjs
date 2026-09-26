@@ -1,6 +1,6 @@
-// Die Grotesk is licensed from Klim and may not sit in this public repo. The files live in a
-// private repo, and this script copies them into public/fonts/die-grotesk/ (ignored by git)
-// before dev and build.
+// Die Grotesk is licensed from Klim and may not sit in this public repo. The files live at the
+// root of a private repo, and this script copies them into public/fonts/die-grotesk/ (ignored
+// by git) before dev and build.
 //
 //   FONTS_TOKEN  a GitHub token with read access to that repo (Vercel env, or your shell)
 //   FONTS_REPO   owner/name of that repo (default sdh2222/watermark-fonts)
@@ -26,7 +26,7 @@ if (!TOKEN) {
 
 mkdirSync(DIR, { recursive: true });
 for (const file of missing) {
-  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/die-grotesk/${file}`, {
+  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${file}`, {
     headers: {
       Accept: "application/vnd.github.raw+json",
       Authorization: `Bearer ${TOKEN}`,
