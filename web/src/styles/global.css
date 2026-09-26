@@ -189,7 +189,7 @@ h3,
 }
 
 @layer components {
-  button {
+  button:where(:not(.mul-page *)) {
     position: relative;
     isolation: isolate;
     overflow: hidden;
@@ -204,22 +204,22 @@ h3,
     box-shadow: none;
   }
 
-  button::before {
+  button:where(:not(.mul-page *))::before {
     display: none;
   }
 
-  button:hover:not(:disabled) {
+  button:where(:not(.mul-page *)):hover:not(:disabled) {
     background: var(--surface);
   }
 
-  button:disabled {
+  button:where(:not(.mul-page *)):disabled {
     opacity: 0.45;
     cursor: not-allowed;
   }
 
-  input,
-  select,
-  textarea {
+  input:where(:not(.mul-page *)),
+  select:where(:not(.mul-page *)),
+  textarea:where(:not(.mul-page *)) {
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
     padding: 8px 12px;
@@ -230,12 +230,12 @@ h3,
     box-shadow: none;
   }
 
-  table {
+  table:where(:not(.mul-page *)) {
     width: 100%;
     border-collapse: collapse;
   }
 
-  th {
+  th:where(:not(.mul-page *)) {
     text-align: left;
     font-size: var(--text-small-size);
     line-height: var(--text-small-leading);
@@ -244,17 +244,17 @@ h3,
     padding: 8px 12px 8px 0;
   }
 
-  td {
+  td:where(:not(.mul-page *)) {
     padding: 12px 12px 12px 0;
     vertical-align: middle;
   }
 
-  a {
+  a:where(:not(.mul-page *)) {
     color: var(--text);
     text-decoration: none;
   }
 
-  a:hover {
+  a:where(:not(.mul-page *)):hover {
     text-decoration: underline;
   }
 }

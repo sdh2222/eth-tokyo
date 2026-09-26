@@ -48,7 +48,7 @@ const ROLES: Role[] = ["treasury", "mm", "observer"];
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const showHeader = pathname !== "/";
+  const showHeader = pathname !== "/" && !pathname.startsWith("/dev/shell");
 
   return (
     <ToastProvider>
@@ -65,7 +65,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {children}
           {showHeader ? <DemoDrawer /> : null}
         </main>
-        <footer className="break-words px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
+        {pathname.startsWith("/dev/shell") ? null : (
+          <footer className="break-words px-4 py-6 text-small text-muted sm:px-8">{FOOTER}</footer>
+        )}
       </div>
     </ToastProvider>
   );
