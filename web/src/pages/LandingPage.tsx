@@ -201,6 +201,7 @@ export function LandingPage() {
               {LANDING.footer.stack.map((item) => (
                 <li key={item.name}>
                   <a href={item.href} target="_blank" rel="noreferrer">
+                    {"logo" in item ? <img className="wm-footer-logo" src={item.logo} alt="" /> : null}
                     {item.name} ↗
                   </a>
                 </li>

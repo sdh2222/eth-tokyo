@@ -184,7 +184,7 @@ export const LANDING = {
     builtOn: "Built on",
     stack: [
       { name: "1inch Aqua", href: "https://github.com/1inch/aqua" },
-      { name: "ENSv2", href: "https://ens.domains/ensv2" },
+      { name: "ENSv2", href: "https://ens.domains/ensv2", logo: "/landing/brand/ens-mark.png" },
     ],
     thanks: "Thank you to the 1inch and ENS teams for the ground this stands on.",
   },

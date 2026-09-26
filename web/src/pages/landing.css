@@ -539,6 +539,18 @@ body:has(.wm-landing) {
   color: var(--wm-water-strong);
 }
 
+.wm-footer-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Partner marks sit at cap height beside the name, in their own brand colours. */
+.wm-footer-logo {
+  width: auto;
+  height: 22px;
+}
+
 .wm-footer-small {
   margin: 12px 0 0;
   font-size: 14px;
