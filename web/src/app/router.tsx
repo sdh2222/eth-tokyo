@@ -13,6 +13,7 @@ import { Kit } from "../pages/dev/Kit";
 import { ShellPreview } from "../pages/dev/ShellPreview";
 import { ShellRow } from "../pages/dev/ShellRow";
 import { ShellAstryx } from "../pages/dev/ShellAstryx";
+import { Foundation } from "../pages/dev/Foundation";
 import { AppFrame } from "./shell";
 
 export function AppRouter() {
@@ -33,6 +34,7 @@ export function AppRouter() {
         {import.meta.env.DEV ? <Route path="/dev/shell" element={<ShellPreview />} /> : null}
         {import.meta.env.DEV ? <Route path="/dev/shell/row" element={<ShellRow />} /> : null}
         {import.meta.env.DEV ? <Route path="/dev/shell/astryx" element={<ShellAstryx />} /> : null}
+        {import.meta.env.DEV ? <Route path="/dev/foundation" element={<Foundation />} /> : null}
         <Route path="*" element={<Navigate to="/desk" replace />} />
       </Routes>
     </AppFrame>

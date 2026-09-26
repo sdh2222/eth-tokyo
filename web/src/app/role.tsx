@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 
-export type Role = "treasury" | "mm" | "observer";
+export type Role = "treasury" | "mm";
 
 const KEY = "desk.role";
 
 function readRole(): Role {
   try {
     const stored = sessionStorage.getItem(KEY);
-    if (stored === "treasury" || stored === "mm" || stored === "observer") {
+    if (stored === "treasury" || stored === "mm") {
       return stored;
     }
   } catch {

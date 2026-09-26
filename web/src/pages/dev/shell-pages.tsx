@@ -248,7 +248,7 @@ function StatusLine({
   stale: boolean;
 }) {
   const status = deskStatus(desk, live);
-  const maxStaleness = desk?.maxStaleness ?? emptyConfig().desk.maxStaleness;
+  const maxStaleness = desk?.maxStaleness ?? emptyConfig().desk.maxStaleness ?? 600;
   const age = updatedAt == null ? 0 : Math.max(0, now - updatedAt);
   const tone = ageTone(age, maxStaleness, stale);
   const ageText = updatedAt == null ? null : updatedAgo(updatedAt, now);
@@ -285,7 +285,7 @@ function Age({ tone, text }: { tone: "ok" | "warn" | "stale"; text: string }) {
 function Inventory({ desk }: { desk: DeskState }) {
   const share = percentOfWad(desk.wWad);
   const target = percentOfWad(desk.targetWad);
-  const sentence = `${formatShare(desk.wWad)} ETH · target ${(desk.targetWad * 100n) / WAD}% · skew ${formatSkewBps(emptyConfig().desk.kappaBps, desk.wWad, desk.targetWad)}`;
+  const sentence = `${formatShare(desk.wWad)} ETH · target ${(desk.targetWad * 100n) / WAD}% · skew ${formatSkewBps(emptyConfig().desk.kappaBps ?? 0, desk.wWad, desk.targetWad)}`;
   return (
     <VStack gap={4}>
       <MetadataList columns={2} label={{ position: "top" }}>

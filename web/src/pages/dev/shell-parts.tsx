@@ -33,26 +33,21 @@ export const MAKER_NAV = [
 
 export const TAKER_NAV = ["Dashboard", "Trade", "Fills", "Records", "Compare", "API"] as const;
 
-export const OBSERVER_NAV = ["Dashboard", "Fills", "Programs", "Counterparties", "Agent"] as const;
-
 export const NAV: Record<Role, readonly string[]> = {
   treasury: MAKER_NAV,
   mm: TAKER_NAV,
-  observer: OBSERVER_NAV,
 };
 
-export const ROLES: Role[] = ["treasury", "mm", "observer"];
+export const ROLES: Role[] = ["treasury", "mm"];
 
 export const ROLE_WORD: Record<Role, string> = {
   treasury: "Maker",
   mm: "Taker",
-  observer: "Observer",
 };
 
 export const ROLE_LIST: Record<Role, string> = {
   treasury: "Maker Dashboard",
   mm: "Taker Dashboard",
-  observer: "Observer Dashboard",
 };
 
 export function VersionLinks({ current }: { current: "side" | "row" | "astryx" }) {

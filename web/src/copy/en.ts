@@ -112,7 +112,6 @@ export const LEVEL_WORD = { danger: "Danger", warning: "Warning", info: "Info" }
 export const ROLE_LABEL = {
   treasury: "Treasury",
   mm: "Market maker",
-  observer: "Observer",
 } as const;
 
 export const NAV_LABEL = {
