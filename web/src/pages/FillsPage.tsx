@@ -8,7 +8,7 @@ import { useClock } from "../hooks/useClock";
 import { useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatHash, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Badge, Card, Empty, Header, Metric, Metrics, Page } from "../ui/v";
+import { Card, Empty, Header, Metric, Metrics, Page } from "../ui/v";
 
 // Fills: what traded, with whom, at what price. /fills?mine is the counterparty's "My fills"
 // (only the connected wallet's fills). Vercel-style: totals card, then the table card with
@@ -37,7 +37,7 @@ function FillRow({ fill, now }: { fill: FillRecord; now: number }) {
       <td className="v-muted">{formatWhen(fill.blockTime, now)}</td>
       <td>{fill.name}</td>
       <td>
-        <Badge tone={buys ? "red" : "green"}>{buys ? "Bought ETH" : "Sold ETH"}</Badge>
+        {buys ? "Bought ETH" : "Sold ETH"}
       </td>
       <td className="v-right">{formatWeth(fillEth(fill))}</td>
       <td className="v-right">{`$${formatWadUsd(fillPrice(fill))}`}</td>

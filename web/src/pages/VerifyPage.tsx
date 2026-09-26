@@ -9,7 +9,7 @@ import { useClock } from "../hooks/useClock";
 import { useDeskPort, useFills, useLiveStrategy } from "../hooks/useDesk";
 import { formatAddr, formatHash, formatShare, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Badge, Card, Dl, Empty, Header, Page, Status, type Tone } from "../ui/v";
+import { Card, Dl, Empty, Header, Page, Status, type Tone } from "../ui/v";
 
 // Verify a fill (IA: "Was this fill priced by the rule?"). Vercel-style: the verdict card,
 // the recompute as a table, the trade as a key and value list, then the raw event.
@@ -72,7 +72,7 @@ export function VerifyPage() {
     verdict = {
       tone: "green",
       title: "Matches on-chain",
-      hint: "Recomputed from the inputs the fill emitted: oracle mid, spread and ETH share.",
+      hint: "Recomputed from what the fill emitted: the oracle mid and the width it paid.",
     };
   } else if (check) {
     verdict = { tone: "red", title: "Does not match", hint: "The recomputed amounts differ from what the fill emitted." };
@@ -146,7 +146,7 @@ export function VerifyPage() {
                     {formatAddr(fill.taker)}
                   </a>,
                 ],
-                ["Side", <Badge key="side" tone={buysEth(fill) ? "red" : "green"}>{buysEth(fill) ? "Bought ETH" : "Sold ETH"}</Badge>],
+                ["Side", buysEth(fill) ? "Bought ETH" : "Sold ETH"],
                 ["Paid", amountText(fill, "in")],
                 ["Received", amountText(fill, "out")],
                 ["Oracle mid", `$${formatWadUsd(fill.midWad)}`],
