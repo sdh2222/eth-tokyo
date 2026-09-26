@@ -131,6 +131,8 @@
 .wm-row-8 { gap: 8px; }
 .wm-row-24 { gap: 24px; }
 .wm-between { justify-content: space-between; }
+.wm-row-end { align-items: flex-end; }
+.wm-row-end > .wm-link { padding-bottom: 12px; }
 .wm-num { font-variant-numeric: tabular-nums; }
 
 /* Stat: label 16 muted over a 24/36 value (Type "Value"), on a 1 px rule. No gray card. */
@@ -325,6 +327,7 @@
 
 .wm-page a {
   color: var(--wm-ink);
+  text-decoration: underline;
   text-underline-offset: 3px;
 }
 

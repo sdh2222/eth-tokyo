@@ -7,7 +7,6 @@ import type {
   DeskConfig,
   DeskError,
   DeskState,
-  FillCheck,
   FillRecord,
   Hex,
   PreviewPoint,
@@ -16,6 +15,8 @@ import type {
   ShipInput,
   StrategyInfo,
 } from "../types";
+import sepoliaConfig from "@config";
+import { recomputeFill } from "../verify";
 import curveFile from "./preview-curve.json";
 import { CAP_MM_A, FILL_CAP_WETH, lookupQuote } from "./quotes";
 
@@ -25,6 +26,7 @@ const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 const OWNER1 = "0x0000000000000000000000000000000000000001" as Address;
 const OWNER2 = "0x0000000000000000000000000000000000000002" as Address;
 const OWNER3 = "0x0000000000000000000000000000000000000003" as Address;
+const WAD = 10n ** 18n;
 const MM_A = "0x0000000000000000000000000000000000000005" as Address;
 const MM_B = "0x0000000000000000000000000000000000000006" as Address;
 const MM_C = "0x0000000000000000000000000000000000000007" as Address;
@@ -43,7 +45,6 @@ type Memory = {
   oracleUpdatedAt: number;
   oracleAnswer: bigint;
   fills: FillRecord[];
-  checks: Map<string, FillCheck>;
 };
 
 function deskError(code: string, args: Record<string, unknown> = {}): DeskError {
@@ -85,7 +86,6 @@ export function createFixture(which: "qa" | "demo"): {
     oracleUpdatedAt: NOW - 12,
     oracleAnswer: 400000000000n,
     fills: [],
-    checks: new Map(),
   };
 
   const port: DeskPort = {
@@ -150,7 +150,7 @@ export function createFixture(which: "qa" | "demo"): {
       return memory.fills;
     },
     verifyFill(fill) {
-      return memory.checks.get(fill.tx) ?? { matches: false, steps: [] };
+      return recomputeFill(fill);
     },
     decodeDeskError(error) {
       if (isDeskError(error)) return error;
@@ -198,31 +198,51 @@ export function createFixture(which: "qa" | "demo"): {
       memory.block += 1n;
     },
     seedFill() {
-      const tx = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
-      const steps = ["Mid", "ETH share before", "Skew", "Reference price", "Spread used", "Ask or bid", "Amount"].map(
-        (label) => ({ label, formula: label, value: "1" }),
-      );
-      memory.checks.set(tx, { matches: true, steps });
-      memory.fills = [
-        {
-          tx,
-          blockNumber: memory.block,
-          blockTime: NOW,
-          orderHash: tx,
-          nameHash: tx,
-          taker: "0x0000000000000000000000000000000000000005",
-          dnsName: clientName("mm-a"),
-          name: "mm-a",
-          tokenIn: "0x0000000000000000000000000000000000000000",
-          tokenOut: "" as Address,
-          amountIn: 1n,
-          amountOut: 1n,
-          midWad: 1n,
-          spreadBps: 10,
-          spreadSource: 1,
-          wBeforeWad: 1n,
-        },
-      ];
+      // Alternates mm-a selling 2 ETH at the bid and mm-b buying 1.5 ETH at the ask, priced
+      // with the #29 rule at mid 4000 and the 2 / 8 bp spread, so Verify recomputes a match.
+      const n = memory.fills.length;
+      const buys = n % 2 === 1;
+      const tx = `0x${(0xa1 + n).toString(16).padStart(2, "0").repeat(32)}` as Hex;
+      const mid = 4000n * WAD;
+      const { weth, usdc } = (sepoliaConfig as DeskConfig).tokens as { weth: Address; usdc: Address };
+      const fill: FillRecord = buys
+        ? {
+            tx,
+            blockNumber: memory.block,
+            blockTime: NOW - 600 + 60 * n,
+            orderHash: tx,
+            nameHash: tx,
+            taker: MM_B,
+            dnsName: clientName("mm-b"),
+            name: "mm-b",
+            tokenIn: usdc,
+            tokenOut: weth,
+            amountIn: 6001200000n,
+            amountOut: 1500000000000000000n,
+            midWad: mid,
+            spreadBps: 2,
+            spreadSource: 1,
+            wBeforeWad: 900000000000000000n,
+          }
+        : {
+            tx,
+            blockNumber: memory.block,
+            blockTime: NOW - 600 + 60 * n,
+            orderHash: tx,
+            nameHash: tx,
+            taker: MM_A,
+            dnsName: clientName("mm-a"),
+            name: "mm-a",
+            tokenIn: weth,
+            tokenOut: usdc,
+            amountIn: 2n * WAD,
+            amountOut: 7993600000n,
+            midWad: mid,
+            spreadBps: 8,
+            spreadSource: 1,
+            wBeforeWad: 900000000000000000n,
+          };
+      memory.fills = [fill, ...memory.fills];
       memory.block += 1n;
       return tx;
     },

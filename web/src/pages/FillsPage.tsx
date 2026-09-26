@@ -145,7 +145,7 @@ export function FillsPage() {
 
       <div className="wm-grid">
         <Section title={mine ? "Your fills" : "All fills"} className="wm-span-12">
-          <div className="wm-row wm-row-24" role="group" aria-label="Fill filters">
+          <div className="wm-row wm-row-24 wm-row-end" role="group" aria-label="Fill filters">
             {mine ? null : (
               <label className="wm-field">
                 <span>Counterparty</span>
