@@ -26,6 +26,13 @@ function amountText(fill: FillRecord, leg: "in" | "out"): string {
   return token.toLowerCase() === WETH ? formatWeth(amount) : formatUsdc(amount);
 }
 
+// The fill's own price in USD per ETH (wad): USDC has 6 decimals, WETH 18.
+function fillPrice(fill: FillRecord): bigint {
+  const eth = buysEth(fill) ? fill.amountOut : fill.amountIn;
+  const usdc = buysEth(fill) ? fill.amountIn : fill.amountOut;
+  return eth === 0n ? 0n : (usdc * 10n ** 12n * 10n ** 18n) / eth;
+}
+
 // The event exactly as the fill emitted it, one field per line.
 function rawEvent(fill: FillRecord): [string, string][] {
   return [
@@ -105,8 +112,8 @@ export function VerifyPage() {
       <div className="wm-grid">
         <Section title="Verdict" className="wm-span-12">
           <Callout tone={verdict.tone}>
-            <strong>{verdict.title}</strong>
-            <span className="wm-muted">{verdict.hint}</span>
+            <span className="wm-big">{verdict.title}</span>
+            <span>{verdict.hint}</span>
           </Callout>
         </Section>
 
@@ -126,6 +133,18 @@ export function VerifyPage() {
 
         {fill ? (
           <Section title="The trade" className="wm-span-12">
+            <div className="wm-quote">
+              <div className="wm-stack wm-stack-4">
+                <span className="wm-label">Fill price</span>
+                <span className="wm-big">
+                  <span className="wm-mark">{`$${formatWadUsd(fillPrice(fill))}`}</span>
+                </span>
+              </div>
+              <div className="wm-stack wm-stack-4">
+                <span className="wm-label">Oracle mid</span>
+                <span className="wm-big">{`$${formatWadUsd(fill.midWad)}`}</span>
+              </div>
+            </div>
             <Facts
               items={[
                 ["Counterparty", fill.name],

@@ -133,8 +133,15 @@ export function FillsPage() {
     <Page>
       <PageHead
         title={mine ? "My fills" : "Fills"}
-        lede={mine ? "Every fill your wallet made against this desk." : "Every fill against this desk, with whom and at what price."}
+        lede={mine ? "Every fill your wallet made against this desk." : "What traded, with whom, at what price."}
       />
+
+      <div className="wm-stats">
+        <Stat label="Fills" value={String(filtered.length)} />
+        <Stat label={mine ? "ETH you bought" : "ETH bought by counterparties"} value={formatWeth(bought)} />
+        <Stat label={mine ? "ETH you sold" : "ETH sold by counterparties"} value={formatWeth(sold)} />
+        <Stat label="USDC volume" value={formatUsdc(usdc)} />
+      </div>
 
       <div className="wm-grid">
         <Section title={mine ? "Your fills" : "All fills"} className="wm-span-12">
@@ -210,14 +217,6 @@ export function FillsPage() {
           ) : null}
         </Section>
 
-        <Section title="Totals" className="wm-span-12">
-          <div className="wm-stats">
-            <Stat label="Fills" value={String(filtered.length)} />
-            <Stat label={mine ? "ETH you bought" : "ETH bought by counterparties"} value={formatWeth(bought)} />
-            <Stat label={mine ? "ETH you sold" : "ETH sold by counterparties"} value={formatWeth(sold)} />
-            <Stat label="USDC volume" value={formatUsdc(usdc)} />
-          </div>
-        </Section>
       </div>
     </Page>
   );

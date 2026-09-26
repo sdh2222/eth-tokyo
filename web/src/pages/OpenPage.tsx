@@ -241,7 +241,7 @@ export function OpenPage() {
                       onChange={(e) => setWethText(e.target.value)}
                       aria-invalid={currentErrors.weth ? true : undefined}
                     />
-                    {safeWeth !== null ? (
+                    {safeWeth !== null && !currentErrors.weth ? (
                       <span className="wm-muted">{`The Safe holds ${safeWeth.toLocaleString("en-US")} WETH.`}</span>
                     ) : null}
                     <FieldError message={currentErrors.weth} />
@@ -257,7 +257,7 @@ export function OpenPage() {
                       onChange={(e) => setUsdcText(e.target.value)}
                       aria-invalid={currentErrors.usdc ? true : undefined}
                     />
-                    {safeUsdc !== null ? (
+                    {safeUsdc !== null && !currentErrors.usdc ? (
                       <span className="wm-muted">{`The Safe holds ${safeUsdc.toLocaleString("en-US")} USDC.`}</span>
                     ) : null}
                     <FieldError message={currentErrors.usdc} />

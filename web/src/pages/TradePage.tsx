@@ -25,7 +25,7 @@ import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Callout, Empty, Facts, Page, PageHead, Pill, Section, Stat, Window, type Tone } from "../ui/plain";
+import { Callout, Empty, Facts, Page, PageHead, Section, Stat, Window, type Tone } from "../ui/plain";
 
 // Trade (IA: "Can I trade now, at what price, and how much?"). Plain page kit.
 // Screens SC-19: identity 12 columns, order form 5 and the quote 7, Fill under the quote.
@@ -224,32 +224,9 @@ export function TradePage() {
 
   return (
     <Page>
-      <PageHead
-        kicker={b.name}
-        title="Trade"
-        lede="WETH/USDC against this desk, priced at the oracle mid plus the desk's widths."
-      />
+      <PageHead kicker={b.name} title="Trade" lede="WETH/USDC at the oracle mid plus the desk's widths." />
 
       <div className="wm-grid">
-        <Section title={TRADING_AS} className="wm-span-12">
-          <div className="wm-stats">
-            <Stat label="Name" value={entry?.name ?? (label || "No wallet connected")} />
-            <Stat
-              label="Status"
-              value={canTrade ? <Pill tone="success">Can trade</Pill> : <Pill tone="danger">Can't trade</Pill>}
-              note={tradeReason}
-            />
-            <Stat
-              label="Price window"
-              value={windowLeft > 0 ? formatCountdown(windowLeft) : "Closed"}
-              note={windowLeft > 0 ? "Open for 10 minutes after each oracle update." : "Closed until the next oracle update."}
-            />
-            {entry && entry.expiry > 0n ? (
-              <Stat label="Name valid until" value={formatWhen(Number(entry.expiry), now)} />
-            ) : null}
-          </div>
-        </Section>
-
         <Section title="Order" className="wm-span-5">
           <div className="wm-stack wm-stack-24">
             <div className="wm-field">
@@ -314,27 +291,35 @@ export function TradePage() {
         <Section
           title="Live quote"
           className="wm-span-7"
-          aside={b.quote ? <Pill tone="accent">{SOURCE_LABEL[b.quote.source]}</Pill> : null}
+          aside={<span className="wm-label">{windowLeft > 0 ? `Window ${formatCountdown(windowLeft)}` : "Window closed"}</span>}
         >
           {b.quote ? (
-            <Window title="Quote" meta={windowLeft > 0 ? `window ${formatCountdown(windowLeft)}` : "window closed"}>
-              <div className="wm-window-line">
-                <span>ASK · you buy ETH</span>
-                <span>{`$${formatWadUsd(b.quote.ask)}`}</span>
+            <>
+              <div className="wm-quote">
+                <div className="wm-stack wm-stack-4">
+                  <span className="wm-label">Ask · you buy ETH</span>
+                  <span className="wm-big">
+                    {side === "buy" ? <span className="wm-mark">{`$${formatWadUsd(b.quote.ask)}`}</span> : `$${formatWadUsd(b.quote.ask)}`}
+                  </span>
+                </div>
+                <div className="wm-stack wm-stack-4">
+                  <span className="wm-label">Bid · you sell ETH</span>
+                  <span className="wm-big">
+                    {side === "sell" ? <span className="wm-mark">{`$${formatWadUsd(b.quote.bid)}`}</span> : `$${formatWadUsd(b.quote.bid)}`}
+                  </span>
+                </div>
               </div>
-              <div className="wm-window-line">
-                <span>BID · you sell ETH</span>
-                <span>{`$${formatWadUsd(b.quote.bid)}`}</span>
-              </div>
-              <div className="wm-window-line">
-                <span>{`PRICE · ${side === "buy" ? BUY_ETH : SELL_ETH}`}</span>
-                <span className="wm-mark">{price}</span>
-              </div>
-              <div className="wm-window-line">
-                <span>QUOTE</span>
-                <span>{priceNote}</span>
-              </div>
-            </Window>
+              <Window title="Quote" meta={SOURCE_LABEL[b.quote.source].toLowerCase()}>
+                <div className="wm-window-line">
+                  <span>{`PRICE · ${side === "buy" ? BUY_ETH : SELL_ETH}`}</span>
+                  <span>{price}</span>
+                </div>
+                <div className="wm-window-line">
+                  <span>QUOTE</span>
+                  <span>{priceNote}</span>
+                </div>
+              </Window>
+            </>
           ) : (
             <Empty title="No quote: the terms on the client names disagree or are missing." />
           )}
@@ -350,7 +335,7 @@ export function TradePage() {
               }
             >
               <strong>{refusal.title}</strong>
-              {refusal.hint ? <span className="wm-muted">{refusal.hint}</span> : null}
+              {refusal.hint ? <span>{refusal.hint}</span> : null}
             </Callout>
           ) : null}
           <div className="wm-row wm-row-24">
@@ -372,6 +357,21 @@ export function TradePage() {
               <span id="trade-blocked" className="wm-muted">
                 {blocked}
               </span>
+            ) : null}
+          </div>
+        </Section>
+
+        <Section title={TRADING_AS} className="wm-span-12">
+          <div className="wm-stats">
+            <Stat label="Name" value={entry?.name ?? (label || "No wallet")} />
+            <Stat label="Status" value={canTrade ? "Can trade" : "Can't trade"} note={tradeReason} />
+            <Stat
+              label="Price window"
+              value={windowLeft > 0 ? formatCountdown(windowLeft) : "Closed"}
+              note={windowLeft > 0 ? "Open 10 minutes after each oracle update." : "Closed until the next oracle update."}
+            />
+            {entry && entry.expiry > 0n ? (
+              <Stat label="Name valid until" value={formatWhen(Number(entry.expiry), now)} />
             ) : null}
           </div>
         </Section>
