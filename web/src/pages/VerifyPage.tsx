@@ -97,9 +97,9 @@ export function VerifyPage() {
       {check ? (
         <Card>
           <div className="v-stack v-stack-8">
-            <h2 className="v-figure">
+            <div className="v-figure">
               <Status tone={verdict.tone}>{verdict.title}</Status>
-            </h2>
+            </div>
             <p className="v-muted">{verdict.hint}</p>
           </div>
         </Card>
@@ -109,58 +109,60 @@ export function VerifyPage() {
         </Card>
       )}
 
-      {fill && steps.length > 0 ? (
-        <Card title="Recompute" flush>
-          <div className="v-table-wrap">
-            <table className="v-table">
-              <thead>
-                <tr>
-                  <th>Step</th>
-                  <th>Formula</th>
-                  <th className="v-right">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {steps.map((step, index) => (
-                  <tr key={`${index}:${step.label}`}>
-                    <td>{`${index + 1}. ${step.label}`}</td>
-                    <td className="v-muted">{step.formula}</td>
-                    <td className="v-right v-mono">{step.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ) : null}
-
       {fill ? (
-        <Card title="Trade">
-          <Dl
-            items={[
-              ["Counterparty", fill.name],
-              [
-                "Wallet",
-                <a key="wallet" className="v-mono" href={`${cfg.explorer}/address/${fill.taker}`} target="_blank" rel="noreferrer">
-                  {formatAddr(fill.taker)}
-                </a>,
-              ],
-              ["Side", <Badge key="side" tone={buysEth(fill) ? "red" : "green"}>{buysEth(fill) ? "Bought ETH" : "Sold ETH"}</Badge>],
-              ["Paid", amountText(fill, "in")],
-              ["Received", amountText(fill, "out")],
-              ["Oracle mid", `$${formatWadUsd(fill.midWad)}`],
-              ["Spread", `${fill.spreadBps} bp`],
-              ["ETH share before", formatShare(fill.wBeforeWad)],
-              ["Block", `${fill.blockNumber.toString()} · ${formatWhen(fill.blockTime, now)}`],
-              [
-                "Transaction",
-                <a key="tx" className="v-mono" href={`${cfg.explorer}/tx/${fill.tx}`} target="_blank" rel="noreferrer">
-                  {formatHash(fill.tx)}
-                </a>,
-              ],
-            ]}
-          />
-        </Card>
+        <div className="v-grid">
+          {steps.length > 0 ? (
+            <Card className="v-col-7" title="Recompute" flush>
+              <div className="v-table-wrap">
+                <table className="v-table">
+                  <thead>
+                    <tr>
+                      <th>Step</th>
+                      <th>Formula</th>
+                      <th className="v-right">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {steps.map((step, index) => (
+                      <tr key={`${index}:${step.label}`}>
+                        <td>{`${index + 1}. ${step.label}`}</td>
+                        <td className="v-muted">{step.formula}</td>
+                        <td className="v-right v-mono">{step.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          ) : null}
+
+          <Card className={steps.length > 0 ? "v-col-5" : "v-col-12"} title="Trade">
+            <Dl
+              items={[
+                ["Counterparty", fill.name],
+                [
+                  "Wallet",
+                  <a key="wallet" className="v-mono" href={`${cfg.explorer}/address/${fill.taker}`} target="_blank" rel="noreferrer">
+                    {formatAddr(fill.taker)}
+                  </a>,
+                ],
+                ["Side", <Badge key="side" tone={buysEth(fill) ? "red" : "green"}>{buysEth(fill) ? "Bought ETH" : "Sold ETH"}</Badge>],
+                ["Paid", amountText(fill, "in")],
+                ["Received", amountText(fill, "out")],
+                ["Oracle mid", `$${formatWadUsd(fill.midWad)}`],
+                ["Spread", `${fill.spreadBps} bp`],
+                ["ETH share before", formatShare(fill.wBeforeWad)],
+                ["Block", `${fill.blockNumber.toString()} · ${formatWhen(fill.blockTime, now)}`],
+                [
+                  "Transaction",
+                  <a key="tx" className="v-mono" href={`${cfg.explorer}/tx/${fill.tx}`} target="_blank" rel="noreferrer">
+                    {formatHash(fill.tx)}
+                  </a>,
+                ],
+              ]}
+            />
+          </Card>
+        </div>
       ) : null}
 
       {fill ? (

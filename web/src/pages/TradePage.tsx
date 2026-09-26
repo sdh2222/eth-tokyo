@@ -15,7 +15,7 @@ import {
   YOU_RECEIVE,
 } from "../copy/en";
 import { ERRORS } from "../copy/errors";
-import { formatEth, formatWadUsd, type DeskBook } from "../desk/book";
+import { formatEth, formatWadUsd, nameQuote, type DeskBook } from "../desk/book";
 import { emptyConfig } from "../desk/fixture/state";
 import { useBook } from "../hooks/useBook";
 import { useWalletLabel } from "../hooks/useCanAct";
@@ -154,6 +154,13 @@ export function TradePage() {
           hint: "Trading pauses when the price is older than the limit. It resumes on the next update.",
         });
 
+  // The price this wallet gets (main, PR #34): its name's own live agent spread, else that
+  // name's terms. With no wallet or no name on the desk, the desk's terms quote.
+  const named = entry ? nameQuote(b, entry) : null;
+  const terms = entry?.terms ?? b.terms;
+  const shown = named ?? (b.quote ? { sellBps: b.terms?.sellBps ?? 0, buyBps: b.terms?.buyBps ?? 0, ask: b.quote.ask, bid: b.quote.bid } : null);
+  const sourceLabel = named ? (named.source === "agent" ? "Agent spread" : "Terms") : b.quote ? SOURCE_LABEL[b.quote.source] : "—";
+
   // This order: the desk-side guards on side and size, then the quote's own refusal.
   // Each refusal carries at most one action.
   let refusal: Refusal | null = nameRefusal ?? windowRefusal;
@@ -167,8 +174,8 @@ export function TradePage() {
     refusalTone = "amber";
     refusalAction = { label: SELL_ETH, run: () => setSide("sell") };
   }
-  if (!refusal && b.terms && wei !== null && wei > b.terms.cap) {
-    const cap = b.terms.cap;
+  if (!refusal && terms && wei !== null && wei > terms.cap) {
+    const cap = terms.cap;
     const copy = errorCopy("DeskPriceCapExceeded", { title: "Over your cap per fill", hint: "" });
     refusal = { title: copy.title, hint: `One fill is capped at ${formatEth(cap)}. Split the trade.` };
     refusalTone = "amber";
@@ -181,9 +188,9 @@ export function TradePage() {
 
   const canTrade = address !== undefined && nameRefusal === null && windowRefusal === null;
 
-  // What you pay and receive: the exact quote when there is one, else the book's quote.
+  // What you pay and receive: the exact quote when there is one, else the price shown.
   const exact = quote.data?.ok ? quote.data : null;
-  const bookPrice = b.quote ? (side === "buy" ? b.quote.ask : b.quote.bid) : null;
+  const bookPrice = shown ? (side === "buy" ? shown.ask : shown.bid) : null;
   let pay = "—";
   let receive = "—";
   let price = bookPrice === null ? "—" : `$${formatWadUsd(bookPrice)}`;
@@ -212,16 +219,13 @@ export function TradePage() {
   else if (!exact) blocked = "Waiting for a quote.";
   else if (quote.secondsLeft <= 0) blocked = "The quote expired. Refresh it.";
   else if (!needsApproval && !fillWired) blocked = "Filling from this page is not wired to Sepolia yet.";
-  // The spread strip: the widths the quote is on (the agent spread when live, else the terms),
-  // fenced by the terms widths. The same rule as the Dashboard.
-  const onSpread = b.quote?.source === "spread" && b.spread !== null;
-  const sellBps = onSpread && b.spread ? b.spread.sellBps : (b.terms?.sellBps ?? 0);
-  const buyBps = onSpread && b.spread ? b.spread.buyBps : (b.terms?.buyBps ?? 0);
   const midWad = b.oracle.answer * 10n ** 10n;
   // Refresh quote sits in the Quote card head when there is a quote, unless the refusal's
   // one action is already Refresh quote.
   const showRefresh = quote.data !== undefined && refusalAction?.label !== REFRESH_QUOTE;
   const refusalText = refusal ? (refusal.hint && refusal.hint !== "—" ? `${refusal.title}. ${refusal.hint}` : refusal.title) : "";
+  // A refusal is already said in the Note, so the footer keeps it for screen readers only.
+  const blockedInNote = address !== undefined && refusal !== null;
 
   return (
     <Page>
@@ -252,7 +256,12 @@ export function TradePage() {
           title="Order"
           footer={
             <>
-              {blocked !== null ? <span id="trade-blocked">{blocked}</span> : <span />}
+              {blocked !== null ? (
+                <span id="trade-blocked" className={blockedInNote ? "v-sr" : undefined}>
+                  {blocked}
+                </span>
+              ) : null}
+              {blocked === null || blockedInNote ? <span /> : null}
               <button
                 type="button"
                 className="v-btn v-btn-lg"
@@ -266,13 +275,15 @@ export function TradePage() {
           }
         >
           <div className="v-stack v-stack-24">
-            <div className="v-seg" role="radiogroup" aria-label="Side">
-              <button type="button" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
-                {BUY_ETH}
-              </button>
-              <button type="button" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
-                {SELL_ETH}
-              </button>
+            <div className="v-row">
+              <div className="v-seg" role="radiogroup" aria-label="Side">
+                <button type="button" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
+                  {BUY_ETH}
+                </button>
+                <button type="button" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
+                  {SELL_ETH}
+                </button>
+              </div>
             </div>
             <label className="v-field">
               <span>Amount · ETH</span>
@@ -297,7 +308,7 @@ export function TradePage() {
               items={[
                 [YOU_PAY, pay],
                 [YOU_RECEIVE, receive],
-                ["Your limits", b.terms ? `Up to ${formatEth(b.terms.cap)} per fill` : "No terms on the client names"],
+                ["Your limits", terms ? `Up to ${formatEth(terms.cap)} per fill` : "No terms on the client names"],
                 ...(entry && entry.expiry > 0n ? ([["Name valid until", formatWhen(Number(entry.expiry), now)]] as const) : []),
               ]}
             />
@@ -326,6 +337,9 @@ export function TradePage() {
         <Card
           className="v-col-7"
           title="Quote"
+          {...(shown
+            ? { footer: <span className="v-muted">The risk agent rewrites your widths after each of your fills; your next fill uses the new ones.</span> }
+            : {})}
           actions={
             showRefresh ? (
               <button type="button" className="v-btn v-btn-secondary" disabled={quote.isFetching} onClick={() => void quote.refetch()}>
@@ -334,16 +348,16 @@ export function TradePage() {
             ) : null
           }
         >
-          {b.quote ? (
+          {shown ? (
             <div className="v-stack v-stack-24">
               <div className="v-stack v-stack-4">
                 <span className="v-label">{side === "buy" ? "Ask · you buy ETH" : "Bid · you sell ETH"}</span>
                 <span className="v-figure-lg">{price}</span>
               </div>
-              <SpreadStrip sellBps={sellBps} buyBps={buyBps} fenceSellBps={b.terms?.sellBps} fenceBuyBps={b.terms?.buyBps} />
+              <SpreadStrip sellBps={shown.sellBps} buyBps={shown.buyBps} fenceSellBps={terms?.sellBps} fenceBuyBps={terms?.buyBps} />
               <Dl
                 items={[
-                  ["Source", SOURCE_LABEL[b.quote.source]],
+                  ["Source", sourceLabel],
                   ["Oracle mid", `$${formatWadUsd(midWad)}`],
                   [
                     "Price window",

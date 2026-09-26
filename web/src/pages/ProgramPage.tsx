@@ -18,7 +18,7 @@ const liveMode = import.meta.env.VITE_DESK_MODE === "live";
 // describe the bytes.
 const PROGRAM_FACTS = [
   "Pair: WETH / USDC.",
-  "Price: the oracle mid, with the terms or agent widths on each side.",
+  "Price: the oracle mid, with the taker's own desk.spread widths, else its desk.terms widths.",
   "The desk stops selling ETH at or below 70% ETH.",
   "A fill is allowed for 10 minutes (50 blocks) after each oracle update.",
   "Tokens stay in the Safe until a fill.",
@@ -138,10 +138,12 @@ export function ProgramPage() {
         }
       />
 
-      <Card title="In plain English">
+      <Card title="In plain English" footer="On each fill the router reads the taker's own desk.spread, else that name's desk.terms.">
         <ol className="v-stack v-stack-8">
-          {lines.map((line) => (
-            <li key={line}>{line}</li>
+          {lines.map((line, index) => (
+            <li key={line}>
+              <span className="v-muted v-num">{`${index + 1}.`}</span> {line}
+            </li>
           ))}
         </ol>
       </Card>
