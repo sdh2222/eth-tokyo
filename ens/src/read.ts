@@ -64,7 +64,7 @@ export async function readRecords(resolver: Address, fullName: string, now: bigi
 
 export type ClientView = Records & {
   name: string
-  /** Stored desk.spread when the 128-byte record is still inside validUntil. The router does not read it yet. */
+  /** Stored desk.spread when the 128-byte record is still inside validUntil. DeskPrice reads it on the desk name. */
   storedSpread: { sellBps: number; buyBps: number; validUntil: bigint } | null
   expiries: { name: string; expiry: bigint }[]
   expiryOk: boolean

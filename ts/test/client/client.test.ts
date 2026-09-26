@@ -240,11 +240,11 @@ describe("T-TS-10 fills", () => {
     expect(again.matches).toBe(true);
   });
 
-  it("recomputes a fill on the scaled widths", () => {
+  it("recomputes a fill on the stored widths", () => {
     const check = verifyFill(
       {
         amountIn: 1_000n * 10n ** 6n,
-        amountOut: 249_940_014_396_544_829n,
+        amountOut: 249_925_022_493_252_024n,
         midWad: 4000n * 10n ** 18n,
         sSellBps: 3,
         sBuyBps: 10,
@@ -255,7 +255,7 @@ describe("T-TS-10 fills", () => {
       cfg,
     );
     expect(check.matches).toBe(true);
-    expect(check.steps[1]?.value).toBe(4_000_960_000_000_000_000_000n);
+    expect(check.steps[1]?.value).toBe(4_001_200_000_000_000_000_000n);
   });
 
   it("reads fill logs", async () => {

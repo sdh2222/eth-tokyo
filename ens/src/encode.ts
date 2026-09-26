@@ -48,7 +48,7 @@ export const keyResource = (key: string) => BigInt(keccak256(stringToBytes(key))
 // abi.encode(uint8 version, uint16 sSellBps, uint16 sBuyBps, uint128 cap). cap is WETH wei.
 // The router reverts DeskPriceNoTerms unless version is 1, sell < buy < 10000, and cap > 0.
 // desk.spread is abi.encode(uint8 version, uint16 sellBps, uint16 buyBps, uint64 validUntil), 128 bytes.
-// A 96-byte record is not live. The router does not read this record yet.
+// A 96-byte record is not live. DeskPrice reads this record on the desk name.
 const TERMS = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint16' }, { type: 'uint128' }] as const
 const SPREAD = [{ type: 'uint8' }, { type: 'uint16' }, { type: 'uint16' }, { type: 'uint64' }] as const
 const TERMS_BYTES = 128
@@ -78,7 +78,7 @@ export function decodeTerms(value: Hex): { terms: Terms | null; valid: boolean }
   return { terms, valid }
 }
 
-/** Stored desk.spread. The router does not read this record. */
+/** Stored desk.spread. DeskPrice reads it on the desk name, not the taker name. */
 export function decodeSpread(value: Hex, now: bigint): { spread: Spread | null; valid: boolean } {
   if (byteLength(value) !== SPREAD_BYTES) return { spread: null, valid: false }
   const [version, sellBps, buyBps, validUntil] = decodeAbiParameters(SPREAD, value)

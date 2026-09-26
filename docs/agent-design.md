@@ -6,7 +6,7 @@ The Safe owns one agent. This repo publishes the book and the screen contract. T
 
 Sepolia. Aqua registry `0x1111113ccf1426a8e30e2bff5e005d929bf6a90a`.
 
-Router `1.0.2-desk.4` at `0x82b5303b41E0963C10c2fdA2fe5AF3732877204C` still scales the two `desk.terms` widths by the distance from a 70% ETH share. It does not read `desk.spread`. A sell of ETH by the desk reverts at or below that share. The cap is 50 ETH. A fill is allowed for 600 seconds after the oracle `updatedAt` (`maxBlocks` 50). That scale is the live rule until the router on this branch is changed. It is not the rule to keep.
+Router `1.0.2-desk.4` at `0x82b5303b41E0963C10c2fdA2fe5AF3732877204C` is no longer the quote rule. The router on this branch reads `desk.spread` on the desk name and uses those widths when they are live. Otherwise it uses the `desk.terms` widths. Inventory does not scale either pair. A sell of ETH by the desk reverts at or below a 70% ETH share. The cap is 50 ETH. A fill is allowed for 600 seconds after the oracle `updatedAt` (`maxBlocks` 50). This branch does not send a new router transaction.
 
 Safe `0x213C5832c77F8e27b544881325f9E68C0434027a`. Resolver `0x228bd144dB976960E8D5AbfAe6d5CeB15346970F`.
 
@@ -44,15 +44,15 @@ The Safe holds the agent's key and runs the process. This repo does not hold the
 
 - `name`: `dao-treasury-a.eth`.
 - `oracle.answer`: the raw 8-decimal oracle integer. `oracle.updatedAt`, `oracle.ageBlocks`, `oracle.fresh`. `fresh` is false when `updatedAt` is in the future or older than 600 seconds.
-- `inventory.wBps`: the ETH share of the Safe book, in basis points. `inventory.wStarBps` is 7000. Inventory is display. After the router change it does not change the widths.
+- `inventory.wBps`: the ETH share of the Safe book, in basis points. `inventory.wStarBps` is 7000. Inventory is display. It does not change the widths.
 - `terms`: `{sellBps, buyBps, cap}` when both client names store the same valid record, otherwise null. Live values are 3, 10, and `50000000000000000000`.
 - `spread`: the live 128-byte record on `dao-treasury-a.eth`, or null. A 96-byte record is null.
 - `policy`: the `desk.policy` string, or `""`.
-- `quote`: `{ask, bid, source}` or null. `ask` and `bid` are 18-decimal wad strings. While desk.4 is still the live router, `source` is `"router"` and the numbers include that router's inventory scale. After this branch changes the router, `source` is `"spread"` or `"terms"`, ask is `floor(mid * (10000 + sell) / 10000)`, and bid is `floor(mid * (10000 - buy) / 10000)`.
+- `quote`: `{ask, bid, source}` or null. `ask` and `bid` are 18-decimal wad strings. `source` is `"spread"` or `"terms"`. Ask is `floor(mid * (10000 + sell) / 10000)`. Bid is `floor(mid * (10000 - buy) / 10000)`.
 - `agent`: `{name: "risk.agents.dao-treasury-a.eth", addr: "0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899"}`.
 - `names[]`: `{name, addr, expiry, live}` for each client. `live` is the ENS gate for that name.
 
-At mid 4000 with terms 3 and 10 and no live spread, the unscaled ask is 4001.2 and the bid is 3996. The scaled desk.4 example at 90% ETH, ask 4000.96 and bid 3995.20, is only the live router. The router change on this branch deletes that scale. A sell at or below 70% ETH still reverts. The 50 ETH cap stays.
+At mid 4000 with terms 3 and 10 and no live spread, ask is 4001.2 and bid is 3996. The same book with a live spread of sell 2 and buy 8 asks 4000.8 and bids 3996.8. A sell at or below 70% ETH still reverts. The 50 ETH cap stays. desk.4 is no longer the quote rule.
 
 ## Screens
 
@@ -68,6 +68,6 @@ Routes stay on `origin/frontend`. Roles stay treasury, mm, and observer. The scr
 
 ## What stays out
 
-PR #18 `chooseSpread` sets one width from `|w - 0.70|`. That formula is not the rule. The router change reads the agent's two widths instead of scaling by that distance. Reading both would count the inventory gap twice. This pass does not merge PR #18.
+PR #18 `chooseSpread` sets one width from `|w - 0.70|`. That formula is not the rule. The router reads the agent's two widths and does not scale them by that distance. This pass does not merge PR #18.
 
 No process in this repo chooses basis points from `desk.policy`. `planAgentWrites` only packs widths it is given.

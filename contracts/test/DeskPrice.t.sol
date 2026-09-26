@@ -144,12 +144,12 @@ contract DeskPriceTest is Test {
     }
 
     function test_TP1_vectors() public {
-        _cell(900e18, 400_000e6, true, false, 1e18, 4_000_960_000);
-        _cell(900e18, 400_000e6, true, true, 4_000_960_000, 1e18);
-        _cell(900e18, 400_000e6, false, true, 1e18, 3_995_200_000);
-        _cell(900e18, 400_000e6, false, false, 3_995_200_000, 1e18);
-        _cell(900e18, 400_000e6, true, true, 1000e6, 249_940_014_396_544_829);
-        _cell(900e18, 400_000e6, false, true, 0.5e18, 1_997_600_000);
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+        _cell(900e18, 400_000e6, true, true, 4_001_200_000, 1e18);
+        _cell(900e18, 400_000e6, false, true, 1e18, 3_996_000_000);
+        _cell(900e18, 400_000e6, false, false, 3_996_000_000, 1e18);
+        _cell(900e18, 400_000e6, true, true, 1000e6, 249_925_022_493_252_024);
+        _cell(900e18, 400_000e6, false, true, 0.5e18, 1_998_000_000);
     }
 
     function test_TP1_sellStopsAtTarget() public {
@@ -161,7 +161,7 @@ contract DeskPriceTest is Test {
             abi.encodeWithSelector(DeskPrice.DeskPriceTargetReached.selector, uint256(0.25e18), uint256(0.7e18))
         );
         harness.run(priceArgs, taker, true, address(usdc), address(weth), 1_200_000e6, 100e18, 1000e6, true);
-        _cell(100e18, 1_200_000e6, false, true, 1e18, 3_997_800_000);
+        _cell(100e18, 1_200_000e6, false, true, 1e18, 3_996_000_000);
     }
 
     function test_TP10_capIsWethAndSpreadIsIgnored() public {
@@ -169,7 +169,7 @@ contract DeskPriceTest is Test {
         (uint256 amountIn, uint256 amountOut) =
             harness.run(priceArgs, taker, true, address(usdc), address(weth), 400_000e6, 900e18, 1000e6, false);
         assertEq(amountIn, 1000e6);
-        assertEq(amountOut, 249_940_014_396_544_829);
+        assertEq(amountOut, 249_925_022_493_252_024);
         Vm.Log[] memory logs = vm.getRecordedLogs();
         (,,,,,, uint16 sell, uint16 buy,) = abi.decode(
             logs[logs.length - 1].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint16, uint256)
@@ -178,7 +178,32 @@ contract DeskPriceTest is Test {
         assertEq(buy, 10);
 
         resolver.setData(dnsName, "desk.spread", abi.encode(uint8(1), uint16(40), uint64(block.timestamp + 1000)));
-        _cell(900e18, 400_000e6, true, false, 1e18, 4_000_960_000);
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+
+        bytes memory desk = DeskArgs.dnsEncode("desk.eth");
+        resolver.setData(
+            desk, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8), uint64(block.timestamp + 1000))
+        );
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_000_800_000);
+        _cell(900e18, 400_000e6, false, true, 1e18, 3_996_800_000);
+        resolver.setData(dnsName, "desk.spread", abi.encode(uint8(1), uint16(40), uint64(block.timestamp + 1000)));
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_000_800_000);
+
+        vm.recordLogs();
+        harness.run(priceArgs, taker, true, address(usdc), address(weth), 400_000e6, 900e18, 1000e6, false);
+        logs = vm.getRecordedLogs();
+        (,,,,,, sell, buy,) = abi.decode(
+            logs[logs.length - 1].data, (bytes, address, address, uint256, uint256, uint256, uint16, uint16, uint256)
+        );
+        assertEq(sell, 2);
+        assertEq(buy, 8);
+
+        resolver.setData(desk, "desk.spread", abi.encode(uint8(1), uint16(4), uint16(8), uint64(block.timestamp + 1000)));
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+        resolver.setData(desk, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8), uint64(block.timestamp)));
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
+        resolver.setData(desk, "desk.spread", abi.encode(uint8(1), uint16(2), uint16(8)));
+        _cell(900e18, 400_000e6, true, false, 1e18, 4_001_200_000);
 
         resolver.setData(dnsName, "desk.terms", _terms(3, 10, 1e18));
         harness.run(priceArgs, taker, false, address(usdc), address(weth), 400_000e6, 900e18, 1e18, true);

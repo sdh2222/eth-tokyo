@@ -25,7 +25,7 @@ An OTC desk in the treasury wallet. Aqua settles. SwapVM prices. ENSv2 is the cl
 - `tx.origin` is forbidden in `src/` and `contracts/`.
 - The Safe appoints one agent for that desk and holds its key. The agent may write a spread. This repo publishes the book read and does not hold the key. The inventory-deviation formula is not the rule. The agent cannot change address, cap, expiry, or the oracle.
 - Tokens stay in the multisig until the fill. Aqua holds none of them.
-- Price starts from the oracle answer. The two widths sit on that answer. Inventory scales them by the share's distance from the 70% ETH target: above it the sell width is multiplied by `1 - (w - 0.70)` and the buy width by `1 + (w - 0.70)`, and below it the signs flip. Ask is the oracle times `(1 + scaled sell width)`. Bid is the oracle times `(1 - scaled buy width)`. A sell reverts when the ETH share of the book is at or below the target. A fill is allowed for 10 minutes after the oracle `updatedAt` (`maxBlocks` 50). The formula is on-chain.
+- Price starts from the oracle answer. The two widths are the live `desk.spread` on the desk name when that record is inside the `desk.terms` fence and not expired, and otherwise the `desk.terms` widths. Ask is `floor(mid * (10000 + sell) / 10000)`. Bid is `floor(mid * (10000 - buy) / 10000)`. Inventory does not multiply the widths. A sell reverts when the ETH share of the book is at or below the 70% target. One fill cannot move more than the WETH cap. A fill is allowed for 10 minutes after the oracle `updatedAt` (`maxBlocks` 50). The formula is on-chain.
 
 ## Out of the product
 

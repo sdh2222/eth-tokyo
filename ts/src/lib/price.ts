@@ -1,25 +1,20 @@
 import type { DeskConfig } from "./config.js";
 
 const WAD = 10n ** 18n;
-const BPS_DENOM = 10_000n * WAD;
 
-/** Ask and bid on the oracle. Above `wStarWad` the sell width shrinks and the buy width grows by `|w - w*|`. */
+/** Ask and bid on the oracle. Inventory does not scale the widths. */
 export function widthQuotes(
   pWad: bigint,
-  wWad: bigint,
-  wStarWad: bigint,
+  _wWad: bigint,
+  _wStarWad: bigint,
   sSellBps: number,
   sBuyBps: number,
 ): { askWad: bigint; bidWad: bigint } {
-  const gap = wWad >= wStarWad ? wWad - wStarWad : wStarWad - wWad;
-  const delta = gap > WAD ? WAD : gap;
-  const heavy = wWad >= wStarWad;
-  const sellNum = BigInt(sSellBps) * (heavy ? WAD - delta : WAD + delta);
-  const buyNum = BigInt(sBuyBps) * (heavy ? WAD + delta : WAD - delta);
+  const sell = BigInt(sSellBps);
+  const buy = BigInt(sBuyBps);
   return {
-    askWad: (pWad * (BPS_DENOM + sellNum)) / BPS_DENOM,
-    bidWad:
-      buyNum >= BPS_DENOM ? 0n : (pWad * (BPS_DENOM - buyNum)) / BPS_DENOM,
+    askWad: (pWad * (10_000n + sell)) / 10_000n,
+    bidWad: buy >= 10_000n ? 0n : (pWad * (10_000n - buy)) / 10_000n,
   };
 }
 

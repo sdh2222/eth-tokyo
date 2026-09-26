@@ -2,7 +2,7 @@
 
 지갑 안의 OTC 데스크의 ENS 파트. 트레저리가 소유한 이름 계층을 만들고, MM별 거래 조건을 레코드로 기록하고, 리스크 에이전트에게 스프레드 키 하나만 위임한다. 라우터가 읽는 계약은 `docs/code/desk-system.md` §6(브랜치 `claude/sleepy-ritchie-5lp65m`)이 기준이다.
 
-라이브 `desk.terms`는 `abi.encode(uint8 1, uint16 sSellBps, uint16 sBuyBps, uint128 cap)` 128바이트다. cap은 WETH wei이고, 지금 두 이름은 매도 3 bp, 매수 10 bp, cap 50 ETH다. `desk.spread`는 `abi.encode(uint8 1, uint16 sellBps, uint16 buyBps, uint64 validUntil)` 128바이트다. 96바이트 한 폭은 유효하지 않다. 라우터는 이 기록을 아직 읽지 않는다.
+라이브 `desk.terms`는 `abi.encode(uint8 1, uint16 sSellBps, uint16 sBuyBps, uint128 cap)` 128바이트다. cap은 WETH wei이고, 지금 두 이름은 매도 3 bp, 매수 10 bp, cap 50 ETH다. `desk.spread`는 `abi.encode(uint8 1, uint16 sellBps, uint16 buyBps, uint64 validUntil)` 128바이트다. 96바이트 한 폭은 유효하지 않다. 라우터는 이 기록을 데스크 이름에서 읽는다.
 
 ## 현재 배포 (Sepolia, 2026-09-25)
 
