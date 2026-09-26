@@ -7,6 +7,7 @@ import {Context} from "@1inch/swap-vm/libs/VM.sol";
 
 import {DeskOpcodes} from "../src/opcodes/DeskOpcodes.sol";
 import {DeskRouter} from "../src/DeskRouter.sol";
+import {DeskPrice} from "../src/instructions/DeskPrice.sol";
 import {EnsGate} from "../src/instructions/EnsGate.sol";
 import {MockWETH} from "../src/mocks/MockWETH.sol";
 
@@ -99,7 +100,7 @@ contract OpcodeTableTest is Test {
         // T2: empty args are EnsGateInvalidArgs. T8 flips 35 to DeskPriceInvalidArgs.
         vm.expectRevert(EnsGate.EnsGateInvalidArgs.selector);
         harness.run(34, "", address(this));
-        vm.expectRevert(bytes("T3"));
+        vm.expectRevert(DeskPrice.DeskPriceInvalidArgs.selector);
         harness.run(35, "", address(this));
     }
 
