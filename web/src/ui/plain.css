@@ -149,6 +149,20 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* An L1 text block (Controls and Program: the program in plain English): 20/28. */
+.wk-lead {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+ol.wk-lead,
+ul.wk-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 1.2em;
+}
+
 /* An L2 figure: the Landing table-value size. */
 .wk-value,
 .wk-big {
