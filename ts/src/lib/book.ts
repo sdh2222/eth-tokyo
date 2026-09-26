@@ -409,12 +409,10 @@ export async function readBook(
   const pWad =
     answer > 0n ? answer * 10n ** BigInt(18 - cfg.desk.oracleDecimals) : 0n;
   const liveStrategy =
-    cfg.router === "" || cfg.aqua === ""
-      ? null
-      : await findLiveStrategy({ client, cfg });
+    cfg.router === "" ? null : await findLiveStrategy({ client, cfg });
   let baseBal = wethBal;
   let quoteBal = usdcBal;
-  if (liveStrategy && cfg.router !== "" && cfg.aqua !== "") {
+  if (liveStrategy && cfg.router !== "") {
     const [ethBook, usdBook] = await Promise.all([
       client.readContract({
         address: cfg.aqua,

@@ -270,6 +270,7 @@ async function publishSpread(
   writtenAt: bigint,
   note: string,
 ): Promise<void> {
+  if (cfg.ens.resolver === "") throw new Error("config is missing an address");
   const writes = planAgentWrites({
     resolver: cfg.ens.resolver,
     name,
