@@ -65,6 +65,42 @@ const oracleAbi = [
   },
 ] as const;
 
+export async function readSafeBook(ctx: DeskCtx): Promise<{
+  weth: bigint;
+  usdc: bigint;
+  answer: bigint;
+  updatedAt: bigint;
+}> {
+  const safe = ctx.cfg.safe as Address;
+  const calls = await ctx.client.multicall({
+    contracts: [
+      {
+        address: ctx.cfg.tokens.weth as Address,
+        abi: balanceAbi,
+        functionName: "balanceOf",
+        args: [safe],
+      },
+      {
+        address: ctx.cfg.tokens.usdc as Address,
+        abi: balanceAbi,
+        functionName: "balanceOf",
+        args: [safe],
+      },
+      {
+        address: ctx.cfg.oracle as Address,
+        abi: oracleAbi,
+        functionName: "latestRoundData",
+      },
+    ],
+  });
+  const weth = calls[0].status === "success" ? calls[0].result : 0n;
+  const usdc = calls[1].status === "success" ? calls[1].result : 0n;
+  const round =
+    calls[2].status === "success" ? calls[2].result : [0n, 0n, 0n, 0n, 0n];
+  const answer = round[1] < 0n ? 0n : round[1];
+  return { weth, usdc, answer, updatedAt: round[3] };
+}
+
 export async function readDeskState(
   ctx: DeskCtx,
   s: StrategyInfo,
@@ -115,8 +151,8 @@ export async function readDeskState(
   const updatedAt = round[3];
   const now = BigInt(Math.floor(Date.now() / 1000));
   const mirror = priceMirror({
-    baseBal: 1n,
-    quoteBal: 1n,
+    baseBal: walletWeth,
+    quoteBal: walletUsdc,
     answer,
     sSellBps: ctx.cfg.desk.sSellBps,
     sBuyBps: ctx.cfg.desk.sBuyBps,
@@ -138,7 +174,7 @@ export async function readDeskState(
   }));
   return {
     live: s.live,
-    balances: { weth: 0n, usdc: 0n },
+    balances: { weth: walletWeth, usdc: walletUsdc },
     safeWallet: { weth: walletWeth, usdc: walletUsdc },
     allowances: { weth: allowWeth, usdc: allowUsdc },
     pWad: answer * 10n ** BigInt(18 - ctx.cfg.desk.oracleDecimals),

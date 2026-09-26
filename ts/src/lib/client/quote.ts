@@ -4,6 +4,7 @@ import { priceMirror } from "../price.js";
 import { buildTakerData } from "../taker.js";
 import type { DeskCtx, DeskError, StrategyInfo } from "./ctx.js";
 import { decodeDeskError } from "./errors.js";
+import { readSafeBook } from "./state.js";
 
 const quoteAbi = [
   {
@@ -72,13 +73,13 @@ export async function quoteFor(
         buildTakerData({ name: q.mm.name, exactIn }),
       ],
     });
+    const book = await readSafeBook(ctx);
     const mirror = priceMirror({
-      baseBal: 900n * 10n ** 18n,
-      quoteBal: 400_000n * 10n ** 6n,
-      answer: 4000n * 10n ** 8n,
+      baseBal: book.weth,
+      quoteBal: book.usdc,
+      answer: book.answer,
       sSellBps: ctx.cfg.desk.sSellBps,
       sBuyBps: ctx.cfg.desk.sBuyBps,
-      cap: 50n * 10n ** 18n,
       cfg: ctx.cfg,
       side: q.side,
       exactIn,
