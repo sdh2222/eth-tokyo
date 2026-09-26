@@ -11,12 +11,11 @@ import {
   SELL_ETH,
   SLIPPAGE,
   TOO_MANY_DECIMALS,
-  TRADING_AS,
   YOU_PAY,
   YOU_RECEIVE,
 } from "../copy/en";
 import { ERRORS } from "../copy/errors";
-import { formatEth, formatWadUsd, type DeskBook } from "../desk/book";
+import { formatEth, formatWadUsd, nameQuote, type DeskBook } from "../desk/book";
 import { emptyConfig } from "../desk/fixture/state";
 import { useBook } from "../hooks/useBook";
 import { useWalletLabel } from "../hooks/useCanAct";
@@ -25,11 +24,12 @@ import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
 import { formatWhen } from "../lib/time";
-import { Callout, Empty, Facts, Page, PageHead, Section, Stat, Window, type Tone } from "../ui/plain";
+import { SpreadStrip, WindowCells } from "../ui/cells";
+import { Badge, Card, Dl, Empty, Header, Note, Page, type Tone } from "../ui/v";
 
-// Trade (IA: "Can I trade now, at what price, and how much?"). Plain page kit.
-// Screens SC-19: identity 12 columns, order form 5 and the quote 7, Fill under the quote.
-// SC-06: slippage is a disclosure inside the order form.
+// Trade (IA: "Can I trade now, at what price, and how much?"). Vercel-style: the header says
+// who trades and whether they can, a refusal is one Note above the grid, then the Order card
+// (5 columns, Fill in its footer) and the Quote card (7). Slippage is a disclosure (SC-06).
 
 type Side = "buy" | "sell";
 type Unit = "ETH" | "USDC";
@@ -114,18 +114,13 @@ export function TradePage() {
     amount: wei,
   });
 
-  if (book.isLoading) {
-    return (
-      <Page>
-        <PageHead title="Trade" lede="Reading the desk…" />
-      </Page>
-    );
-  }
   if (!book.data) {
     return (
       <Page>
-        <PageHead title="Trade" />
-        <Empty title="The desk could not be read. Check the Sepolia RPC in web/.env and reload." />
+        <Header
+          title="Trade"
+          description={book.isLoading ? "Reading the desk…" : "The desk could not be read. Check the Sepolia RPC in web/.env and reload."}
+        />
       </Page>
     );
   }
@@ -159,24 +154,31 @@ export function TradePage() {
           hint: "Trading pauses when the price is older than the limit. It resumes on the next update.",
         });
 
+  // The price this wallet gets (main, PR #34): its name's own live agent spread, else that
+  // name's terms. With no wallet or no name on the desk, the desk's terms quote.
+  const named = entry ? nameQuote(b, entry) : null;
+  const terms = entry?.terms ?? b.terms;
+  const shown = named ?? (b.quote ? { sellBps: b.terms?.sellBps ?? 0, buyBps: b.terms?.buyBps ?? 0, ask: b.quote.ask, bid: b.quote.bid } : null);
+  const sourceLabel = named ? (named.source === "agent" ? "Agent spread" : "Terms") : b.quote ? SOURCE_LABEL[b.quote.source] : "—";
+
   // This order: the desk-side guards on side and size, then the quote's own refusal.
   // Each refusal carries at most one action.
   let refusal: Refusal | null = nameRefusal ?? windowRefusal;
-  let refusalTone: Tone = "danger";
+  let refusalTone: Tone = "red";
   let refusalAction: Action | null = null;
   if (!refusal && side === "buy" && b.inventory.wBps <= b.inventory.wStarBps) {
     refusal = errorCopy("DeskPriceTargetReached", {
       title: "The desk has reached its ETH target",
       hint: "A sale of ETH stops at the target share. A purchase of ETH still fills.",
     });
-    refusalTone = "warning";
+    refusalTone = "amber";
     refusalAction = { label: SELL_ETH, run: () => setSide("sell") };
   }
-  if (!refusal && b.terms && wei !== null && wei > b.terms.cap) {
-    const cap = b.terms.cap;
+  if (!refusal && terms && wei !== null && wei > terms.cap) {
+    const cap = terms.cap;
     const copy = errorCopy("DeskPriceCapExceeded", { title: "Over your cap per fill", hint: "" });
     refusal = { title: copy.title, hint: `One fill is capped at ${formatEth(cap)}. Split the trade.` };
-    refusalTone = "warning";
+    refusalTone = "amber";
     refusalAction = { label: "Use the cap", run: () => setAmount(weiText(cap)) };
   }
   if (!refusal && quote.data && !quote.data.ok) {
@@ -185,13 +187,10 @@ export function TradePage() {
   }
 
   const canTrade = address !== undefined && nameRefusal === null && windowRefusal === null;
-  const tradeReason = !address
-    ? "Connect a wallet to trade."
-    : (nameRefusal?.title ?? windowRefusal?.title ?? "Your name is live and the price window is open.");
 
-  // What you pay and receive: the exact quote when there is one, else the book's quote.
+  // What you pay and receive: the exact quote when there is one, else the price shown.
   const exact = quote.data?.ok ? quote.data : null;
-  const bookPrice = b.quote ? (side === "buy" ? b.quote.ask : b.quote.bid) : null;
+  const bookPrice = shown ? (side === "buy" ? shown.ask : shown.bid) : null;
   let pay = "—";
   let receive = "—";
   let price = bookPrice === null ? "—" : `$${formatWadUsd(bookPrice)}`;
@@ -200,7 +199,7 @@ export function TradePage() {
     pay = side === "buy" ? formatUsdc(exact.amountIn) : formatWeth(exact.amountIn);
     receive = side === "buy" ? formatWeth(exact.amountOut) : formatUsdc(exact.amountOut);
     price = `$${formatPrice(exact.priceWad)}`;
-    priceNote = quote.secondsLeft > 0 ? `Valid ${formatCountdown(quote.secondsLeft)}` : "Expired";
+    priceNote = quote.secondsLeft > 0 ? formatCountdown(quote.secondsLeft) : "Expired";
   } else if (wei !== null && bookPrice !== null) {
     pay = side === "buy" ? `≈ ${formatUsdc(usdcFor(wei, bookPrice))}` : formatWeth(wei);
     receive = side === "buy" ? formatWeth(wei) : `≈ ${formatUsdc(usdcFor(wei, bookPrice))}`;
@@ -220,30 +219,76 @@ export function TradePage() {
   else if (!exact) blocked = "Waiting for a quote.";
   else if (quote.secondsLeft <= 0) blocked = "The quote expired. Refresh it.";
   else if (!needsApproval && !fillWired) blocked = "Filling from this page is not wired to Sepolia yet.";
-  const expiredQuote = exact !== null && quote.secondsLeft <= 0;
+  const midWad = b.oracle.answer * 10n ** 10n;
+  // Refresh quote sits in the Quote card head when there is a quote, unless the refusal's
+  // one action is already Refresh quote.
+  const showRefresh = quote.data !== undefined && refusalAction?.label !== REFRESH_QUOTE;
+  const refusalText = refusal ? (refusal.hint && refusal.hint !== "—" ? `${refusal.title}. ${refusal.hint}` : refusal.title) : "";
+  // A refusal is already said in the Note, so the footer keeps it for screen readers only.
+  const blockedInNote = address !== undefined && refusal !== null;
 
   return (
     <Page>
-      <PageHead kicker={b.name} title="Trade" lede="WETH/USDC at the oracle mid plus the desk's widths." />
+      <Header
+        title="Trade"
+        description={entry ? `${entry.name} · WETH / USDC` : "WETH / USDC"}
+        actions={<Badge tone={canTrade ? "green" : "red"}>{canTrade ? "Can trade" : "Can't trade"}</Badge>}
+      />
 
-      <div className="wk-grid">
-        <Section title="Order" className="wk-span-5">
-          <div className="wk-stack wk-stack-24">
-            <div className="wk-field">
-              <span id="trade-side">Side</span>
-              <div className="wk-chips" role="radiogroup" aria-labelledby="trade-side">
-                <button type="button" className="wk-chip" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
+      {refusal ? (
+        <Note
+          tone={refusalTone}
+          action={
+            refusalAction ? (
+              <button type="button" className="v-btn v-btn-secondary" onClick={refusalAction.run}>
+                {refusalAction.label}
+              </button>
+            ) : null
+          }
+        >
+          {refusalText}
+        </Note>
+      ) : null}
+
+      <div className="v-grid">
+        <Card
+          className="v-col-5"
+          title="Order"
+          footer={
+            <>
+              {blocked !== null ? (
+                <span id="trade-blocked" className={blockedInNote ? "v-sr" : undefined}>
+                  {blocked}
+                </span>
+              ) : null}
+              {blocked === null || blockedInNote ? <span /> : null}
+              <button
+                type="button"
+                className="v-btn v-btn-lg"
+                disabled={blocked !== null}
+                aria-describedby={blocked !== null ? "trade-blocked" : undefined}
+                onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
+              >
+                {needsApproval ? APPROVE_ROUTER : FILL}
+              </button>
+            </>
+          }
+        >
+          <div className="v-stack v-stack-24">
+            <div className="v-row">
+              <div className="v-seg" role="radiogroup" aria-label="Side">
+                <button type="button" role="radio" aria-checked={side === "buy"} onClick={() => setSide("buy")}>
                   {BUY_ETH}
                 </button>
-                <button type="button" className="wk-chip" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
+                <button type="button" role="radio" aria-checked={side === "sell"} onClick={() => setSide("sell")}>
                   {SELL_ETH}
                 </button>
               </div>
             </div>
-            <label className="wk-field">
+            <label className="v-field">
               <span>Amount · ETH</span>
               <input
-                className="wk-input"
+                className="v-input"
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder={ENTER_AMOUNT}
@@ -254,24 +299,25 @@ export function TradePage() {
                 }}
               />
               {!parsed.ok && parsed.reason === "decimals" ? (
-                <span className="wk-error" role="alert">
+                <span className="v-error" role="alert">
                   {TOO_MANY_DECIMALS}
                 </span>
               ) : null}
             </label>
-            <Facts
+            <Dl
               items={[
                 [YOU_PAY, pay],
                 [YOU_RECEIVE, receive],
-                ["Your limits", b.terms ? `Up to ${formatEth(b.terms.cap)} per fill` : "No terms on the client names"],
+                ["Your limits", terms ? `Up to ${formatEth(terms.cap)} per fill` : "No terms on the client names"],
+                ...(entry && entry.expiry > 0n ? ([["Name valid until", formatWhen(Number(entry.expiry), now)]] as const) : []),
               ]}
             />
-            <details className="wk-raw">
+            <details className="v-details">
               <summary>{SLIPPAGE}</summary>
-              <label className="wk-field">
+              <label className="v-field">
                 <span>Slippage · bps</span>
                 <input
-                  className="wk-input"
+                  className="v-input"
                   type="number"
                   min={0}
                   max={500}
@@ -282,98 +328,52 @@ export function TradePage() {
                     setSlippage(next === "" ? null : Math.min(500, Math.max(0, Math.round(Number(next)))));
                   }}
                 />
-                <span className="wk-muted">The fill reverts if the price moves more than this.</span>
+                <span className="v-label">The fill reverts if the price moves more than this.</span>
               </label>
             </details>
           </div>
-        </Section>
+        </Card>
 
-        <Section
-          title="Live quote"
-          className="wk-span-7"
-          aside={<span className="wk-label">{windowLeft > 0 ? `Window ${formatCountdown(windowLeft)}` : "Window closed"}</span>}
+        <Card
+          className="v-col-7"
+          title="Quote"
+          {...(shown
+            ? { footer: <span className="v-muted">The risk agent rewrites your widths after each of your fills; your next fill uses the new ones.</span> }
+            : {})}
+          actions={
+            showRefresh ? (
+              <button type="button" className="v-btn v-btn-secondary" disabled={quote.isFetching} onClick={() => void quote.refetch()}>
+                {REFRESH_QUOTE}
+              </button>
+            ) : null
+          }
         >
-          {b.quote ? (
-            <>
-              <div className="wk-quote">
-                <div className="wk-stack wk-stack-4">
-                  <span className="wk-label">Ask · you buy ETH</span>
-                  <span className="wk-big">
-                    {side === "buy" ? <span className="wk-mark">{`$${formatWadUsd(b.quote.ask)}`}</span> : `$${formatWadUsd(b.quote.ask)}`}
-                  </span>
-                </div>
-                <div className="wk-stack wk-stack-4">
-                  <span className="wk-label">Bid · you sell ETH</span>
-                  <span className="wk-big">
-                    {side === "sell" ? <span className="wk-mark">{`$${formatWadUsd(b.quote.bid)}`}</span> : `$${formatWadUsd(b.quote.bid)}`}
-                  </span>
-                </div>
+          {shown ? (
+            <div className="v-stack v-stack-24">
+              <div className="v-stack v-stack-4">
+                <span className="v-label">{side === "buy" ? "Ask · you buy ETH" : "Bid · you sell ETH"}</span>
+                <span className="v-figure-lg">{price}</span>
               </div>
-              <Window title="Quote" meta={SOURCE_LABEL[b.quote.source].toLowerCase()}>
-                <div className="wk-window-line">
-                  <span>{`PRICE · ${side === "buy" ? BUY_ETH : SELL_ETH}`}</span>
-                  <span className="wk-mark">{price}</span>
-                </div>
-                <div className="wk-window-line">
-                  <span>QUOTE</span>
-                  <span>{priceNote}</span>
-                </div>
-              </Window>
-            </>
+              <SpreadStrip sellBps={shown.sellBps} buyBps={shown.buyBps} fenceSellBps={terms?.sellBps} fenceBuyBps={terms?.buyBps} />
+              <Dl
+                items={[
+                  ["Source", sourceLabel],
+                  ["Oracle mid", `$${formatWadUsd(midWad)}`],
+                  [
+                    "Price window",
+                    <span key="window" className="v-row v-row-8">
+                      <span className="v-num">{windowLeft > 0 ? formatCountdown(windowLeft) : "Closed"}</span>
+                      <WindowCells secondsLeft={windowLeft} windowSeconds={WINDOW_SECONDS} />
+                    </span>,
+                  ],
+                  ["Valid", priceNote],
+                ]}
+              />
+            </div>
           ) : (
             <Empty title="No quote: the terms on the client names disagree or are missing." />
           )}
-          {refusal ? (
-            <Callout
-              tone={refusalTone}
-              action={
-                refusalAction ? (
-                  <button type="button" className="wk-link" onClick={refusalAction.run}>
-                    {refusalAction.label}
-                  </button>
-                ) : null
-              }
-            >
-              <strong>{refusal.title}</strong>
-              {refusal.hint ? <span>{refusal.hint}</span> : null}
-            </Callout>
-          ) : null}
-          <div className="wk-row wk-row-24">
-            <button
-              type="button"
-              className="wk-btn"
-              disabled={blocked !== null}
-              aria-describedby={blocked !== null ? "trade-blocked" : undefined}
-              onClick={() => setOverlay(needsApproval ? "approve" : "fill")}
-            >
-              {needsApproval ? APPROVE_ROUTER : FILL}
-            </button>
-            {expiredQuote && refusalAction?.label !== REFRESH_QUOTE ? (
-              <button type="button" className="wk-link" onClick={() => void quote.refetch()}>
-                {REFRESH_QUOTE}
-              </button>
-            ) : null}
-            {blocked !== null ? (
-              <span id="trade-blocked" className="wk-muted">
-                {blocked}
-              </span>
-            ) : null}
-          </div>
-        </Section>
-
-        <Section title={`${TRADING_AS} ${entry?.name ?? (label || "no wallet")}`} className="wk-span-12">
-          <div className="wk-stats">
-            <Stat label="Status" value={canTrade ? "Can trade" : "Can't trade"} note={tradeReason} />
-            <Stat
-              label="Price window"
-              value={windowLeft > 0 ? formatCountdown(windowLeft) : "Closed"}
-              note={windowLeft > 0 ? "Open 10 minutes after each oracle update." : "Closed until the next oracle update."}
-            />
-            {entry && entry.expiry > 0n ? (
-              <Stat label="Name valid until" value={formatWhen(Number(entry.expiry), now)} />
-            ) : null}
-          </div>
-        </Section>
+        </Card>
       </div>
 
       {overlay && strategy.data && exact && swapTx ? (

@@ -135,27 +135,9 @@ abstract contract DeskPrice is IDeskEvents {
         }
         sSell = uint16(sell);
         sBuy = uint16(buy);
-        bytes memory deskDns = _deskDns(dnsName);
-        if (deskDns.length == 0) return (cap, sSell, sBuy);
-        (bool live, uint16 liveSell, uint16 liveBuy) = _liveSpread(_data(resolver, deskDns, "desk.spread"), sSell, sBuy);
+        (bool live, uint16 liveSell, uint16 liveBuy) = _liveSpread(_data(resolver, dnsName, "desk.spread"), sSell, sBuy);
         if (live) return (cap, liveSell, liveBuy);
         return (cap, sSell, sBuy);
-    }
-
-    /// @dev Drop the counterparty label and the `clients` label. `mm-a.clients.dao-treasury-a.eth` becomes `dao-treasury-a.eth`.
-    function _deskDns(bytes memory dnsName) private pure returns (bytes memory deskDns) {
-        uint256 i;
-        for (uint256 n; n < 2; n++) {
-            if (i >= dnsName.length) return "";
-            uint256 len = uint8(dnsName[i]);
-            if (len == 0 || i + 1 + len > dnsName.length) return "";
-            i += 1 + len;
-        }
-        if (i >= dnsName.length) return "";
-        deskDns = new bytes(dnsName.length - i);
-        for (uint256 j; j < deskDns.length; j++) {
-            deskDns[j] = dnsName[i + j];
-        }
     }
 
     function _liveSpread(bytes memory spread, uint16 termSell, uint16 termBuy)
@@ -196,7 +178,7 @@ abstract contract DeskPrice is IDeskEvents {
         wWad = Math.mulDiv(ethValue, WAD, book, Math.Rounding.Floor);
     }
 
-    /// @dev The oracle stays the price. Widths are the live desk spread, or the terms widths when that spread is not live.
+    /// @dev The oracle stays the price. Widths are that name's live spread, or its terms.
     function _quotes(uint256 pWad, uint16 sSell, uint16 sBuy) private pure returns (uint256 askWad, uint256 bidWad) {
         uint256 denom = 10_000;
         askWad = Math.mulDiv(pWad, denom + uint256(sSell), denom, Math.Rounding.Floor);

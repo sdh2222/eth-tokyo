@@ -198,8 +198,8 @@ export function createFixture(which: "qa" | "demo"): {
       memory.block += 1n;
     },
     seedFill() {
-      // Alternates mm-a selling 2 ETH at the bid and mm-b buying 1.5 ETH at the ask, priced
-      // with the #29 rule at mid 4000 and the 2 / 8 bp spread, so Verify recomputes a match.
+      // Alternates mm-a selling 2 ETH at its bid (9 bp) and mm-b buying 1.5 ETH at its ask
+      // (2 bp), each on its own agent spread at mid 4000, so Verify recomputes a match.
       const n = memory.fills.length;
       const buys = n % 2 === 1;
       const tx = `0x${(0xa1 + n).toString(16).padStart(2, "0").repeat(32)}` as Hex;
@@ -236,9 +236,9 @@ export function createFixture(which: "qa" | "demo"): {
             tokenIn: weth,
             tokenOut: usdc,
             amountIn: 2n * WAD,
-            amountOut: 7993600000n,
+            amountOut: 7992800000n,
             midWad: mid,
-            spreadBps: 8,
+            spreadBps: 9,
             spreadSource: 1,
             wBeforeWad: 900000000000000000n,
           };

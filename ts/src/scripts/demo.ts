@@ -35,10 +35,9 @@ import { loadEnv, repoRoot } from "./_common/env.js";
 import { executeSafeCalls, type SafeCall } from "./_common/safe-send.js";
 import { accountForLabel, keyForLabel } from "./_common/wallet.js";
 
-const ROUTER_VERSION = "1.0.2-desk.5";
-const PREVIOUS_ROUTER = "0x82b5303b41E0963C10c2fdA2fe5AF3732877204C" as Address;
+const ROUTER_VERSION = "1.0.2-desk.7";
 const POLICY =
-  "이미 장부에 있는 상대는 게시된 약정보다 좁은 폭을 받을 수 있다. 크고 처음인 거래는 매도 3 bp, 매수 10 bp에 머문다. 그 약정 밖으로는 호가하지 않는다. 오라클은 움직이지 않는다.";
+  "이미 장부에 있는 상대는 게시된 약정보다 좁은 폭을 받을 수 있다. 크고 처음인 거래는 매도 3 bp, 매수 10 bp에 머문다. 그 약정 밖으로는 호가하지 않는다. 오라클 중간가는 움직이지 않는다. ETH 비중이 70%보다 높으면 에이전트는 고른 매도 폭에서 1 bp를 빼고 매수 폭에 1 bp를 더한다. 70%보다 낮으면 매도 폭에 1 bp를 더하고 매수 폭에서 1 bp를 뺀다. 매도 폭은 1 bp 아래로 내려가지 않고, 둘 다 그 이름의 약정 안에 둔다. 체결 뒤에 오라클이 그 이름에 유리하게 1 bp 이상 움직이거나, 같은 이름이 50블록 안에 다시 오거나, 이번 크기가 직전보다 크면 의심해서 고른 폭을 1 bp 깎는다.";
 const FLOOR = 3980n * 10n ** 8n;
 const CEILING = 4020n * 10n ** 8n;
 const CAP = 50n * 10n ** 18n;
@@ -53,12 +52,13 @@ const oracleAbi = parseAbi([
 ]);
 const aquaAbi = parseAbi([
   "function dock(address app, bytes32 strategyHash, address[] tokens)",
+  "function rawBalances(address maker, address app, bytes32 strategyHash, address token) view returns (uint248 balance, uint8 tokensCount)",
 ]);
 const textAbi = parseAbi([
   "function setText(bytes name, string key, string value)",
 ]);
 
-type Scene = "setup" | "trade" | "target" | "stale" | "second-ship";
+type Scene = "setup" | "trade" | "target" | "stale" | "second-ship" | "restore";
 
 function scene(): Scene {
   const name = process.argv[2];
@@ -68,10 +68,11 @@ function scene(): Scene {
     case "target":
     case "stale":
     case "second-ship":
+    case "restore":
       return name;
     default:
       throw new Error(
-        "demo scene is setup, trade, target, stale, or second-ship",
+        "demo scene is setup, trade, target, stale, second-ship, or restore",
       );
   }
 }
@@ -308,27 +309,37 @@ async function setup(rpc: string): Promise<void> {
     console.log("terms already sell 3 buy 10 cap 50 ETH");
   }
   if (!liveNew) {
-    const previous =
-      oldRouter.toLowerCase() === PREVIOUS_ROUTER.toLowerCase()
-        ? oldRouter
-        : PREVIOUS_ROUTER;
-    if (previous.toLowerCase() !== String(cfg.router).toLowerCase()) {
+    let wethAmt = BigInt(cfg.desk.shipWeth);
+    let usdcAmt = BigInt(cfg.desk.shipUsdc);
+    if (oldRouter.toLowerCase() !== String(cfg.router).toLowerCase()) {
       const oldCtx: DeskCtx = {
         client,
-        cfg: {
-          ...cfg,
-          router: previous,
-          deployBlock: previous === oldRouter ? oldFrom : 11_784_705,
-        },
+        cfg: { ...cfg, router: oldRouter, deployBlock: oldFrom },
       };
       const liveOld = await findLiveStrategy(oldCtx);
       if (liveOld) {
+        const [ethBook, usdBook] = await Promise.all([
+          client.readContract({
+            address: cfg.aqua,
+            abi: aquaAbi,
+            functionName: "rawBalances",
+            args: [safe, oldRouter, liveOld.strategyHash, weth],
+          }),
+          client.readContract({
+            address: cfg.aqua,
+            abi: aquaAbi,
+            functionName: "rawBalances",
+            args: [safe, oldRouter, liveOld.strategyHash, usdc],
+          }),
+        ]);
+        wethAmt = ethBook[0];
+        usdcAmt = usdBook[0];
         calls.push({
           to: cfg.aqua,
           data: encodeFunctionData({
             abi: aquaAbi,
             functionName: "dock",
-            args: [previous, liveOld.strategyHash, [weth, usdc]],
+            args: [oldRouter, liveOld.strategyHash, [weth, usdc]],
           }),
           value: 0n,
         });
@@ -337,8 +348,8 @@ async function setup(rpc: string): Promise<void> {
     const shipped = await planShip(ctx, {
       salt: BigInt(Date.now()),
       ttlDays: cfg.desk.strategyTtlDays,
-      wethAmt: BigInt(cfg.desk.shipWeth),
-      usdcAmt: BigInt(cfg.desk.shipUsdc),
+      wethAmt,
+      usdcAmt,
     });
     calls.push(...shipped.txs);
   } else {
@@ -513,6 +524,29 @@ function secondShip(rpc: string): Promise<void> {
   });
 }
 
+/** Open the oracle window and buy ETH back until the desk can sell 1 ETH again. */
+async function restore(rpc: string): Promise<void> {
+  const cfg = loadDeskConfig();
+  const client = clientFor(rpc);
+  if (cfg.oracle === "") throw new Error("oracle is unset");
+  await openOracle(rpc, client, cfg.oracle);
+  for (let i = 0; i < 8; i++) {
+    const code = await probe(rpc, "1");
+    if (code === null) {
+      console.log("desk can sell 1 ETH again");
+      return;
+    }
+    if (code !== "DeskPriceTargetReached") {
+      throw new Error(`1 ETH buy probe returned ${code}`);
+    }
+    const sold = await sendFill({ rpc, mm: "mm-b", side: "sell", weth: "50" });
+    console.log(
+      `desk bought 50 ETH tx ${sold.hash} usdc out ${sold.amountOut}`,
+    );
+  }
+  throw new Error("book is still at the sell stop");
+}
+
 async function main(): Promise<void> {
   loadEnv();
   const rpc = deskRpc(
@@ -536,6 +570,9 @@ async function main(): Promise<void> {
       return;
     case "second-ship":
       await secondShip(rpc);
+      return;
+    case "restore":
+      await restore(rpc);
       return;
     default: {
       const neverScene: never = name;

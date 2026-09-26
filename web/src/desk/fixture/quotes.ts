@@ -24,14 +24,15 @@ function row(
   };
 }
 
-// The #29 rule, the same one fixtureBook shows: ask = mid * (10000 + sell) / 10000 and
-// bid = mid * (10000 - buy) / 10000, with mid 4000 and the agent spread 2 / 8 bp. Any amount
-// quotes; the cap (50 WETH per fill) is checked in state.ts.
+// Main's rule (PR #34), the same one fixtureBook shows: each name is priced from its own
+// agent spread, ask = mid * (10000 + sell) / 10000 and bid = mid * (10000 - buy) / 10000, with
+// mid 4000; mm-a has 1 / 9 bp and mm-b 2 / 8 bp. Any amount quotes; the 50 WETH cap is
+// checked in state.ts.
 const MID_WAD = 4000n * WETH;
-const SELL_BPS = 2;
-const BUY_BPS = 8;
-const ASK_WAD = (MID_WAD * BigInt(10000 + SELL_BPS)) / 10000n;
-const BID_WAD = (MID_WAD * BigInt(10000 - BUY_BPS)) / 10000n;
+const WIDTHS: Record<string, { sell: number; buy: number }> = {
+  [MM_A]: { sell: 1, buy: 9 },
+  [MM_B]: { sell: 2, buy: 8 },
+};
 const USDC_TO_WAD = 1000000000000n;
 export const FILL_CAP_WETH = 50n * WETH;
 
@@ -40,8 +41,12 @@ function ceilDiv(a: bigint, b: bigint): bigint {
 }
 
 export function lookupQuote(mm: Address, side: "buy" | "sell", leg: "weth" | "usdc", amount: bigint): QuoteOk | null {
-  const who = mm.toLowerCase();
-  if ((who !== MM_A && who !== MM_B) || amount <= 0n) return null;
+  const widths = WIDTHS[mm.toLowerCase()];
+  if (!widths || amount <= 0n) return null;
+  const ASK_WAD = (MID_WAD * BigInt(10000 + widths.sell)) / 10000n;
+  const BID_WAD = (MID_WAD * BigInt(10000 - widths.buy)) / 10000n;
+  const SELL_BPS = widths.sell;
+  const BUY_BPS = widths.buy;
   if (side === "buy") {
     // The counterparty buys ETH at the ask: USDC in, WETH out.
     if (leg === "weth") return row(ceilDiv(amount * ASK_WAD, WETH * USDC_TO_WAD), amount, ASK_WAD, SELL_BPS, 1);
