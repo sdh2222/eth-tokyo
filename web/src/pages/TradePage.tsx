@@ -22,6 +22,7 @@ import { useWalletLabel } from "../hooks/useCanAct";
 import { formatCountdown, useClock } from "../hooks/useClock";
 import { useDeskPort, useLiveStrategy } from "../hooks/useDesk";
 import { useQuote } from "../hooks/useQuote";
+import { DotSlider } from "../ui/slider";
 import { formatPrice, formatUsdc, formatWeth } from "../lib/format";
 import { Badge, Card, Dl, Empty, Header, Note, Page, type Tone } from "../ui/v";
 
@@ -156,6 +157,8 @@ export function TradePage() {
   // name's terms. With no wallet or no name on the desk, the desk's terms quote.
   const named = entry ? nameQuote(b, entry) : null;
   const terms = entry?.terms ?? b.terms;
+  // The slider runs to this name's cap per fill (50 ETH on the demo names).
+  const sliderMax = terms ? Math.max(1, Math.floor(Number(terms.cap / 10n ** 16n) / 100)) : 50;
   const shown = named ?? (b.quote ? { sellBps: b.terms?.sellBps ?? 0, buyBps: b.terms?.buyBps ?? 0, ask: b.quote.ask, bid: b.quote.bid } : null);
   const sourceLabel = named ? (named.source === "agent" ? "Agent spread" : "Terms") : b.quote ? SOURCE_LABEL[b.quote.source] : "—";
 
@@ -302,6 +305,15 @@ export function TradePage() {
                 </span>
               ) : null}
             </label>
+            <DotSlider
+              label="Size"
+              value={Math.min(sliderMax, Number(amount) || 0)}
+              min={0}
+              max={sliderMax}
+              step={0.5}
+              display={`${Number(amount) || 0} of ${sliderMax} ETH`}
+              onChange={(next) => setAmount(next === 0 ? "" : String(next))}
+            />
             <Dl
               items={[
                 [YOU_PAY, pay],
