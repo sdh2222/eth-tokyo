@@ -26,6 +26,17 @@
 
 When a DAO sells treasury assets today, it is the taker. It dumps into a pool and pays slippage on size, or sells to a solver whose price already holds its cut. Either way the spread goes to someone else. Selling in smaller slices doesn't fix it: every slice through a multisig means another proposal, another round of signatures and another price, so the whole amount usually goes out at once.
 
+A real case: in February 2023 ENS DAO voted to sell 10,000 ETH (about $16M) for 18 to 24 months of runway ([EP3.3](https://docs.ens.domains/dao/proposals/3.3)). Delegates argued for selling gradually, but each tranche would have needed its own vote, so the DAO sold in one trade through CoW Swap with a 2% slippage budget, about $323k. The size and timing were public for weeks.
+
+<p align="center">
+  <img src="docs/readme/governance-paths.png" alt="Top: the EP3.3 path, a vote per tranche and a one-shot sale. Bottom: the watermark path, one vote, then many fills that earn the spread." width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/readme/taker-vs-maker-cost.png" alt="Selling 10,000 ETH: the $323k slippage budget accepted as a taker, against $16k to $40k of spread set as a maker." width="760" />
+  <br /><sub>Maker bars are illustrative and assume a full fill.</sub>
+</p>
+
 ## What watermark does
 
 watermark flips the treasury from taker to maker.
