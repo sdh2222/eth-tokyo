@@ -249,6 +249,21 @@ The tests are in [`contracts/test/`](contracts/test): `EnsGate.t.sol`, `DeskPric
 
 All addresses and settings are in [`config/sepolia.json`](config/sepolia.json). The ENS setup (registries, names, and the Safe handoff) is in [`ens/README.md`](ens/README.md).
 
+## Status and limits
+
+watermark is a hackathon prototype. It runs on the Sepolia testnet with mock tokens. Do not use watermark with real funds.
+
+| Area | Status now | Necessary before a production release |
+| --- | --- | --- |
+| Audit | `DeskRouter` is a changed copy of the SwapVM v1.0.2 router with two new instructions. No auditor has examined it. | An external audit of `DeskRouter`, `EnsGate`, and `DeskPrice`. |
+| ENS | `EnsGate` reads the ENSv2 registries on Sepolia. The ENSv2 contracts are not final. | ENSv2 on mainnet. The fork test must pass on the mainnet contracts. |
+| Price | The oracle is a demo contract. A fill is possible only for 600 seconds after each oracle update. | A production price feed. A maximum oracle age that agrees with the update interval of that feed. |
+| Tokens | One program quotes one pair. The demo pair is mock WETH and mock USDC. `DeskPrice` uses the oracle price in USD as the price in the quote token. The web app and the bot show WETH/USDC only. | Support for the token that the DAO sells, and a reliable price source for that token. |
+| Risk agent | The agent key is on one computer. The keeper sends each fill to an external model. The ENS permission of the agent applies to all names on the resolver of the treasury. The router ignores a spread that is not in the terms of the name. | Key management, a second keeper, monitoring, and a screen to replace or stop the agent. |
+| Market makers | The bot in `ts/src/bot` accepts only `mm-a` and `mm-b`. The app cannot add a market maker name. A script in `ens/` makes the names. | An onboarding procedure for market makers, an SDK, and an example of an automatic fill. |
+| Treasury data | The app shows the oracle price, the holdings, the terms, and the fills. It shows no market data. | A dashboard with the market spread of the token, the amount sold, and the result against a sale into the market. |
+| Documentation | This README, [`docs/agent-design.md`](docs/agent-design.md), and [`api/README.md`](api/README.md) describe the program, the records, and the read API. | A guide for builders: ABIs, record encodings, and integration steps. |
+
 ## Repository
 
 | Path | Contents |
