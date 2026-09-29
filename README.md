@@ -107,6 +107,20 @@ The router is a copy of the SwapVM v1.0.2 Aqua router. We removed the fee and AM
 | **Risk agent** | A keeper reads each `DeskFill` event and the `desk.policy` record. It selects the next tier for the market maker. Then it writes `desk.spread` and `desk.stats` on the name of the market maker. The Safe gives the agent permission for these two records only. The agent cannot change the terms, the addresses, the caps, the expiry, or the oracle. |
 | **Web app** | Pages for the treasury: Dashboard, Open a desk, Counterparties, Risk agent, Fills, Controls. Pages for market makers: Trade, My fills. The "Verify a fill" page calculates the price of a fill again from on-chain data. |
 
+### Example
+
+The oracle price is $4,000. The terms of both names are sell 3 bp and buy 10 bp. After the last fills, the risk agent set these spreads:
+
+| Market maker | Spread now (sell / buy) | Ask: the market maker buys ETH | Bid: the market maker sells ETH |
+| --- | --- | --- | --- |
+| mm-a | 1 / 9 bp | $4,000.40 | $3,996.40 |
+| mm-b | 2 / 10 bp | $4,000.80 | $3,996.00 |
+| Terms (maximum) | 3 / 10 bp | $4,001.20 | $3,996.00 |
+
+mm-b has a wider spread than mm-a. After its last fill, the price moved 2 bp in its favor, and it came back after 12 blocks with a larger size.
+
+mm-a buys 10 ETH at $4,000.40 and pays 40,004 USDC. The treasury gets $4 more than the oracle value of the ETH. A sale of the same 10 ETH into the market with a 2% slippage limit can lose up to $800.
+
 ### The demo setup
 
 | Setting | Value |
@@ -118,6 +132,49 @@ The router is a copy of the SwapVM v1.0.2 Aqua router. We removed the fee and AM
 | Maximum fill size | 50 ETH |
 | Sales of ETH stop at | 70% of the holdings by value |
 | Maximum age of the oracle price | 600 s (50 blocks) |
+
+## The life of a desk
+
+| Stage | What occurs | Who signs |
+| --- | --- | --- |
+| Open | "Open a desk" in the web app shows the transaction and the program in plain English. The Safe approves 1inch Aqua for WETH and USDC, and ships the program. The tokens stay in the Safe. | The Safe, one transaction |
+| Set the rules | Each named market maker gets an ENS name. The Safe writes `desk.terms` on each name and `desk.policy` on the treasury name. | The Safe |
+| Trade | Named market makers fill the quote. After each fill, the risk agent writes the next spread of that market maker. | Each market maker signs its own fill. The Safe does not sign. |
+| Change | The Safe can change the terms of a name, the policy, or the list of names. The program does not change, so the desk stays open. To stop one market maker, the Safe sets its maximum fill size to 0, or the name expires. | The Safe |
+| Close | The program stops at its deadline (30 days in the demo). The Safe can also dock the program in Aqua at any time. | The Safe, or no one at the deadline |
+
+The ETH target (70%) and the maximum oracle age (50 blocks) are arguments in the program. To change them, the Safe docks the program and ships a new program.
+
+## The app
+
+The web app has pages for the treasury and pages for market makers. In live mode, each page reads its data from Sepolia.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/app-dashboard.png" alt="Dashboard: the oracle price, the ETH share, the Safe balances, and the prices for each market maker now." /></td>
+    <td width="50%"><img src="docs/readme/app-open-a-desk.png" alt="Open a desk: the transaction that the Safe signs and the program in plain English." /></td>
+  </tr>
+  <tr>
+    <td><b>Dashboard.</b> The oracle price, the ETH share, the Safe balances, and the prices for each market maker now.</td>
+    <td><b>Open a desk.</b> The transaction that the Safe signs, and the program in plain English.</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/readme/app-counterparties.png" alt="Counterparties: the named market makers, their terms, their spreads now, and their expiry dates." /></td>
+    <td width="50%"><img src="docs/readme/app-risk-agent.png" alt="Risk agent: the spread of each market maker and the reason, the rules, and the policy in plain English." /></td>
+  </tr>
+  <tr>
+    <td><b>Counterparties.</b> The named market makers, their terms, their spreads now, and their expiry dates.</td>
+    <td><b>Risk agent.</b> The spread of each market maker and the reason for it, the rules, and the policy in plain English.</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/readme/app-trade.png" alt="Trade: the quote for a market maker, the time left in the price window, and the fill limit." /></td>
+    <td width="50%"></td>
+  </tr>
+  <tr>
+    <td><b>Trade</b> (market makers). The quote, the time left in the price window, and the fill limit.</td>
+    <td></td>
+  </tr>
+</table>
 
 ## DeskRouter and the opcodes
 
