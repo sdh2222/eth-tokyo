@@ -98,7 +98,7 @@ A market maker that trades fairly can get a spread that is up to 3 times smaller
   <img src="docs/readme/fill-flow.png" alt="One fill, end to end: the named market maker calls DeskRouter. The router checks the ENS name, reads the oracle price and the Aqua balances, and settles. Aqua moves ETH from the Safe and USDC to the Safe. The risk agent reads the fill and writes the next spread to the ENS name." width="900" />
 </p>
 
-The router is a copy of the SwapVM v1.0.2 Aqua router. We removed the fee and AMM instructions, and we added two instructions. The contracts keep no configuration. At each fill, the router reads all of its settings from ENS.
+The router is a copy of the SwapVM v1.0.2 Aqua router. We removed the fee and AMM instructions, and we added two instructions. The contracts keep no configuration. At each fill, the router reads all of its settings from ENS. For the details, see [DeskRouter and the opcodes](#deskrouter-and-the-opcodes).
 
 | Part | Function |
 | --- | --- |
@@ -118,6 +118,66 @@ The router is a copy of the SwapVM v1.0.2 Aqua router. We removed the fee and AM
 | Maximum fill size | 50 ETH |
 | Sales of ETH stop at | 70% of the holdings by value |
 | Maximum age of the oracle price | 600 s (50 blocks) |
+
+## DeskRouter and the opcodes
+
+### What we changed in SwapVM
+
+SwapVM is the 1inch virtual machine for swaps. A maker ships a program to 1inch Aqua. At each swap, the router runs the instructions of the program in sequence. Each instruction has an opcode number.
+
+`DeskRouter` is the SwapVM v1.0.2 `AquaSwapVMRouter` with a new opcode table, `DeskOpcodes`. The table comes from the SwapVM `AquaOpcodes` table. Tokens move through Aqua as in the original router.
+
+| Opcode | Instruction | In DeskRouter |
+| --- | --- | --- |
+| 10 to 12 | `_jump`, `_jumpIfTokenIn`, `_jumpIfTokenOut` | Kept from SwapVM |
+| 13 | `_deadline` | Kept. The watermark program uses it. |
+| 14 to 16 | Balance and supply checks on the taker token | Kept from SwapVM |
+| 20 | `_salt` | Kept. The watermark program uses it. |
+| 33 | `_onlyTxOriginTokenBalanceNonZero` | Kept. The watermark program does not use it, so a contract wallet can fill. |
+| **34** | **`EnsGate`** | **New** |
+| **35** | **`DeskPrice`** | **New** |
+| All other opcodes | Fee and AMM instructions | Removed. They do nothing in DeskRouter. |
+
+### The program that the Safe ships
+
+The Safe ships one program with four instructions, in this sequence:
+
+1. `_deadline` (13): the program stops at a deadline. The demo uses 30 days.
+2. `_salt` (20): makes each program unique.
+3. `EnsGate` (34): arguments are the ENS registry, the desk registry, the clients registry, the resolver, and the name suffix.
+4. `DeskPrice` (35): arguments are the resolver, the oracle, WETH, USDC, the decimals, the maximum oracle age in blocks (50), and the ETH target (7000 bp).
+
+The taker sends its ENS name, DNS-encoded, in the taker data of the swap.
+
+### EnsGate (opcode 34)
+
+EnsGate does these checks in this sequence. If a check fails, the transaction reverts with the error in the table.
+
+| Step | Check | Error |
+| --- | --- | --- |
+| 1 | The taker data has an ENS name. | `EnsGateMissingName` |
+| 2 | The name ends with `clients.dao-treasury-a.eth`. | `EnsGateNameNotUnderDesk` |
+| 3 | The desk registry and the clients registry on chain are the registries in the program. | `EnsGateDeskMismatch`, `EnsGateClientsMismatch` |
+| 4 | The name is not expired. | `EnsGateNameExpired` |
+| 5 | The name uses the resolver of the treasury. | `EnsGateWrongResolver` |
+| 6 | The `addr` of the name is the taker of the swap. | `EnsGateTakerMismatch` |
+
+### DeskPrice (opcode 35)
+
+DeskPrice calculates the price and the amounts in this sequence:
+
+1. It makes sure that the pair is WETH and USDC (`DeskPriceUnsupportedPair`).
+2. It reads the oracle price. The price must be less than 50 blocks (600 s) old (`DeskPriceOracleStale`).
+3. It reads the `desk.terms` record of the name: version, sell bp, buy bp, and the maximum fill size (`DeskPriceNoTerms`).
+4. It reads the `desk.spread` record of the name. It uses this spread only if the spread is live: version 1, the sell width is less than the buy width, both widths are in the terms, and the time limit is in the future. If the spread is not live, it uses the terms.
+5. It calculates the ETH share of the Safe balances at the oracle price. If the taker buys ETH and the share is 70% or less, the fill reverts (`DeskPriceTargetReached`).
+6. It calculates `ask = price × (1 + sell)` and `bid = price × (1 − buy)`, and then the amounts. The amounts round in favor of the treasury.
+7. It makes sure that the ETH amount is not more than the maximum fill size (`DeskPriceCapExceeded`) and that the Safe has sufficient tokens (`DeskPriceInsufficientInventory`).
+8. On a real fill, it emits `DeskFill`. The event has the name, the amounts, the oracle price, the spread, and the ETH share before the fill. The risk agent reads this event.
+
+A quote is a static call to the same router. Thus the quote in the web app and the fill use the same code.
+
+The tests are in [`contracts/test/`](contracts/test): `EnsGate.t.sol`, `DeskPrice.t.sol`, `OpcodeTable.t.sol`, `DeskRouter.integration.t.sol`, and a fork test on Sepolia ENS.
 
 ## Live on Sepolia
 
