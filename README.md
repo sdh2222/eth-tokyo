@@ -1,12 +1,11 @@
 <p align="center">
-  <img src="web/public/favicon.png" alt="watermark" width="200" />
+  <img src="docs/readme/landing.png" alt="The watermark landing page: Making Treasury Asset Disposal Inefficiency Solved, via 1inch Aqua and ENSv2." width="900" />
 </p>
 
 <h1 align="center">watermark</h1>
 
 <p align="center">
-  <strong>Solving the DAO treasury asset disposal problem.</strong><br />
-  DAO treasuries should stop losing money to the spread every time they sell.
+  <strong>A DAO treasury loses money to the spread each time it sells. With watermark, the treasury earns the spread.</strong>
 </p>
 
 <p align="center">
@@ -20,66 +19,98 @@
 
 ---
 
-**watermark**, a tool for how DAO treasuries sell their assets. Instead of dumping into the market as a taker and paying the spread, the treasury quotes its own prices to market makers it names and earns the spread instead, built on 1inch Aqua and ENSv2.
+watermark is a tool for DAO treasuries that sell their assets. The treasury does not sell into the market as a taker. It quotes its own prices to market makers that it names. watermark uses 1inch Aqua and ENSv2.
 
-## The problem: treasury asset disposal
+## The problem
 
-When a DAO sells treasury assets today, it is the taker. It dumps into a pool and pays slippage on size, or sells to a solver whose price already holds its cut. Either way the spread goes to someone else. Selling in smaller slices doesn't fix it: every slice through a multisig means another proposal, another round of signatures and another price, so the whole amount usually goes out at once.
+A DAO treasury usually sells its assets as a taker. It sells into a pool and pays slippage for the size of the sale. Or it sells to a solver, and the price of the solver includes a fee. In both cases, the treasury pays the spread to a different party.
 
-A real case: in February 2023 ENS DAO voted to sell 10,000 ETH (about $16M) for 18 to 24 months of runway ([EP3.3](https://docs.ens.domains/dao/proposals/3.3)). Delegates argued for selling gradually, but each tranche would have needed its own vote, so the DAO sold in one trade through CoW Swap with a 2% slippage budget, about $323k. The size and timing were public for weeks.
+The treasury can sell in small parts over a long time. But each part needs a proposal, multisig signatures, and a new price. Thus most treasuries sell the full amount in one trade.
+
+Example: In February 2023, ENS DAO voted to sell 10,000 ETH (approximately $16M) for 18 to 24 months of operations ([EP3.3](https://docs.ens.domains/dao/proposals/3.3)). Some delegates wanted to sell in small parts. Each part needed a separate vote. Thus the DAO sold all of the ETH in one trade through CoW Swap, with a slippage limit of 2% (approximately $323k). The size and the time of the sale were public for weeks.
 
 <p align="center">
-  <img src="docs/readme/governance-paths.png" alt="Top: the EP3.3 path, a vote per tranche and a one-shot sale. Bottom: the watermark path, one vote, then many fills that earn the spread." width="900" />
+  <img src="docs/readme/governance-paths.png" alt="Top: the EP3.3 path, with a vote for each part and a sale in one trade. Bottom: the watermark path, with one vote and many fills that earn the spread." width="900" />
 </p>
 
 <p align="center">
-  <img src="docs/readme/taker-vs-maker-cost.png" alt="Selling 10,000 ETH: the $323k slippage budget accepted as a taker, against $16k to $40k of spread set as a maker." width="760" />
-  <br /><sub>Maker bars are illustrative and assume a full fill.</sub>
+  <img src="docs/readme/taker-vs-maker-cost.png" alt="A sale of 10,000 ETH: the $323k slippage limit of a taker, and $16k to $40k of spread for a maker." width="760" />
+  <br /><sub>The maker values are examples. They assume that the market makers buy all of the ETH.</sub>
 </p>
 
 ## What watermark does
 
-watermark flips the treasury from taker to maker.
+watermark changes the role of the treasury from taker to maker.
 
-- **Quote, don't dump.** The Safe signs once and ships one SwapVM strategy to 1inch Aqua. The treasury quotes its own buy and sell prices around the oracle price, and market makers fill them in small pieces over time. The treasury earns the spread on every fill instead of paying it, and tokens leave the Safe only at the moment of each fill. In the demo a sale fills 3 bp above the oracle price, where dumping with a 2% slippage budget can cost up to 2%.
-- **Only market makers it names.** An open quote is a free option: when the price moves, the fastest bot takes the treasury's price before the treasury can change it. So each market maker gets an ENS name under the treasury, like `mm-a.clients.dao-treasury-a.eth`. At every fill the router checks that name. It must point to the wallet that is trading, it must not have expired, and it must carry the treasury's terms. Any other wallet is refused on chain before a token moves.
-- **Spreads that follow behavior.** The treasury writes its policy once, in plain English, and sets the widest spread any market maker can get. After each fill a risk agent looks at how that market maker traded (how big, how often, and whether the price jumped their way right after) and writes its next spread to its ENS name. It never goes past the limit and needs no new Safe signature. Market makers who trade fair get up to 3× tighter spreads. Those who trade sharp stay at the edge.
+### The treasury quotes its own prices
+
+- The Safe signs one time. It sends one SwapVM strategy to 1inch Aqua.
+- The strategy quotes a sell price and a buy price near the oracle price.
+- Market makers fill the quote in small parts over time.
+- The treasury earns the spread on each fill.
+- The tokens stay in the Safe until each fill.
+
+In the demo, a sale fills 3 bp above the oracle price. A sale into the market with a 2% slippage limit can lose up to 2%.
+
+### Only named market makers can fill
+
+An open quote is a risk. When the market price moves, a fast bot can fill the old price before the treasury changes it. Thus each market maker gets an ENS name under the name of the treasury, for example `mm-a.clients.dao-treasury-a.eth`.
+
+At each fill, the router reads this name. The fill occurs only if all of these conditions are true:
+
+- The name points to the wallet that trades.
+- The name is not expired.
+- The name has the terms of the treasury.
+
+If one condition is false, the router stops the fill before tokens move.
+
+### The spread changes with the behavior of each market maker
+
+The treasury writes its policy one time, in plain English. The policy sets the maximum spread for each market maker. After each fill, a risk agent examines how the market maker traded:
+
+- the size of the trade
+- the number of trades in a short time
+- the movement of the price after the trade
+
+Then the agent writes the next spread for that market maker to its ENS name. The spread always stays in the limits of the policy. The Safe does not sign again.
+
+A market maker that trades fairly can get a spread that is up to 3 times smaller. A market maker that often trades just before the price moves in its favor stays at the maximum spread.
+
+## Terms
+
+| Term | Meaning | Name in the code |
+| --- | --- | --- |
+| **Treasury** | The Safe multisig of the DAO. The treasury holds the assets and sets the prices. The treasury is the maker. | `safe` |
+| **Desk** | The open offer of one treasury to trade. A desk has two parts. The first part is the strategy that the Safe sends one time to 1inch Aqua. The second part is the rules in the ENS names of the treasury. In the web app, "Open a desk" makes a desk. | `DeskRouter`, `@desk/lib`, `desk.*` records |
+| **Named market maker** | A company that the treasury permits to fill its quote. Each named market maker has an ENS name under the treasury, for example `mm-a.clients.dao-treasury-a.eth`. The contracts use the word "taker". | `taker`, `mms` |
+| **Terms** | The maximum spread and the maximum fill size for one market maker. Only the Safe can change the terms. | `desk.terms` |
+| **Spread** | For one market maker, the distance of the treasury prices from the oracle price. The sell price is above the oracle price. The buy price is below it. The risk agent sets the spread in the limits of the terms. If no spread is set, the terms apply. | `desk.spread` |
+| **Policy** | The rules of the treasury for the risk agent, in plain English. | `desk.policy` |
+| **Fill** | One trade by a named market maker at the price of the treasury. | `DeskFill` event |
 
 ## How it works
 
-### Terms
-
-| Term | What it means | Name in the code |
-| --- | --- | --- |
-| **Treasury** | The DAO's Safe multisig. It holds the assets and sets the prices, so it is the maker. | `safe` |
-| **Desk** | One treasury's standing offer to trade: the strategy the Safe ships once to 1inch Aqua, plus the rules kept on the treasury's ENS names. In the web app, "Open a desk" sets one up. | `DeskRouter`, `@desk/lib`, `desk.*` records |
-| **Named market maker** | A trading firm the treasury allows to fill its prices, identified by an ENS name under the treasury, like `mm-a.clients.dao-treasury-a.eth`. The contracts call it the taker. | `taker`, `mms` |
-| **Terms** | The widest spread and the largest single fill the treasury allows one market maker. Only the Safe can change them. | `desk.terms` |
-| **Spread** | How far above the oracle price the treasury sells, and how far below it buys, for one market maker right now. The risk agent sets it inside the terms; when none is set, the terms apply. | `desk.spread` |
-| **Policy** | The treasury's rules for the risk agent, in plain English. | `desk.policy` |
-| **Fill** | One trade by a named market maker against the treasury's prices. | `DeskFill` event |
-
 ```mermaid
 flowchart LR
-  Safe["DAO Safe<br/>(maker, 2-of-3)"] -- "ships one strategy" --> Aqua["1inch Aqua"]
+  Safe["DAO Safe<br/>(maker, 2-of-3)"] -- "sends one strategy" --> Aqua["1inch Aqua"]
   Safe -- "desk.terms · desk.policy" --> ENS["ENSv2 names<br/>*.clients.dao-treasury-a.eth"]
   Taker["Named market maker<br/>(mm-a, mm-b)"] -- "swap" --> Router["DeskRouter<br/>(SwapVM v1.0.2)"]
   Aqua --> Router
   ENS -- "EnsGate: addr · expiry" --> Router
   ENS -- "DeskPrice: terms · spread" --> Router
-  Oracle["Oracle mid"] --> Router
+  Oracle["Oracle price"] --> Router
   Router -- "DeskFill" --> Agent["Risk agent<br/>(keeper)"]
   Agent -- "desk.spread · desk.stats" --> ENS
 ```
 
-The router is a copy of the SwapVM v1.0.2 Aqua router with its opcode table cut down (no fees, no AMM curves) and two instructions added. The contracts store no configuration. Everything they read at fill time lives in ENS.
+The router is a copy of the SwapVM v1.0.2 Aqua router. We removed the fee and AMM instructions, and we added two instructions. The contracts keep no configuration. At each fill, the router reads all of its settings from ENS.
 
-| Piece | What it does |
+| Part | Function |
 | --- | --- |
-| **EnsGate** (opcode 34) | The taker (the market maker filling the quote) must be the `addr` of a name under `clients.dao-treasury-a.eth` that has not expired and uses the treasury's ENS resolver. Otherwise the fill reverts. |
-| **DeskPrice** (opcode 35) | Prices from the oracle mid: `ask = mid × (1 + sell)`, `bid = mid × (1 − buy)`. The widths come from that name's live `desk.spread`, or else its `desk.terms`. The oracle must be fresh (600 s), one fill is capped by the name's terms, and the treasury stops selling ETH once ETH falls to 70% of its holdings by value. |
-| **Risk agent** | A keeper watches `DeskFill`, reads `desk.policy`, picks the filler's next tier and writes `desk.spread` and `desk.stats` on that name. The Safe grants it those two records only: it cannot touch terms, addresses, caps, expiry or the oracle. |
-| **Web app** | Treasury view (Dashboard, Open a desk, Counterparties, Risk agent, Fills, Controls), market maker view (Trade, My fills), and Verify a fill, which recomputes any fill's price from chain data. |
+| **EnsGate** (opcode 34) | Makes sure that the taker is the `addr` of a name under `clients.dao-treasury-a.eth`. The name must not be expired. The name must use the ENS resolver of the treasury. If a check fails, the fill reverts. |
+| **DeskPrice** (opcode 35) | Calculates the price from the oracle price: `ask = mid × (1 + sell)`, `bid = mid × (1 − buy)`. It uses the live `desk.spread` of the name. If there is no live spread, it uses the `desk.terms` of the name. The oracle price must be less than 600 seconds old. The terms of the name set the maximum fill size. When ETH is 70% of the holdings by value, the treasury stops sales of ETH. |
+| **Risk agent** | A keeper reads each `DeskFill` event and the `desk.policy` record. It selects the next tier for the market maker. Then it writes `desk.spread` and `desk.stats` on the name of the market maker. The Safe gives the agent permission for these two records only. The agent cannot change the terms, the addresses, the caps, the expiry, or the oracle. |
+| **Web app** | Pages for the treasury: Dashboard, Open a desk, Counterparties, Risk agent, Fills, Controls. Pages for market makers: Trade, My fills. The "Verify a fill" page calculates the price of a fill again from on-chain data. |
 
 ### The demo setup
 
@@ -87,11 +118,11 @@ The router is a copy of the SwapVM v1.0.2 Aqua router with its opcode table cut 
 | --- | --- |
 | Treasury ENS name | `dao-treasury-a.eth` |
 | Named market makers | `mm-a.clients.dao-treasury-a.eth`, `mm-b.clients.dao-treasury-a.eth` |
-| Terms (widest spread) | sell 3 bp, buy 10 bp |
+| Terms (maximum spread) | sell 3 bp, buy 10 bp |
 | Agent tiers (sell / buy) | tight 1 / 4 bp, standard 2 / 8 bp, limit 3 / 10 bp |
-| Cap per fill | 50 ETH |
-| ETH sales stop at | 70% of holdings by value |
-| Oracle freshness | 600 s (50 blocks) |
+| Maximum fill size | 50 ETH |
+| Sales of ETH stop at | 70% of the holdings by value |
+| Maximum age of the oracle price | 600 s (50 blocks) |
 
 ## Live on Sepolia
 
@@ -104,25 +135,25 @@ The router is a copy of the SwapVM v1.0.2 Aqua router with its opcode table cut 
 | ENS resolver | [`0x228bd144dB976960E8D5AbfAe6d5CeB15346970F`](https://sepolia.etherscan.io/address/0x228bd144dB976960E8D5AbfAe6d5CeB15346970F) |
 | Risk agent (`risk.agents.dao-treasury-a.eth`) | [`0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899`](https://sepolia.etherscan.io/address/0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899) |
 
-Every address and setting is in [`config/sepolia.json`](config/sepolia.json). The ENS side (registries, names, the Safe handoff) is in [`ens/README.md`](ens/README.md).
+All addresses and settings are in [`config/sepolia.json`](config/sepolia.json). The ENS setup (registries, names, and the Safe handoff) is in [`ens/README.md`](ens/README.md).
 
 ## Repository
 
-| Path | What's there |
+| Path | Contents |
 | --- | --- |
-| [`contracts/`](contracts) | Foundry. `DeskRouter`, `EnsGate`, `DeskPrice`, the deploy and oracle scripts, and tests including a Sepolia ENS fork test. SwapVM v1.0.2 is the submodule in `contracts/lib/swap-vm`. |
-| [`ts/`](ts) | `@desk/lib`: encoders, the price mirror, the browser client, Safe setup, `ship`, the keeper and risk agent, the market-maker bot, demo scenes and e2e. |
-| [`web/`](web) | The watermark web app: Vite, React, Astryx, wagmi and viem. Deployed on Vercel. |
-| [`api/`](api) | Read API and Sepolia indexer on SQLite. Deployed on Render. |
-| [`ens/`](ens) | ENS lane: resolver, subregistries, names, records and the Safe handoff. |
-| [`docs/`](docs) | [Agent design](docs/agent-design.md), [decision log](docs/decision-log.md), [diagrams](docs/diagrams), the [design system](docs/design) and the build rules. |
-| [`requirements/`](requirements) | One requirement per pull request. |
+| [`contracts/`](contracts) | Foundry project: `DeskRouter`, `EnsGate`, `DeskPrice`, the deploy and oracle scripts, and the tests. The tests include a fork test on Sepolia ENS. SwapVM v1.0.2 is a submodule in `contracts/lib/swap-vm`. |
+| [`ts/`](ts) | `@desk/lib`: encoders, the price mirror, the browser client, Safe setup, `ship`, the keeper and risk agent, the market maker bot, demo scenes, and end-to-end tests. |
+| [`web/`](web) | The watermark web app: Vite, React, Astryx, wagmi, and viem. Vercel hosts the web app. |
+| [`api/`](api) | The read API and the Sepolia indexer, with SQLite. Render hosts the API. |
+| [`ens/`](ens) | The ENS setup: resolver, subregistries, names, records, and the Safe handoff. |
+| [`docs/`](docs) | [Agent design](docs/agent-design.md), [decision log](docs/decision-log.md), [diagrams](docs/diagrams), and the [design system](docs/design). |
+| [`requirements/`](requirements) | One requirement for each pull request. See [CONTRIBUTING.md](CONTRIBUTING.md). |
 
-The code keeps the Desk names (`DeskRouter`, `@desk/lib`, the `desk.*` ENS records). The [Terms](#terms) table maps them to the words used here.
+The code uses the old name "Desk" (`DeskRouter`, `@desk/lib`, and the `desk.*` ENS records). The [Terms](#terms) table gives the product word for each code name.
 
-## Run it
+## How to run
 
-Needs Foundry, Node 24, pnpm 11 and yarn 1.22. CI's exact versions are in [`.github/workflows/qc.yml`](.github/workflows/qc.yml).
+You need Foundry, Node 24, pnpm 11, and yarn 1.22. The CI versions are in [`.github/workflows/qc.yml`](.github/workflows/qc.yml).
 
 ```bash
 git submodule update --init
@@ -133,11 +164,11 @@ pnpm install
 ### Web app
 
 ```bash
-cp web/.env.example web/.env.local   # VITE_DESK_MODE=live reads Sepolia; fixture uses seeded data
+cp web/.env.example web/.env.local   # VITE_DESK_MODE=live reads Sepolia. fixture uses test data.
 pnpm -C web dev --host 127.0.0.1 --port 5173
 ```
 
-See [`web/README.md`](web/README.md) for the build, the preview and the licensed font.
+For the build, the preview, and the licensed font, see [`web/README.md`](web/README.md).
 
 ### QC gate
 
@@ -145,49 +176,32 @@ See [`web/README.md`](web/README.md) for the build, the preview and the licensed
 make check
 ```
 
-`make check` runs, in order: `forge fmt --check`, `forge build --sizes`, `forge test`, `pnpm -C ts lint`, `pnpm -C ts typecheck`, `pnpm -C ts test --passWithNoTests`, `pnpm secretlint "**/*"`. CI runs it on every pull request.
+`make check` runs these commands in this sequence: `forge fmt --check`, `forge build --sizes`, `forge test`, `pnpm -C ts lint`, `pnpm -C ts typecheck`, `pnpm -C ts test --passWithNoTests`, `pnpm secretlint "**/*"`. CI runs `make check` on each pull request.
 
 ### Deploy and demo (Sepolia)
 
-Copy `.env.example` to `.env` on the one machine that sends transactions. Then:
+Copy `.env.example` to `.env` on the one computer that sends transactions. Then run these commands:
 
 ```bash
 (cd contracts && forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify)
 pnpm safe:setup --mint
 pnpm ship
-pnpm -C ts keeper          # the risk agent: writes each filler's next spread
-pnpm -C ts demo <scene>    # setup, trade, target, stale, second-ship or restore
+pnpm -C ts keeper          # the risk agent: writes the next spread for each market maker
+pnpm -C ts demo <scene>    # setup, trade, target, stale, second-ship, or restore
 ```
 
-The ENS names and records must exist before `ship`. See [`ens/README.md`](ens/README.md).
+Make the ENS names and records before you run `ship`. See [`ens/README.md`](ens/README.md).
 
 ## Team
 
-Born at ETHGlobal Tokyo 2026. Built by **hyeon-Sec**, **sdh2222** and **3DUCK** with [@BlockchainatYU](https://x.com/BlockchainatYU).
+watermark started at ETHGlobal Tokyo 2026. The builders are **hyeon-Sec**, **sdh2222**, and **3DUCK**, with [@BlockchainatYU](https://x.com/BlockchainatYU).
 
-Thank you to the 1inch and ENS teams for the ground this stands on.
+We thank the 1inch and ENS teams for their work.
 
 ## Credits
 
-Powered by SwapVM. Copyright © 2025 Degensoft Ltd. SwapVM v1.0.2 is used under `LicenseRef-Degensoft-SwapVM-1.1`; the modified files are listed in [`NOTICE.md`](NOTICE.md). Built on 1inch Aqua and ENSv2. This project is not affiliated with or endorsed by Degensoft, 1inch or ENS.
+Powered by SwapVM. Copyright © 2025 Degensoft Ltd. We use SwapVM v1.0.2 under `LicenseRef-Degensoft-SwapVM-1.1`. [`NOTICE.md`](NOTICE.md) lists the files that we changed. watermark uses 1inch Aqua and ENSv2. This project has no affiliation with Degensoft, 1inch, or ENS, and they do not endorse it.
 
-## How we build
+## Contributing
 
-This repository is separate from [sdh2222/ethtokyo](https://github.com/sdh2222/ethtokyo), which stays the briefing workspace. Product changes land here, one requirement per pull request.
-
-1. A member opens a pull request whose only new file is one requirement under `requirements/`.
-2. One cloud agent claims that PR. If the requirement is unclear, the agent asks the missing questions and stops. If it is clear, the agent implements that requirement only and pushes onto the same branch.
-3. The main agent, or the member who opened the PR, reviews code quality and runs QA.
-4. Pass merges. A failed implementation goes back to the agent with the defects. A failed requirement is rewritten and starts again at the clarity check.
-
-An agent that implements a fuzzy requirement guesses, and the review then argues about the guess. Stopping before any product code is the fast path. A clear requirement is one behavior, with acceptance checks someone can run.
-
-The state machine is in [docs/loop.md](docs/loop.md), the reviewer checklist in [docs/review.md](docs/review.md) and the implementer rules in [AGENTS.md](AGENTS.md).
-
-| Label | Meaning |
-| --- | --- |
-| `requirement` | Intake. One requirement, no product code yet. |
-| `needs-clarification` | Agent stopped. Waiting on the author. |
-| `implementing` | Claimed and clear. Agent is writing the one change. |
-| `in-review` | Implementation is pushed. Waiting on QA. |
-| `re-requirement` | The requirement itself changed. Clarity check runs again. |
+See [CONTRIBUTING.md](CONTRIBUTING.md).
