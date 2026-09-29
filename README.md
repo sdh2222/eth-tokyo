@@ -42,6 +42,10 @@ Example: In February 2023, ENS DAO voted to sell 10,000 ETH (approximately $16M)
 
 watermark changes the role of the treasury from taker to maker.
 
+<p align="center">
+  <img src="docs/readme/three-venues.png" alt="Three ways to sell. AMM pool: anyone can trade, and the curve sets the price. Order book: anyone can trade, and an operator runs the matching engine. watermark: only named market makers can trade, each at its own spread, and other wallets are refused." width="900" />
+</p>
+
 ### The treasury quotes its own prices
 
 - The Safe signs one time. It sends one SwapVM strategy to 1inch Aqua.
@@ -90,18 +94,9 @@ A market maker that trades fairly can get a spread that is up to 3 times smaller
 
 ## How it works
 
-```mermaid
-flowchart LR
-  Safe["DAO Safe<br/>(maker, 2-of-3)"] -- "sends one strategy" --> Aqua["1inch Aqua"]
-  Safe -- "desk.terms · desk.policy" --> ENS["ENSv2 names<br/>*.clients.dao-treasury-a.eth"]
-  Taker["Named market maker<br/>(mm-a, mm-b)"] -- "swap" --> Router["DeskRouter<br/>(SwapVM v1.0.2)"]
-  Aqua --> Router
-  ENS -- "EnsGate: addr · expiry" --> Router
-  ENS -- "DeskPrice: terms · spread" --> Router
-  Oracle["Oracle price"] --> Router
-  Router -- "DeskFill" --> Agent["Risk agent<br/>(keeper)"]
-  Agent -- "desk.spread · desk.stats" --> ENS
-```
+<p align="center">
+  <img src="docs/readme/fill-flow.png" alt="One fill, end to end: the named market maker calls DeskRouter. The router checks the ENS name, reads the oracle price and the Aqua balances, and settles. Aqua moves ETH from the Safe and USDC to the Safe. The risk agent reads the fill and writes the next spread to the ENS name." width="900" />
+</p>
 
 The router is a copy of the SwapVM v1.0.2 Aqua router. We removed the fee and AMM instructions, and we added two instructions. The contracts keep no configuration. At each fill, the router reads all of its settings from ENS.
 
