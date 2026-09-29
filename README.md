@@ -5,8 +5,8 @@
 <h1 align="center">watermark</h1>
 
 <p align="center">
-  <strong>Your treasury, now a market maker.</strong><br />
-  One Safe signature opens the desk. Named takers do the rest.
+  <strong>Solving the DAO treasury asset disposal problem.</strong><br />
+  Stop paying the spread. Start earning it.
 </p>
 
 <p align="center">
@@ -20,17 +20,19 @@
 
 ---
 
-## The problem
+We built watermark, a tool for how DAO treasuries sell their assets. Instead of dumping into the market as a taker and paying the spread, the treasury quotes its own prices to market makers it names and earns the spread instead, built on 1inch Aqua and ENSv2.
 
-A DAO sells treasury assets through a multisig. Selling in slices means a proposal, signatures and a fresh price for every slice, so the whole amount usually goes out at once: into a pool that charges slippage on size, or to a solver whose price already holds its cut.
+## The problem: treasury asset disposal
+
+When a DAO sells treasury assets today, it is the taker. It dumps into a pool and pays slippage on size, or sells to a solver whose price already holds its cut. Either way the spread goes to someone else. Selling in smaller slices doesn't fix it: every slice through a multisig means another proposal, another round of signatures and another price, so the whole amount usually goes out at once.
 
 ## What watermark does
 
-watermark lets the DAO sell at its own price instead, a little at a time, and only to traders it has approved.
+watermark flips the treasury from taker to maker.
 
-- **Quote, don't dump.** The Safe signs once and ships one SwapVM strategy to 1inch Aqua. The DAO posts its own price on the oracle mid, takers fill it in small pieces over time, and tokens leave the Safe only at the moment of each fill.
-- **Only named takers.** Every counterparty is an ENS name under the desk, like `mm-a.clients.dao-treasury-a.eth`. At every fill the router reads that name. It must point to the wallet that is trading, it must not have expired, and it must carry the DAO's terms. Any other wallet is refused on chain before a token moves.
-- **Spreads that follow behavior.** The DAO writes its policy once, in plain English, and sets the widest spread any taker can get. After each fill a risk agent looks at how that taker traded (how big, how often, and whether the price jumped their way right after) and writes that taker's next spread to its ENS name. It never goes past the limit and needs no new Safe signature. Takers who trade fair get up to 3× tighter spreads. Takers who trade sharp stay at the edge.
+- **Quote, don't dump.** The Safe signs once and ships one SwapVM strategy to 1inch Aqua. The treasury quotes its own buy and sell prices around the oracle price, and market makers fill them in small pieces over time. The treasury earns the spread on every fill instead of paying it, and tokens leave the Safe only at the moment of each fill. In the demo a sale fills 3 bp above the oracle price, where dumping with a 2% slippage budget can cost up to 2%.
+- **Only market makers it names.** An open quote is a free option: when the price moves, the fastest bot takes the treasury's price before the treasury can change it. So each market maker gets an ENS name under the treasury, like `mm-a.clients.dao-treasury-a.eth`. At every fill the router checks that name. It must point to the wallet that is trading, it must not have expired, and it must carry the treasury's terms. Any other wallet is refused on chain before a token moves.
+- **Spreads that follow behavior.** The treasury writes its policy once, in plain English, and sets the widest spread any market maker can get. After each fill a risk agent looks at how that market maker traded (how big, how often, and whether the price jumped their way right after) and writes its next spread to its ENS name. It never goes past the limit and needs no new Safe signature. Market makers who trade fair get up to 3× tighter spreads. Those who trade sharp stay at the edge.
 
 ## How it works
 
@@ -38,7 +40,7 @@ watermark lets the DAO sell at its own price instead, a little at a time, and on
 flowchart LR
   Safe["DAO Safe<br/>(maker, 2-of-3)"] -- "ships one strategy" --> Aqua["1inch Aqua"]
   Safe -- "desk.terms · desk.policy" --> ENS["ENSv2 names<br/>*.clients.dao-treasury-a.eth"]
-  Taker["Named taker<br/>(mm-a, mm-b)"] -- "swap" --> Router["DeskRouter<br/>(SwapVM v1.0.2)"]
+  Taker["Named market maker<br/>(mm-a, mm-b)"] -- "swap" --> Router["DeskRouter<br/>(SwapVM v1.0.2)"]
   Aqua --> Router
   ENS -- "EnsGate: addr · expiry" --> Router
   ENS -- "DeskPrice: terms · spread" --> Router
@@ -51,17 +53,17 @@ The router is a copy of the SwapVM v1.0.2 Aqua router with its opcode table cut 
 
 | Piece | What it does |
 | --- | --- |
-| **EnsGate** (opcode 34) | The taker must be the `addr` of a name under `clients.dao-treasury-a.eth` that has not expired and uses the desk's resolver. Otherwise the fill reverts. |
+| **EnsGate** (opcode 34) | The taker (the market maker filling the quote) must be the `addr` of a name under `clients.dao-treasury-a.eth` that has not expired and uses the desk's resolver. Otherwise the fill reverts. |
 | **DeskPrice** (opcode 35) | Prices from the oracle mid: `ask = mid × (1 + sell)`, `bid = mid × (1 − buy)`. The widths come from that name's live `desk.spread`, or else its `desk.terms`. The oracle must be fresh (600 s), one fill is capped by the name's terms, and the desk stops selling ETH once ETH is 70% of the book. |
 | **Risk agent** | A keeper watches `DeskFill`, reads `desk.policy`, picks the filler's next tier and writes `desk.spread` and `desk.stats` on that name. The Safe grants it those two records only: it cannot touch terms, addresses, caps, expiry or the oracle. |
-| **Web app** | Treasury view (Dashboard, Open a desk, Counterparties, Risk agent, Fills, Controls), taker view (Trade, My fills), and Verify a fill, which recomputes any fill's price from chain data. |
+| **Web app** | Treasury view (Dashboard, Open a desk, Counterparties, Risk agent, Fills, Controls), market maker view (Trade, My fills), and Verify a fill, which recomputes any fill's price from chain data. |
 
 ### The demo desk
 
 | Setting | Value |
 | --- | --- |
 | Desk name | `dao-treasury-a.eth` |
-| Counterparties | `mm-a.clients.dao-treasury-a.eth`, `mm-b.clients.dao-treasury-a.eth` |
+| Named market makers | `mm-a.clients.dao-treasury-a.eth`, `mm-b.clients.dao-treasury-a.eth` |
 | Terms (widest spread) | sell 3 bp, buy 10 bp |
 | Agent tiers (sell / buy) | tight 1 / 4 bp, standard 2 / 8 bp, limit 3 / 10 bp |
 | Cap per fill | 50 ETH |
