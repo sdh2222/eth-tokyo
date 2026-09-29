@@ -26,7 +26,7 @@ A DAO sells treasury assets through a multisig. Selling in slices means a propos
 
 ## What watermark does
 
-watermark turns the DAO's Safe into its own OTC desk.
+watermark lets the DAO sell at its own price instead, a little at a time, and only to traders it has approved.
 
 - **Quote, don't dump.** The Safe signs once and ships one SwapVM strategy to 1inch Aqua. The DAO posts its own price on the oracle mid, takers fill it in small pieces over time, and tokens leave the Safe only at the moment of each fill.
 - **Only named takers.** Every counterparty is an ENS name under the desk, like `mm-a.clients.dao-treasury-a.eth`. At every fill the router reads that name. It must point to the wallet that is trading, it must not have expired, and it must carry the DAO's terms. Any other wallet is refused on chain before a token moves.
