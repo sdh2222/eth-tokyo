@@ -43,11 +43,12 @@ const ARGS_SHOWN = 34;
 type InstructionRow = { id: string; opcode: string; does: string; args: string; bytes: string };
 
 // Every instruction in order: one opcode byte, one length byte, then the args.
+// Only zero bytes after an instruction are the padding of the shipped order, not instructions.
 function instructions(program: Hex): InstructionRow[] {
   const body = program.slice(2);
   const rows: InstructionRow[] = [];
   let i = 0;
-  while (i + 4 <= body.length) {
+  while (i + 4 <= body.length && !/^0+$/.test(body.slice(i))) {
     const opcode = Number.parseInt(body.slice(i, i + 2), 16);
     const len = Number.parseInt(body.slice(i + 2, i + 4), 16);
     const end = i + 4 + len * 2;
@@ -104,7 +105,7 @@ export function ProgramPage() {
   const program: Hex = liveMode || strategy.program !== "0x" ? strategy.program : PROGRAM_HEX;
   const lines = programLines(port, strategy);
   const rows = instructions(program);
-  const byteCount = (program.length - 2) / 2;
+  const byteCount = rows.reduce((sum, row) => sum + row.bytes.length / 2, 0);
   const block = strategy.shippedAt.block.toLocaleString("en-US");
   // The hovered pair stays in ink; every other row and line dims.
   const dim = (id: string) => (hovered !== null && hovered !== id ? "v-muted" : undefined);
