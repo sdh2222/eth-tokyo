@@ -11,7 +11,7 @@
 
 <p align="center">
   🏆 <strong>ETHGlobal Tokyo 2026 · Finalist</strong><br />
-  🥉 <strong>ETHGlobal Tokyo 2026 Partner Track · 1inch Best Aqua App · 3rd place</strong>
+  🥉 <strong>ETHGlobal Tokyo 2026 Partner Track · 1inch Build an Aqua App · 3rd place</strong>
 </p>
 
 <p align="center">
