@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Solving the DAO treasury asset disposal problem.</strong><br />
-  Stop paying the spread. Start earning it.
+  DAO treasuries should stop losing money to the spread every time they sell.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ---
 
-We built watermark, a tool for how DAO treasuries sell their assets. Instead of dumping into the market as a taker and paying the spread, the treasury quotes its own prices to market makers it names and earns the spread instead, built on 1inch Aqua and ENSv2.
+**watermark**, a tool for how DAO treasuries sell their assets. Instead of dumping into the market as a taker and paying the spread, the treasury quotes its own prices to market makers it names and earns the spread instead, built on 1inch Aqua and ENSv2.
 
 ## The problem: treasury asset disposal
 
@@ -35,6 +35,18 @@ watermark flips the treasury from taker to maker.
 - **Spreads that follow behavior.** The treasury writes its policy once, in plain English, and sets the widest spread any market maker can get. After each fill a risk agent looks at how that market maker traded (how big, how often, and whether the price jumped their way right after) and writes its next spread to its ENS name. It never goes past the limit and needs no new Safe signature. Market makers who trade fair get up to 3× tighter spreads. Those who trade sharp stay at the edge.
 
 ## How it works
+
+### Terms
+
+| Term | What it means | Name in the code |
+| --- | --- | --- |
+| **Treasury** | The DAO's Safe multisig. It holds the assets and sets the prices, so it is the maker. | `safe` |
+| **Desk** | One treasury's standing offer to trade: the strategy the Safe ships once to 1inch Aqua, plus the rules kept on the treasury's ENS names. In the web app, "Open a desk" sets one up. | `DeskRouter`, `@desk/lib`, `desk.*` records |
+| **Named market maker** | A trading firm the treasury allows to fill its prices, identified by an ENS name under the treasury, like `mm-a.clients.dao-treasury-a.eth`. The contracts call it the taker. | `taker`, `mms` |
+| **Terms** | The widest spread and the largest single fill the treasury allows one market maker. Only the Safe can change them. | `desk.terms` |
+| **Spread** | How far above the oracle price the treasury sells, and how far below it buys, for one market maker right now. The risk agent sets it inside the terms; when none is set, the terms apply. | `desk.spread` |
+| **Policy** | The treasury's rules for the risk agent, in plain English. | `desk.policy` |
+| **Fill** | One trade by a named market maker against the treasury's prices. | `DeskFill` event |
 
 ```mermaid
 flowchart LR
@@ -53,21 +65,21 @@ The router is a copy of the SwapVM v1.0.2 Aqua router with its opcode table cut 
 
 | Piece | What it does |
 | --- | --- |
-| **EnsGate** (opcode 34) | The taker (the market maker filling the quote) must be the `addr` of a name under `clients.dao-treasury-a.eth` that has not expired and uses the desk's resolver. Otherwise the fill reverts. |
-| **DeskPrice** (opcode 35) | Prices from the oracle mid: `ask = mid × (1 + sell)`, `bid = mid × (1 − buy)`. The widths come from that name's live `desk.spread`, or else its `desk.terms`. The oracle must be fresh (600 s), one fill is capped by the name's terms, and the desk stops selling ETH once ETH is 70% of the book. |
+| **EnsGate** (opcode 34) | The taker (the market maker filling the quote) must be the `addr` of a name under `clients.dao-treasury-a.eth` that has not expired and uses the treasury's ENS resolver. Otherwise the fill reverts. |
+| **DeskPrice** (opcode 35) | Prices from the oracle mid: `ask = mid × (1 + sell)`, `bid = mid × (1 − buy)`. The widths come from that name's live `desk.spread`, or else its `desk.terms`. The oracle must be fresh (600 s), one fill is capped by the name's terms, and the treasury stops selling ETH once ETH falls to 70% of its holdings by value. |
 | **Risk agent** | A keeper watches `DeskFill`, reads `desk.policy`, picks the filler's next tier and writes `desk.spread` and `desk.stats` on that name. The Safe grants it those two records only: it cannot touch terms, addresses, caps, expiry or the oracle. |
 | **Web app** | Treasury view (Dashboard, Open a desk, Counterparties, Risk agent, Fills, Controls), market maker view (Trade, My fills), and Verify a fill, which recomputes any fill's price from chain data. |
 
-### The demo desk
+### The demo setup
 
 | Setting | Value |
 | --- | --- |
-| Desk name | `dao-treasury-a.eth` |
+| Treasury ENS name | `dao-treasury-a.eth` |
 | Named market makers | `mm-a.clients.dao-treasury-a.eth`, `mm-b.clients.dao-treasury-a.eth` |
 | Terms (widest spread) | sell 3 bp, buy 10 bp |
 | Agent tiers (sell / buy) | tight 1 / 4 bp, standard 2 / 8 bp, limit 3 / 10 bp |
 | Cap per fill | 50 ETH |
-| ETH target | 70% of the book |
+| ETH sales stop at | 70% of holdings by value |
 | Oracle freshness | 600 s (50 blocks) |
 
 ## Live on Sepolia
@@ -81,7 +93,7 @@ The router is a copy of the SwapVM v1.0.2 Aqua router with its opcode table cut 
 | ENS resolver | [`0x228bd144dB976960E8D5AbfAe6d5CeB15346970F`](https://sepolia.etherscan.io/address/0x228bd144dB976960E8D5AbfAe6d5CeB15346970F) |
 | Risk agent (`risk.agents.dao-treasury-a.eth`) | [`0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899`](https://sepolia.etherscan.io/address/0xcCf3e2aD56Af881C13CCEb19Ab6cEbFbDD739899) |
 
-Every address and desk parameter is in [`config/sepolia.json`](config/sepolia.json). The ENS side (registries, names, the Safe handoff) is in [`ens/README.md`](ens/README.md).
+Every address and setting is in [`config/sepolia.json`](config/sepolia.json). The ENS side (registries, names, the Safe handoff) is in [`ens/README.md`](ens/README.md).
 
 ## Repository
 
@@ -95,7 +107,7 @@ Every address and desk parameter is in [`config/sepolia.json`](config/sepolia.js
 | [`docs/`](docs) | [Agent design](docs/agent-design.md), [decision log](docs/decision-log.md), [diagrams](docs/diagrams), the [design system](docs/design) and the build rules. |
 | [`requirements/`](requirements) | One requirement per pull request. |
 
-Inside the code the project is still called Desk (`DeskRouter`, `@desk/lib`, the `desk.*` ENS records). watermark is the product name.
+The code keeps the Desk names (`DeskRouter`, `@desk/lib`, the `desk.*` ENS records). The [Terms](#terms) table maps them to the words used here.
 
 ## Run it
 
