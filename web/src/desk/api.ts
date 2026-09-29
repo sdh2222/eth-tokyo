@@ -1,6 +1,6 @@
 import type { DeskState, FillRecord, StrategyInfo } from "./types";
 
-const API = "https://desk-api-latest.onrender.com";
+const API = "https://watermark-k4ub.onrender.com";
 
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API}${path}`);
